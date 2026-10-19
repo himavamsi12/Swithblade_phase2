@@ -108,11 +108,11 @@ export type LineSnapshot = {
 /*
  * The bag is snapshotted into the Razorpay order's notes, which only our
  * server (holding the key secret) can write. Notes allow 15 keys of up to
- * 256 characters, so the JSON is split across `cart0`, `cart1`, … and one key
- * is left for the customer id.
+ * 256 characters, so the JSON is split across `cart0`, `cart1`, … leaving one
+ * key for the customer id and two for the delivery address (see address.ts).
  */
 const NOTE_CHUNK = 255;
-const MAX_CART_NOTES = 14;
+const MAX_CART_NOTES = 12;
 
 export function encodeCartNotes(
   lines: PricedLine[],

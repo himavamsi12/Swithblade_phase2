@@ -11,6 +11,7 @@ import { getProductBySlug } from "@/features/catalog/repository";
 import type { Order } from "@/payload-types";
 import { supportedCountries } from "@/payload/countries";
 import { currenciesConfig } from "@/payload/currencies";
+import { decodeAddressNotes } from "./address";
 import { decodeCartNotes } from "./pricing";
 import { razorpayClient, type RazorpayConfig } from "./razorpay";
 
@@ -146,9 +147,11 @@ export async function recordRazorpayPayment(
         amount,
         currency: currency as Currency,
         totals: { subtotal, discountTotal: Math.max(0, subtotal - amount) },
+        // Magic Checkout collects it; otherwise the bag page put it in notes.
         shippingAddress: shippingAddress(
           (rzpOrder as { customer_details?: { shipping_address?: unknown } })
-            .customer_details?.shipping_address,
+            .customer_details?.shipping_address ??
+            decodeAddressNotes(rzpOrder.notes),
         ),
         lineItems: lines.map((l) => {
           const product = products.get(l.slug);

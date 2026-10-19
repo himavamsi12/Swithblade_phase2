@@ -7,6 +7,16 @@ import { getSignedInCustomer } from "@/features/account/customer";
 import { MAX_QUANTITY } from "@/features/cart/cart";
 import { getProductBySlug } from "@/features/catalog/repository";
 import { sendOrderToShiprocket } from "@/features/shipping/repository";
+import {
+  isServiceable,
+  shiprocketEnabled,
+} from "@/features/shipping/shiprocket";
+import { DEFAULT_PACKAGE } from "@/features/shipping/shiprocket-order";
+import {
+  deliveryAddressSchema,
+  encodeAddressNotes,
+  type DeliveryAddressInput,
+} from "./address";
 import { env } from "@/lib/env";
 import {
   encodeCartNotes,
@@ -23,6 +33,12 @@ import { recordRazorpayPayment } from "./repository";
 
 /** Magic Checkout (one-click, address + COD + coupons) only supports INR. */
 const MAGIC_CURRENCY = "INR";
+/*
+ * Off: in test mode Magic Checkout rejected every pincode without calling our
+ * shipping-info URL. The bag page collects the address instead. The Magic
+ * endpoints under /api/razorpay stay in place for switching it back on.
+ */
+const USE_MAGIC_CHECKOUT = false;
 
 const itemsSchema = z
   .array(
@@ -45,8 +61,15 @@ export type CheckoutSession =
       amount: number;
       currency: string;
       magic: boolean;
+      prefill: { name: string; contact: string };
     }
-  | { status: "error"; message: string; repriced?: CurrentPrice[] };
+  | {
+      status: "error";
+      message: string;
+      repriced?: CurrentPrice[];
+      /** Per-field messages for the delivery address form. */
+      fieldErrors?: Partial<Record<keyof DeliveryAddressInput, string>>;
+    };
 
 const absolute = (path: string) =>
   new URL(path, env.NEXT_PUBLIC_SITE_URL).toString();
@@ -71,7 +94,10 @@ function lineItem(line: PricedLine): Orders.LineItems {
 }
 
 /** Re-prices the bag on the server and opens a Razorpay order for it. */
-export async function createCheckout(input: unknown): Promise<CheckoutSession> {
+export async function createCheckout(
+  input: unknown,
+  addressInput: unknown,
+): Promise<CheckoutSession> {
   const config = razorpayConfig();
   if (!config) {
     return { status: "error", message: "Checkout isn't available yet." };
@@ -80,6 +106,49 @@ export async function createCheckout(input: unknown): Promise<CheckoutSession> {
   const items = itemsSchema.safeParse(input);
   if (!items.success) {
     return { status: "error", message: "Your bag couldn't be read." };
+  }
+
+  const address = deliveryAddressSchema.safeParse(addressInput);
+  if (!address.success) {
+    const fieldErrors: Partial<Record<keyof DeliveryAddressInput, string>> = {};
+    for (const issue of address.error.issues) {
+      const field = issue.path[0] as keyof DeliveryAddressInput;
+      fieldErrors[field] ??= issue.message;
+    }
+    return {
+      status: "error",
+      message: "Please check your delivery address.",
+      fieldErrors,
+    };
+  }
+  const addressNotes = encodeAddressNotes(address.data);
+  if (!addressNotes) {
+    return {
+      status: "error",
+      message: "Your delivery address is too long. Please shorten it.",
+    };
+  }
+  if (shiprocketEnabled()) {
+    const serviceable = await isServiceable(
+      address.data.pincode,
+      DEFAULT_PACKAGE.weightKg,
+    ).catch((error: unknown) => {
+      console.error("Shiprocket serviceability check failed", error);
+      return null;
+    });
+    if (serviceable === null) {
+      return {
+        status: "error",
+        message: "Couldn't check delivery to your PIN code. Please try again.",
+      };
+    }
+    if (!serviceable) {
+      return {
+        status: "error",
+        message: "Sorry, we don't deliver to this PIN code yet.",
+        fieldErrors: { pincode: "We don't deliver here yet." },
+      };
+    }
   }
 
   const slugs = [...new Set(items.data.map((i) => i.slug))];
@@ -103,7 +172,7 @@ export async function createCheckout(input: unknown): Promise<CheckoutSession> {
   // Signed-in shoppers get the order on their account; guests check out by email.
   const session = await getSignedInCustomer();
 
-  const magic = cart.currency === MAGIC_CURRENCY;
+  const magic = USE_MAGIC_CHECKOUT && cart.currency === MAGIC_CURRENCY;
   try {
     const order = await razorpayClient(config).orders.create({
       amount: cart.total,
@@ -111,12 +180,15 @@ export async function createCheckout(input: unknown): Promise<CheckoutSession> {
       receipt: `sb_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`,
       notes: {
         ...cartNotes,
+        ...addressNotes,
         ...(session && { customer: String(session.customer.id) }),
       },
-      ...(magic && {
-        line_items_total: cart.total,
-        line_items: cart.lines.map(lineItem),
-      }),
+      ...(magic
+        ? {
+            line_items_total: cart.total,
+            line_items: cart.lines.map(lineItem),
+          }
+        : {}),
     });
     return {
       status: "ok",
@@ -125,6 +197,7 @@ export async function createCheckout(input: unknown): Promise<CheckoutSession> {
       amount: Number(order.amount),
       currency: order.currency,
       magic,
+      prefill: { name: address.data.fullName, contact: address.data.phone },
     };
   } catch (error) {
     console.error("Razorpay order creation failed", error);
