@@ -1,10 +1,12 @@
 "use server";
 
+import { after } from "next/server";
 import type { Orders } from "razorpay/dist/types/orders";
 import { z } from "zod";
 import { getSignedInCustomer } from "@/features/account/customer";
 import { MAX_QUANTITY } from "@/features/cart/cart";
 import { getProductBySlug } from "@/features/catalog/repository";
+import { sendOrderToShiprocket } from "@/features/shipping/repository";
 import { env } from "@/lib/env";
 import {
   encodeCartNotes,
@@ -177,6 +179,9 @@ export async function verifyPayment(
     if (result.status === "rejected") {
       console.error("Razorpay payment not recorded:", result.reason);
       return NOT_CONFIRMED;
+    }
+    if (result.status === "recorded") {
+      after(() => sendOrderToShiprocket(result.orderId));
     }
     return { status: "ok", orderId: result.orderId };
   } catch (error) {

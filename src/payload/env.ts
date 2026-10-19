@@ -18,7 +18,7 @@ const schema = z.object({
   DATABASE_MIGRATION_URL: z.string().optional(),
   /** Supabase root CA (PEM text) so TLS certificates are verified. */
   DATABASE_CA_CERT: z.string().optional(),
-  /** Max connections per app instance. Defaults: 1 on Vercel, 10 elsewhere. */
+  /** Max connections per app instance. Defaults: 3 on Vercel, 10 elsewhere. */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(50).optional(),
   PAYLOAD_SECRET: z.string().min(32, "PAYLOAD_SECRET must be 32+ characters"),
   NEXT_PUBLIC_SITE_URL: z.url(),

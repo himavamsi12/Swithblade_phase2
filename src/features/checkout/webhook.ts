@@ -1,5 +1,7 @@
 import "server-only";
+import { after } from "next/server";
 import { z } from "zod";
+import { sendOrderToShiprocket } from "@/features/shipping/repository";
 import { isValidWebhook, razorpayConfig, webhooksEnabled } from "./razorpay";
 import { recordRazorpayPayment } from "./repository";
 
@@ -51,6 +53,9 @@ export async function handleRazorpayWebhook(
     );
     if (result.status === "rejected") {
       console.error("Razorpay webhook not recorded:", result.reason);
+    }
+    if (result.status === "recorded") {
+      after(() => sendOrderToShiprocket(result.orderId));
     }
     return 200;
   } catch (error) {

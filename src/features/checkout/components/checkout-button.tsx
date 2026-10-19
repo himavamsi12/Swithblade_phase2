@@ -99,7 +99,8 @@ export function CheckoutButton({
         currency: session.currency,
         name: siteConfig.name,
         one_click_checkout: session.magic,
-        show_coupons: session.magic,
+        // No coupons yet; see /api/razorpay/promotions.
+        show_coupons: false,
         handler: (response: RazorpaySuccess) => {
           startTransition(async () => {
             const result = await verifyPayment({
