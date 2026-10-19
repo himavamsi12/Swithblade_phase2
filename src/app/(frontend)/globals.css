@@ -1,0 +1,256 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #0238bb;
+  --black: #000000;
+  --white: #ffffff;
+  --light-grey: #f1f1f1;
+  --dark-grey: #767676;
+  --stroke: #e5e5e5;
+  /* Warm backdrop used behind model photography (not part of the core palette). */
+  --cream: #f6f2ef;
+
+  /* Semantic aliases */
+  --background: var(--white);
+  --foreground: var(--black);
+  --muted: var(--dark-grey);
+  --card: var(--light-grey);
+  --border: var(--stroke);
+}
+
+@theme inline {
+  --animate-lightbox-in: lightbox-slide-in 650ms cubic-bezier(0.65, 0, 0.35, 1)
+    both;
+  --animate-lightbox-out: lightbox-slide-out 650ms
+    cubic-bezier(0.65, 0, 0.35, 1) both;
+  --color-primary: var(--primary);
+  --color-black: var(--black);
+  --color-white: var(--white);
+  --color-light-grey: var(--light-grey);
+  --color-dark-grey: var(--dark-grey);
+  --color-stroke: var(--stroke);
+  --color-cream: var(--cream);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-card: var(--card);
+  --color-border: var(--border);
+
+  --font-sans: var(--font-archivo);
+}
+
+/*
+ * Typography scale (Archivo). Mobile-first; desktop sizes apply from `md`.
+ * Weights: 400 Regular, 500 Medium, 600 SemiBold — the only files we ship.
+ * Usage: `text-h1` … `text-h7`, `text-body-1` … `text-body-4`.
+ */
+@utility text-h1 {
+  font-size: 36px;
+  line-height: 1.15;
+  font-weight: 600;
+  @media (min-width: 48rem) {
+    font-size: 56px;
+  }
+}
+@utility text-h2 {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 500;
+  @media (min-width: 48rem) {
+    font-size: 32px;
+  }
+}
+@utility text-h3 {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 600;
+  @media (min-width: 48rem) {
+    font-size: 28px;
+  }
+}
+@utility text-h4 {
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 500;
+  @media (min-width: 48rem) {
+    font-size: 24px;
+  }
+}
+@utility text-h5 {
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 600;
+  @media (min-width: 48rem) {
+    font-size: 20px;
+  }
+}
+@utility text-h6 {
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 600;
+  @media (min-width: 48rem) {
+    font-size: 18px;
+  }
+}
+@utility text-h7 {
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+@utility text-body-1 {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  @media (min-width: 48rem) {
+    font-size: 16px;
+  }
+}
+@utility text-body-2 {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+@utility text-body-3 {
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+@utility text-body-4 {
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 400;
+  @media (min-width: 48rem) {
+    font-size: 11px;
+  }
+}
+
+@layer base {
+  h1 {
+    @apply text-h1;
+  }
+  h2 {
+    @apply text-h2;
+  }
+  h3 {
+    @apply text-h3;
+  }
+  h4 {
+    @apply text-h4;
+  }
+  h5 {
+    @apply text-h5;
+  }
+  h6 {
+    @apply text-h6;
+  }
+}
+
+body {
+  @apply text-body-1;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/*
+ * Shining star badge (StarBadge component). A white streak sweeps across the
+ * star, clipped to its shape by a mask, while a soft glow twinkles in time.
+ * One 2.2s loop: a 1.6s shine, then a short 0.6s rest.
+ */
+.star-badge {
+  display: block;
+  animation: star-badge-twinkle 2.2s ease-in-out infinite;
+}
+
+.star-badge__shape {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--star-badge) center / contain no-repeat;
+  mask: var(--star-badge) center / contain no-repeat;
+}
+
+.star-badge__shape::after {
+  content: "";
+  position: absolute;
+  inset: -40% -120%;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgb(255 255 255 / 0.95) 50%,
+    transparent 58%
+  );
+  transform: translateX(-60%);
+  animation: star-badge-shine 2.2s ease-in-out infinite;
+}
+
+@keyframes star-badge-shine {
+  0% {
+    transform: translateX(-60%);
+  }
+  73%,
+  100% {
+    transform: translateX(60%);
+  }
+}
+
+@keyframes star-badge-twinkle {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgb(255 255 255 / 0));
+    transform: scale(1);
+  }
+  36% {
+    filter: drop-shadow(0 0 3px rgb(255 255 255 / 0.9))
+      drop-shadow(0 0 6px rgb(2 56 187 / 0.35));
+    transform: scale(1.08);
+  }
+  73% {
+    filter: drop-shadow(0 0 0 rgb(255 255 255 / 0));
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-badge,
+  .star-badge__shape::after {
+    animation: none;
+  }
+}
+
+/* Keep the page from scrolling behind an open modal <dialog>. */
+html:has(dialog[open]:modal) {
+  overflow: hidden;
+}
+
+/* Full-screen product photo change: both photos move downwards. */
+@keyframes lightbox-slide-in {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes lightbox-slide-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-lightbox-in,
+  .animate-lightbox-out {
+    animation: none;
+  }
+  .animate-lightbox-out {
+    display: none;
+  }
+}

@@ -1,0 +1,446 @@
+/*
+ * Medusa-style theme for the Payload admin: neutral zinc greys, a light grey
+ * sidebar, 8px radii, compact 13px text and soft ring shadows.
+ *
+ * Only CSS variables and a few layout rules are overridden, so Payload
+ * upgrades keep working. Payload's own styles sit in @layer payload-default,
+ * so these unlayered rules win without !important.
+ */
+
+:root {
+  /* Zinc scale mapped onto Payload's elevation scale. */
+  --color-base-0: #ffffff;
+  --color-base-50: #fafafa;
+  --color-base-100: #f4f4f5;
+  --color-base-150: #e4e4e7;
+  --color-base-200: #d4d4d8;
+  --color-base-250: #c4c4c9;
+  --color-base-300: #a1a1aa;
+  --color-base-350: #8f8f97;
+  --color-base-400: #71717a;
+  --color-base-450: #63636b;
+  --color-base-500: #52525b;
+  --color-base-550: #494950;
+  --color-base-600: #3f3f46;
+  --color-base-650: #34343a;
+  --color-base-700: #27272a;
+  --color-base-750: #202023;
+  --color-base-800: #18181b;
+  --color-base-850: #131316;
+  --color-base-900: #0f0f11;
+  --color-base-950: #09090b;
+  --color-base-1000: #000000;
+
+  --sb-bg-subtle: #fafafa;
+  --sb-border: #e4e4e7;
+  --sb-fg: #18181b;
+  --sb-fg-subtle: #52525b;
+  --sb-fg-muted: #71717a;
+  --sb-interactive: #3b82f6;
+  --sb-shadow-card:
+    0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08),
+    0 2px 4px 0 rgba(0, 0, 0, 0.04);
+
+  --font-body:
+    Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --style-radius-s: 6px;
+  --style-radius-m: 8px;
+  --style-radius-l: 12px;
+  --nav-width: 240px;
+  --theme-border-color: var(--sb-border);
+  --theme-input-bg: #fafafa;
+  --accessibility-outline: 0 0 0 3px rgba(59, 130, 246, 0.35);
+}
+
+html {
+  font-size: 13px;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  color: var(--sb-fg);
+}
+
+/* ---------- Sidebar ---------- */
+
+.nav {
+  background: var(--sb-bg-subtle);
+  border-right: 1px solid var(--sb-border);
+}
+
+.nav__scroll {
+  --nav-padding-inline-start: 12px;
+  --nav-padding-inline-end: 12px;
+}
+
+.nav-group {
+  margin-bottom: 16px;
+}
+
+.nav-group__toggle {
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--sb-fg-subtle);
+}
+
+.nav__link {
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--sb-fg-subtle);
+  font-weight: 500;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.nav__link:hover {
+  background: #f4f4f5;
+  color: var(--sb-fg);
+  text-decoration: none;
+}
+
+.nav__link.active {
+  background: #ffffff;
+  color: var(--sb-fg);
+  font-weight: 500;
+  padding-left: 8px;
+  box-shadow: var(--sb-shadow-card);
+}
+
+.nav__link-indicator {
+  display: none;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.btn--style-primary {
+  --bg-color: #18181b;
+  --hover-bg: #27272a;
+  --color: #ffffff;
+  box-shadow:
+    0 0 0 1px #18181b,
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.btn--style-secondary {
+  --bg-color: #ffffff;
+  --hover-bg: #f4f4f5;
+  --color: var(--sb-fg);
+  box-shadow: var(--sb-shadow-card);
+  border: 0;
+}
+
+/* ---------- Surfaces ---------- */
+
+.table table,
+.collection-list__wrap .table {
+  border-radius: 8px;
+}
+
+.table th {
+  font-weight: 500;
+  color: var(--sb-fg-muted);
+}
+
+.field-type input,
+.field-type textarea,
+.react-select .rs__control {
+  border-radius: 8px;
+}
+
+/* ---------- Brand ---------- */
+
+.sb-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sb-logo__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #0238bb;
+  color: #fff;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.sb-logo__mark--sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.sb-logo__name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--sb-fg);
+}
+
+.sb-store {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--sb-shadow-card);
+}
+
+.sb-store__avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #0238bb;
+  color: #fff;
+  font-weight: 600;
+}
+
+.sb-store__text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.sb-store__name {
+  font-weight: 500;
+  color: var(--sb-fg);
+}
+
+.sb-store__user {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--sb-fg-muted);
+}
+
+/* ---------- Dashboard ---------- */
+
+.sb-dash {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1200px;
+  padding: 24px var(--gutter-h) 48px;
+}
+
+.sb-dash__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sb-dash__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--sb-fg);
+}
+
+.sb-dash__subtitle {
+  margin: 4px 0 0;
+  color: var(--sb-fg-subtle);
+}
+
+.sb-dash__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sb-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sb-btn--primary {
+  background: #18181b;
+  color: #fff;
+}
+
+.sb-btn--primary:hover {
+  background: #27272a;
+}
+
+.sb-btn--secondary {
+  background: #fff;
+  color: var(--sb-fg);
+  box-shadow: var(--sb-shadow-card);
+}
+
+.sb-btn--secondary:hover {
+  background: #fafafa;
+}
+
+.sb-card {
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--sb-shadow-card);
+}
+
+.sb-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.sb-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  text-decoration: none;
+  transition: box-shadow 120ms ease;
+}
+
+.sb-stat:hover {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 4px 8px 0 rgba(0, 0, 0, 0.06);
+}
+
+.sb-stat__label {
+  color: var(--sb-fg-muted);
+}
+
+.sb-stat__value {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--sb-fg);
+}
+
+.sb-stat--warn .sb-stat__value {
+  color: #c2410c;
+}
+
+.sb-table-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--sb-border);
+}
+
+.sb-table-card__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sb-link {
+  color: var(--sb-interactive);
+  text-decoration: none;
+}
+
+.sb-link:hover {
+  text-decoration: underline;
+}
+
+.sb-empty {
+  margin: 0;
+  padding: 32px 24px;
+  color: var(--sb-fg-muted);
+  text-align: center;
+}
+
+.sb-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sb-table th,
+.sb-table td {
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--sb-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sb-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.sb-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.sb-table th {
+  font-weight: 500;
+  color: var(--sb-fg-muted);
+}
+
+.sb-table__num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.sb-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.sb-badge--green {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.sb-badge--orange {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.sb-badge--red {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.sb-badge--blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.sb-badge--grey {
+  background: #f4f4f5;
+  color: #52525b;
+}

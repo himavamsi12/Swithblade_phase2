@@ -1,0 +1,187 @@
+"use server";
+
+import type { Orders } from "razorpay/dist/types/orders";
+import { z } from "zod";
+import { getSignedInCustomer } from "@/features/account/customer";
+import { MAX_QUANTITY } from "@/features/cart/cart";
+import { getProductBySlug } from "@/features/catalog/repository";
+import { env } from "@/lib/env";
+import {
+  encodeCartNotes,
+  priceCart,
+  type CurrentPrice,
+  type PricedLine,
+} from "./pricing";
+import {
+  isValidPaymentSignature,
+  razorpayClient,
+  razorpayConfig,
+} from "./razorpay";
+import { recordRazorpayPayment } from "./repository";
+
+/** Magic Checkout (one-click, address + COD + coupons) only supports INR. */
+const MAGIC_CURRENCY = "INR";
+
+const itemsSchema = z
+  .array(
+    z.object({
+      slug: z.string().min(1).max(200),
+      color: z.string().max(80).nullable(),
+      size: z.string().max(40).nullable(),
+      quantity: z.number().int().min(1).max(MAX_QUANTITY),
+      price: z.number().int().min(0),
+      currency: z.string().length(3),
+    }),
+  )
+  .max(50);
+
+export type CheckoutSession =
+  | {
+      status: "ok";
+      keyId: string;
+      orderId: string;
+      amount: number;
+      currency: string;
+      magic: boolean;
+    }
+  | { status: "error"; message: string; repriced?: CurrentPrice[] };
+
+const absolute = (path: string) =>
+  new URL(path, env.NEXT_PUBLIC_SITE_URL).toString();
+
+function lineItem(line: PricedLine): Orders.LineItems {
+  const { product, color, size, quantity, unitPrice } = line;
+  const variant = [color, size].filter(Boolean).join(" / ");
+  // Weight and dimensions aren't in the catalog yet; Razorpay treats them as optional.
+  return {
+    type: "e-commerce",
+    sku: product.id,
+    variant_id: variant ? `${product.id}:${variant}` : product.id,
+    price: String(unitPrice),
+    offer_price: String(unitPrice),
+    tax_amount: 0,
+    quantity,
+    name: product.name,
+    description: variant || product.description.slice(0, 200),
+    image_url: product.image ? absolute(product.image) : "",
+    product_url: absolute(`/products/${product.slug}`),
+  } as Orders.LineItems;
+}
+
+/** Re-prices the bag on the server and opens a Razorpay order for it. */
+export async function createCheckout(input: unknown): Promise<CheckoutSession> {
+  const config = razorpayConfig();
+  if (!config) {
+    return { status: "error", message: "Checkout isn't available yet." };
+  }
+
+  const items = itemsSchema.safeParse(input);
+  if (!items.success) {
+    return { status: "error", message: "Your bag couldn't be read." };
+  }
+
+  const slugs = [...new Set(items.data.map((i) => i.slug))];
+  const products = new Map(
+    await Promise.all(
+      slugs.map(async (slug) => [slug, await getProductBySlug(slug)] as const),
+    ),
+  );
+  const cart = priceCart(items.data, products);
+  if (!cart.ok) {
+    return { status: "error", message: cart.message, repriced: cart.repriced };
+  }
+
+  const cartNotes = encodeCartNotes(cart.lines);
+  if (!cartNotes) {
+    return {
+      status: "error",
+      message: "Your bag is too large to check out at once.",
+    };
+  }
+  // Signed-in shoppers get the order on their account; guests check out by email.
+  const session = await getSignedInCustomer();
+
+  const magic = cart.currency === MAGIC_CURRENCY;
+  try {
+    const order = await razorpayClient(config).orders.create({
+      amount: cart.total,
+      currency: cart.currency,
+      receipt: `sb_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`,
+      notes: {
+        ...cartNotes,
+        ...(session && { customer: String(session.customer.id) }),
+      },
+      ...(magic && {
+        line_items_total: cart.total,
+        line_items: cart.lines.map(lineItem),
+      }),
+    });
+    return {
+      status: "ok",
+      keyId: config.keyId,
+      orderId: order.id,
+      amount: Number(order.amount),
+      currency: order.currency,
+      magic,
+    };
+  } catch (error) {
+    console.error("Razorpay order creation failed", error);
+    return {
+      status: "error",
+      message: "Couldn't start checkout. Please try again.",
+    };
+  }
+}
+
+const paymentSchema = z.object({
+  orderId: z.string().min(1).max(64),
+  paymentId: z.string().min(1).max(64),
+  signature: z.string().min(1).max(256),
+});
+
+const NOT_CONFIRMED = {
+  status: "error",
+  message: "We couldn't confirm your payment. Contact support if charged.",
+} as const;
+
+/**
+ * Confirms a payment really came from Razorpay for this order (the browser's
+ * success callback alone proves nothing), then saves the order.
+ */
+export async function verifyPayment(
+  input: unknown,
+): Promise<
+  { status: "ok"; orderId: number } | { status: "error"; message: string }
+> {
+  const config = razorpayConfig();
+  const payment = paymentSchema.safeParse(input);
+  if (
+    !config ||
+    !payment.success ||
+    !isValidPaymentSignature(
+      config,
+      payment.data.orderId,
+      payment.data.paymentId,
+      payment.data.signature,
+    )
+  ) {
+    return NOT_CONFIRMED;
+  }
+
+  try {
+    const result = await recordRazorpayPayment(
+      config,
+      payment.data.orderId,
+      payment.data.paymentId,
+    );
+    if (result.status === "rejected") {
+      console.error("Razorpay payment not recorded:", result.reason);
+      return NOT_CONFIRMED;
+    }
+    return { status: "ok", orderId: result.orderId };
+  } catch (error) {
+    // Paid but not saved: the webhook retries recording it.
+    console.error("Recording Razorpay payment failed", error);
+    return NOT_CONFIRMED;
+  }
+}
