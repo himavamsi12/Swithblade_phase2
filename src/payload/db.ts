@@ -54,9 +54,11 @@ connectionUrl.searchParams.delete("sslrootcert");
 const pool: PoolConfig = {
   connectionString: connectionUrl.toString(),
   ssl: sslConfig(),
-  // Serverless instances should hold a single connection (Supabase guidance);
-  // long-running servers can share a small pool.
-  max: payloadEnv.DATABASE_POOL_MAX ?? (process.env.VERCEL ? 1 : 10),
+  // Keep serverless pools small (Supabase guidance), but never 1: Payload's
+  // adapter checks out one client at startup and never releases it, so a
+  // pool of 1 leaves nothing for queries and every request times out.
+  // Long-running servers can share a larger pool.
+  max: payloadEnv.DATABASE_POOL_MAX ?? (process.env.VERCEL ? 3 : 10),
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 10_000,
   // Server-side timeouts are set on the role by scripts/harden-db.ts rather
