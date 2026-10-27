@@ -43,6 +43,35 @@ export const Store: GlobalConfig = {
       ],
     },
     {
+      type: "collapsible",
+      label: "Kill switches",
+      admin: {
+        description:
+          "Emergency controls. They take effect on the storefront immediately, no deploy needed.",
+      },
+      fields: [
+        {
+          name: "checkoutPaused",
+          label: "Pause checkout",
+          type: "checkbox",
+          defaultValue: false,
+          admin: {
+            description:
+              "Shoppers can still browse and fill their bag, but can't start a payment. Payments already in progress still complete and are recorded.",
+          },
+        },
+        {
+          name: "checkoutPausedMessage",
+          label: "Message shown while checkout is paused",
+          type: "text",
+          maxLength: 200,
+          defaultValue:
+            "Checkout is paused for a few minutes. Your bag is saved; please try again shortly.",
+          admin: { condition: (data) => Boolean(data?.checkoutPaused) },
+        },
+      ],
+    },
+    {
       name: "orderNotificationEmail",
       label: "Order notification email",
       type: "email",

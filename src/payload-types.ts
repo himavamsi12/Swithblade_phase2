@@ -2283,6 +2283,11 @@ export interface Store {
   defaultSalesChannel?: (number | null) | SalesChannel;
   defaultLocation?: (number | null) | StockLocation;
   /**
+   * Shoppers can still browse and fill their bag, but can't start a payment. Payments already in progress still complete and are recorded.
+   */
+  checkoutPaused?: boolean | null;
+  checkoutPausedMessage?: string | null;
+  /**
    * Receives a copy of every new order.
    */
   orderNotificationEmail?: string | null;
@@ -2299,6 +2304,8 @@ export interface StoreSelect<T extends boolean = true> {
   defaultRegion?: T;
   defaultSalesChannel?: T;
   defaultLocation?: T;
+  checkoutPaused?: T;
+  checkoutPausedMessage?: T;
   orderNotificationEmail?: T;
   updatedAt?: T;
   createdAt?: T;

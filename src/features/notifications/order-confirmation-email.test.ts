@@ -51,9 +51,11 @@ describe("orderConfirmationEmail", () => {
     expect(email.text).toContain("Discount: −₹990.00");
   });
 
-  it("escapes shopper input and links images absolutely", () => {
+  it("escapes shopper input and links thumbnails absolutely", () => {
     expect(email.html).toContain("12 &lt;MG&gt; Road");
-    expect(email.html).toContain('src="https://shop.example/images/loop.jpg"');
+    expect(email.html).toContain(
+      'src="https://shop.example/_next/image?url=%2Fimages%2Floop.jpg&amp;w=256&amp;q=75"',
+    );
   });
 });
 

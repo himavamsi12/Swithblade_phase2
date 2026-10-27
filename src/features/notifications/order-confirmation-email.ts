@@ -23,6 +23,15 @@ const escape = (s: string) =>
 
 const absolute = (path: string) => new URL(path, siteConfig.url).toString();
 
+/**
+ * A small thumbnail from Next's image optimizer instead of the full product
+ * photo (often 2 MB). It serves PNG/JPEG to mail apps that can't show AVIF or
+ * WebP. The image must be on a public URL: mail apps can't load localhost or
+ * pages behind Vercel Deployment Protection.
+ */
+const thumbnail = (src: string) =>
+  absolute(`/_next/image?url=${encodeURIComponent(src)}&w=256&q=75`);
+
 export function orderNumber(order: Pick<Order, "id" | "displayId">) {
   return `SB-${order.displayId ?? order.id}`;
 }
@@ -56,7 +65,7 @@ export function orderConfirmationEmail(order: Order) {
   const itemRows = items
     .map((item) => {
       const image = item.image
-        ? `<img src="${escape(absolute(item.image))}" width="64" height="80" alt="" style="display:block;width:64px;height:80px;object-fit:cover;background:#f2f2f2;border:0" />`
+        ? `<img src="${escape(thumbnail(item.image))}" width="64" height="80" alt="" style="display:block;width:64px;height:80px;object-fit:cover;background:#f2f2f2;border:0" />`
         : "";
       return `<tr>
   <td width="64" style="padding:12px 16px 12px 0;vertical-align:top">${image}</td>

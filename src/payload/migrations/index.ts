@@ -7,6 +7,7 @@ import * as migration_20260930_092401_add_order_line_items from './20260930_0924
 import * as migration_20260930_140000_product_search from './20260930_140000_product_search';
 import * as migration_20261015_053138_add_order_razorpay_ids from './20261015_053138_add_order_razorpay_ids';
 import * as migration_20261015_054333_default_currency_inr from './20261015_054333_default_currency_inr';
+import * as migration_20261027_064946_kill_switches from './20261027_064946_kill_switches';
 
 export const migrations = [
   {
@@ -52,6 +53,11 @@ export const migrations = [
   {
     up: migration_20261015_054333_default_currency_inr.up,
     down: migration_20261015_054333_default_currency_inr.down,
-    name: '20261015_054333_default_currency_inr'
+    name: '20261015_054333_default_currency_inr',
+  },
+  {
+    up: migration_20261027_064946_kill_switches.up,
+    down: migration_20261027_064946_kill_switches.down,
+    name: '20261027_064946_kill_switches'
   },
 ];

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getSignedInCustomer } from "@/features/account/customer";
 import { MAX_QUANTITY } from "@/features/cart/cart";
 import { getProductBySlug } from "@/features/catalog/repository";
+import { getCheckoutStatus } from "@/features/store/repository";
 import {
   isServiceable,
   shiprocketEnabled,
@@ -103,6 +104,8 @@ export async function createCheckout(
   if (!config) {
     return { status: "error", message: "Checkout isn't available yet." };
   }
+  const status = await getCheckoutStatus();
+  if (!status.open) return { status: "error", message: status.message };
   if (!(await rateLimit("checkout", `ip:${await clientIp()}`))) {
     return {
       status: "error",
