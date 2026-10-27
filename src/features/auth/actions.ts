@@ -4,6 +4,7 @@ import type { Route } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { isAuthProviderEnabled } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
@@ -18,6 +19,8 @@ import {
  */
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
+const TOO_MANY_ATTEMPTS =
+  "Too many attempts. Please wait a few minutes and try again.";
 
 /** Absolute URL of this site, for links in auth emails and OAuth redirects. */
 async function siteOrigin() {
@@ -51,6 +54,19 @@ export async function continueWithEmail(
   });
   if (!parsed.success) {
     return { status: "error", email, fieldErrors: fieldErrors(parsed.error) };
+  }
+  if (
+    !(await rateLimit(
+      "signIn",
+      `ip:${await clientIp()}`,
+      `email:${parsed.data.email}`,
+    ))
+  ) {
+    return {
+      status: "error",
+      email: parsed.data.email,
+      message: TOO_MANY_ATTEMPTS,
+    };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -151,6 +167,15 @@ export async function sendPasswordReset(
       email,
       fieldErrors: { email: "Enter a valid email address." },
     };
+  }
+  if (
+    !(await rateLimit(
+      "passwordReset",
+      `ip:${await clientIp()}`,
+      `email:${parsed.data}`,
+    ))
+  ) {
+    return { status: "error", email: parsed.data, message: TOO_MANY_ATTEMPTS };
   }
 
   const supabase = await createSupabaseServerClient();

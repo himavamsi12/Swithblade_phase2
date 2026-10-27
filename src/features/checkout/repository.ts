@@ -8,7 +8,7 @@ import {
 import { z } from "zod";
 import { getPayloadClient } from "@/features/account/customer";
 import { getProductBySlug } from "@/features/catalog/repository";
-import type { Order } from "@/payload-types";
+import type { Address, Customer, Order } from "@/payload-types";
 import { supportedCountries } from "@/payload/countries";
 import { currenciesConfig } from "@/payload/currencies";
 import { decodeAddressNotes } from "./address";
@@ -20,6 +20,8 @@ import { razorpayClient, type RazorpayConfig } from "./razorpay";
  * (transaction) record, stored in the Supabase Postgres behind Payload and
  * linked to the shopper's customer record. Safe to call more than once for
  * the same payment: the checkout callback and the webhook may both arrive.
+ * The shopper's customer record picks up their name, phone and delivery
+ * address from the order.
  */
 
 type Currency = NonNullable<Order["currency"]>;
@@ -60,6 +62,110 @@ function shippingAddress(value: unknown): Order["shippingAddress"] {
     country: country && countryCodes.has(country) ? (country as Country) : null,
     phone: a.contact != null ? String(a.contact) : null,
   };
+}
+
+/** Razorpay fills this in when checkout didn't collect an email. */
+const PLACEHOLDER_EMAIL = "void@razorpay.com";
+
+function realEmail(value: unknown) {
+  const email = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return email && email !== PLACEHOLDER_EMAIL ? email : null;
+}
+
+async function findCustomerByEmail(email: string) {
+  const payload = await getPayloadClient();
+  const { docs } = await payload.find({
+    collection: "customers",
+    where: { email: { equals: email } },
+    limit: 1,
+    depth: 0,
+  });
+  return docs[0] ?? null;
+}
+
+/**
+ * A guest's customer record. The Supabase sign-up trigger links an existing
+ * customer by email instead of creating a new one.
+ */
+async function findOrCreateCustomer(email: string): Promise<Customer> {
+  const existing = await findCustomerByEmail(email);
+  if (existing) return existing;
+  const payload = await getPayloadClient();
+  try {
+    return await payload.create({
+      collection: "customers",
+      data: { email },
+      depth: 0,
+    });
+  } catch (error) {
+    // Lost a race with the other caller: the unique email kept one row.
+    const raced = await findCustomerByEmail(email);
+    if (raced) return raced;
+    throw error;
+  }
+}
+
+/**
+ * Fills in the customer's name and phone where they're still blank and saves
+ * the delivery address to their address book, unless it's already there.
+ * Never overwrites details the shopper or staff entered.
+ */
+async function updateCustomerFromOrder(
+  customer: Customer,
+  shipping: Order["shippingAddress"],
+  contact: unknown,
+) {
+  const payload = await getPayloadClient();
+  const phone =
+    shipping?.phone ??
+    (contact != null && String(contact) ? String(contact) : null);
+
+  const profile: Partial<Customer> = {};
+  if (!customer.firstName && shipping?.firstName) {
+    profile.firstName = shipping.firstName;
+    if (!customer.lastName && shipping.lastName) {
+      profile.lastName = shipping.lastName;
+    }
+  }
+  if (!customer.phone && phone) profile.phone = phone;
+  if (Object.keys(profile).length > 0) {
+    await payload.update({
+      collection: "customers",
+      id: customer.id,
+      data: profile,
+      depth: 0,
+    });
+  }
+
+  if (!shipping?.addressLine1 || !shipping.country) return;
+  const { totalDocs } = await payload.count({
+    collection: "addresses",
+    where: {
+      and: [
+        { customer: { equals: customer.id } },
+        { addressLine1: { equals: shipping.addressLine1 } },
+        { postalCode: { equals: shipping.postalCode ?? "" } },
+      ],
+    },
+  });
+  if (totalDocs > 0) return;
+  await payload.create({
+    collection: "addresses",
+    data: {
+      customer: customer.id,
+      firstName: shipping.firstName ?? null,
+      lastName: shipping.lastName ?? null,
+      addressLine1: shipping.addressLine1,
+      addressLine2: shipping.addressLine2 ?? null,
+      city: shipping.city ?? null,
+      state: shipping.state ?? null,
+      postalCode: shipping.postalCode ?? null,
+      // Both come from the same supported-countries list.
+      country: shipping.country as Address["country"],
+      phone: shipping.phone ?? null,
+    },
+    depth: 0,
+  });
 }
 
 export type RecordResult =
@@ -111,14 +217,28 @@ export async function recordRazorpayPayment(
   const customerId = Number(
     (rzpOrder.notes as Record<string, unknown> | undefined)?.customer,
   );
-  const customer =
+  const signedIn =
     Number.isInteger(customerId) && customerId > 0
       ? await payload
           .findByID({ collection: "customers", id: customerId, depth: 0 })
           .catch(() => null)
       : null;
-  const customerEmail =
-    customer?.email ?? (payment.email ? String(payment.email) : null);
+  const paymentEmail = realEmail(payment.email);
+  // Guests are matched (or added) by the email they paid with, so the order
+  // shows up in their account once they sign up with that email.
+  const customer =
+    signedIn ??
+    (paymentEmail
+      ? await findOrCreateCustomer(paymentEmail).catch((error: unknown) => {
+          console.error("Couldn't link order to a customer", error);
+          return null;
+        })
+      : null);
+  const customerEmail = customer?.email ?? paymentEmail;
+  const shipping = shippingAddress(
+    (rzpOrder as { customer_details?: { shipping_address?: unknown } })
+      .customer_details?.shipping_address ?? decodeAddressNotes(rzpOrder.notes),
+  );
 
   // Names and images are for display; prices come from the snapshot.
   const products = new Map(
@@ -148,11 +268,7 @@ export async function recordRazorpayPayment(
         currency: currency as Currency,
         totals: { subtotal, discountTotal: Math.max(0, subtotal - amount) },
         // Magic Checkout collects it; otherwise the bag page put it in notes.
-        shippingAddress: shippingAddress(
-          (rzpOrder as { customer_details?: { shipping_address?: unknown } })
-            .customer_details?.shipping_address ??
-            decodeAddressNotes(rzpOrder.notes),
-        ),
+        shippingAddress: shipping,
         lineItems: lines.map((l) => {
           const product = products.get(l.slug);
           return {
@@ -187,6 +303,13 @@ export async function recordRazorpayPayment(
       req,
     });
     await commitTransaction(req);
+    if (customer) {
+      // Best effort: the order is saved even if the profile update fails.
+      await updateCustomerFromOrder(customer, shipping, payment.contact).catch(
+        (error: unknown) =>
+          console.error("Couldn't update customer from order", error),
+      );
+    }
     return { status: "recorded", orderId: order.id };
   } catch (error) {
     await killTransaction(req);

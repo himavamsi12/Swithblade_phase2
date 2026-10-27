@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import footerWordmark from "@/assets/icons/footer-wordmark.svg";
 import { siteConfig } from "@/config/site";
+import { FooterCurrency } from "@/features/currency/components/footer-currency";
 import { FooterStar } from "./footer-star";
 
 export function SiteFooter() {
@@ -38,6 +39,7 @@ export function SiteFooter() {
               )}
             </details>
           ))}
+          <FooterCurrency />
         </div>
 
         <FooterStar className="mt-2" />

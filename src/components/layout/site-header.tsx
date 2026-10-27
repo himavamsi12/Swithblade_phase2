@@ -1,9 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
+import { CartDrawer } from "@/features/cart/components/cart-drawer";
 import { HeaderSearch } from "@/features/search/components/header-search";
 import { cn } from "@/lib/utils";
+import { NavMenu } from "./nav-menu";
 import { headerAssets, type HeaderTone } from "./site-header-assets";
+
+const navLink =
+  "text-body-4 tracking-[0.1em] uppercase transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
 
 const iconButton =
   "flex items-center justify-center transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current";
@@ -37,7 +42,7 @@ function ToneImage({
         {...props}
         className={cn(
           props.className,
-          "group-has-[[data-search-open]]/header:hidden",
+          "group-has-[[data-header-panel-open]]/header:hidden",
         )}
       />
       <Image
@@ -46,7 +51,7 @@ function ToneImage({
         {...props}
         className={cn(
           props.className,
-          "hidden group-has-[[data-search-open]]/header:block",
+          "hidden group-has-[[data-header-panel-open]]/header:block",
         )}
       />
     </>
@@ -60,8 +65,8 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
       className={cn(
         "group/header relative z-30",
         tone === "white"
-          ? // Black on white while the search panel (data-search-open) is open.
-            "text-white transition-colors duration-300 has-[[data-search-open]]:bg-white has-[[data-search-open]]:text-black motion-reduce:transition-none"
+          ? // Black on white while a header panel (search, cart) is open.
+            "text-white transition-colors duration-300 has-[[data-header-panel-open]]:bg-white has-[[data-header-panel-open]]:text-black motion-reduce:transition-none"
           : "text-black",
         className,
       )}
@@ -71,15 +76,20 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
           aria-label="Main"
           className="order-3 flex w-full items-center gap-6 md:order-none md:w-auto"
         >
-          {siteConfig.nav.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="text-body-4 tracking-[0.1em] uppercase transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {siteConfig.nav.map((item) =>
+            "items" in item ? (
+              <NavMenu
+                key={item.label}
+                label={item.label}
+                items={item.items}
+                className={navLink}
+              />
+            ) : (
+              <Link key={item.label} href={item.href} className={navLink}>
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <Link
@@ -127,9 +137,10 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
           >
             <ToneImage tone={tone} asset="wishlist" width={17} height={16} />
           </Link>
-          <Link href="/cart" aria-label="Shopping bag" className={iconButton}>
-            <ToneImage tone={tone} asset="bag" width={14} height={16} />
-          </Link>
+          <CartDrawer
+            icon={<ToneImage tone={tone} asset="bag" width={14} height={16} />}
+            className={iconButton}
+          />
           <Link
             href={siteConfig.accountHref}
             aria-label="Account"

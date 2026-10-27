@@ -10,7 +10,8 @@ import mastercard from "@/assets/icons/payments/mastercard.svg";
 import visa from "@/assets/icons/payments/visa.svg";
 import { siteConfig } from "@/config/site";
 import { CheckoutButton } from "@/features/checkout/components/checkout-button";
-import { formatPrice } from "@/lib/format";
+import { ChargeNote } from "@/features/currency/components/charge-note";
+import { Price } from "@/features/currency/components/price";
 import { cn } from "@/lib/utils";
 import { MAX_QUANTITY, subtotals } from "../cart";
 import { cartActions, lineKey, useCart } from "../store";
@@ -21,8 +22,8 @@ const focusRing =
 const cardTitle = "text-body-3 font-semibold tracking-[0.04em] uppercase";
 
 const paymentMarks = [
-  { src: applePay, label: "Apple Pay", className: "h-9 w-12" },
-  { src: googlePay, label: "Google Pay", className: "h-9 w-12" },
+  { src: applePay, label: "Apple Pay", className: "h-[22px] w-[47px]" },
+  { src: googlePay, label: "Google Pay", className: "h-[21px] w-[52px]" },
   { src: mastercard, label: "Mastercard", className: "h-6 w-9" },
   { src: visa, label: "Visa", className: "h-9 w-12" },
 ];
@@ -115,7 +116,7 @@ function BagLine({ line }: { line: CartLine }) {
         </Link>
         {options && <p className="mt-2 text-body-3 text-muted">{options}</p>}
         <p className="mt-2 text-body-2">
-          {formatPrice(line.price, line.currency)}
+          <Price amount={line.price} currency={line.currency} />
         </p>
 
         <div className="mt-auto flex items-center justify-between gap-4 pt-6">
@@ -190,7 +191,9 @@ function OrderSummary({
             <dt className="text-muted">
               Subtotal{totals.length > 1 ? ` (${currency})` : ""}
             </dt>
-            <dd>{formatPrice(amount, currency)}</dd>
+            <dd>
+              <Price amount={amount} currency={currency} />
+            </dd>
           </div>
         ))}
         <div className={row}>
@@ -204,10 +207,19 @@ function OrderSummary({
             <dt className="uppercase">
               Total{totals.length > 1 ? ` (${currency})` : ""}
             </dt>
-            <dd>{formatPrice(amount, currency)}</dd>
+            <dd>
+              <Price amount={amount} currency={currency} />
+            </dd>
           </div>
         ))}
       </dl>
+      {totals.map(({ currency }) => (
+        <ChargeNote
+          key={currency}
+          currency={currency}
+          className="mt-2 text-body-4 text-muted"
+        />
+      ))}
       <CheckoutButton
         lines={lines}
         onPaid={onPaid}

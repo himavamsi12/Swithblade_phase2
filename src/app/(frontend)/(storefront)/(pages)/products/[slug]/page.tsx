@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductGallery } from "@/features/catalog/components/product-gallery";
 import { ProductPurchase } from "@/features/catalog/components/product-purchase";
+import { PromiseLabel } from "@/features/catalog/components/promise-label";
 import { YouMayAlsoLike } from "@/features/catalog/components/you-may-also-like";
 import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import {
@@ -9,7 +10,7 @@ import {
   listProducts,
   listRelatedProducts,
 } from "@/features/catalog/repository";
-import { formatPriceCompact } from "@/lib/format";
+import { Price } from "@/features/currency/components/price";
 
 export async function generateStaticParams() {
   const products = await listProducts();
@@ -44,7 +45,11 @@ export default async function ProductPage({
             <div className="flex flex-col gap-1">
               <h1 className="text-body-1 uppercase">{product.name}</h1>
               <p className="text-body-2">
-                {formatPriceCompact(product.price, product.currency)}
+                <Price
+                  amount={product.price}
+                  currency={product.currency}
+                  compact
+                />
               </p>
             </div>
             <WishlistButton
@@ -65,6 +70,8 @@ export default async function ProductPage({
           </div>
 
           <p className="mt-6 text-body-3 text-muted">{product.description}</p>
+
+          {product.highlighted && <PromiseLabel className="mt-6" />}
 
           <div className="mt-8">
             <ProductPurchase

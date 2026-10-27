@@ -6,7 +6,6 @@ import { z } from "zod";
 import { getSignedInCustomer } from "@/features/account/customer";
 import { MAX_QUANTITY } from "@/features/cart/cart";
 import { getProductBySlug } from "@/features/catalog/repository";
-import { sendOrderToShiprocket } from "@/features/shipping/repository";
 import {
   isServiceable,
   shiprocketEnabled,
@@ -18,6 +17,7 @@ import {
   type DeliveryAddressInput,
 } from "./address";
 import { env } from "@/lib/env";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 import {
   encodeCartNotes,
   priceCart,
@@ -29,6 +29,7 @@ import {
   razorpayClient,
   razorpayConfig,
 } from "./razorpay";
+import { afterOrderRecorded } from "./after-payment";
 import { recordRazorpayPayment } from "./repository";
 
 /** Magic Checkout (one-click, address + COD + coupons) only supports INR. */
@@ -101,6 +102,12 @@ export async function createCheckout(
   const config = razorpayConfig();
   if (!config) {
     return { status: "error", message: "Checkout isn't available yet." };
+  }
+  if (!(await rateLimit("checkout", `ip:${await clientIp()}`))) {
+    return {
+      status: "error",
+      message: "Too many checkout attempts. Please wait a few minutes.",
+    };
   }
 
   const items = itemsSchema.safeParse(input);
@@ -254,7 +261,7 @@ export async function verifyPayment(
       return NOT_CONFIRMED;
     }
     if (result.status === "recorded") {
-      after(() => sendOrderToShiprocket(result.orderId));
+      after(() => afterOrderRecorded(result.orderId));
     }
     return { status: "ok", orderId: result.orderId };
   } catch (error) {

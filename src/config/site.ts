@@ -7,8 +7,19 @@ export const siteConfig = {
   url: env.NEXT_PUBLIC_SITE_URL,
   currency: "INR",
   nav: [
-    // TODO: /categories doesn't exist yet; drop its `as Route` cast once it does.
-    { label: "Categories", href: "/categories" as Route },
+    // Opens a dropdown instead of linking anywhere.
+    // TODO: only the Sweatshirts listing exists so far; point each at its own
+    // category page once those routes do.
+    {
+      label: "Categories",
+      items: [
+        { label: "New arrivals", href: "/products" as Route },
+        { label: "Blazers", href: "/products" as Route },
+        { label: "Sweatshirts", href: "/products" as Route },
+        { label: "Tank tops", href: "/products" as Route },
+        { label: "Accessories", href: "/products" as Route },
+      ],
+    },
     { label: "Promises", href: "/promises" as const satisfies Route },
     { label: "Collaboration", href: "/collaboration" as const satisfies Route },
   ],

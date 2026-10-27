@@ -2,6 +2,7 @@ import "server-only";
 import config from "@payload-config";
 import { getPayload } from "payload";
 import { cache } from "react";
+import { orderNumber } from "@/features/notifications/order-confirmation-email";
 import { getCurrentUser } from "@/lib/supabase-server";
 
 /*
@@ -157,7 +158,7 @@ export async function listCustomerOrders(
 
     return {
       id: o.id,
-      number: o.displayId ? `SB-${o.displayId}` : `SB-${o.id}`,
+      number: orderNumber(o),
       orderedAt: o.createdAt,
       expectedDeliveryAt: o.expectedDeliveryAt ?? null,
       total: o.amount ?? null,

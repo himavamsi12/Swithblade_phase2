@@ -23,6 +23,10 @@
     both;
   --animate-lightbox-out: lightbox-slide-out 650ms
     cubic-bezier(0.65, 0, 0.35, 1) both;
+  --animate-curated-in: curated-slide-in 900ms cubic-bezier(0.65, 0, 0.35, 1)
+    both;
+  --animate-curated-out: curated-slide-out 900ms cubic-bezier(0.65, 0, 0.35, 1)
+    both;
   --color-primary: var(--primary);
   --color-black: var(--black);
   --color-white: var(--white);
@@ -226,6 +230,11 @@ html:has(dialog[open]:modal) {
   overflow: hidden;
 }
 
+/* …and behind the open cart drawer. */
+html:has([data-cart-open]) {
+  overflow: hidden;
+}
+
 /* Full-screen product photo change: both photos move downwards. */
 @keyframes lightbox-slide-in {
   from {
@@ -251,6 +260,35 @@ html:has(dialog[open]:modal) {
     animation: none;
   }
   .animate-lightbox-out {
+    display: none;
+  }
+}
+
+/* Home "Curated" lookbook change: both photos move upwards. */
+@keyframes curated-slide-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes curated-slide-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-curated-in,
+  .animate-curated-out {
+    animation: none;
+  }
+  .animate-curated-out {
     display: none;
   }
 }

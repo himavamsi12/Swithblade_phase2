@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { cacheDelete, cacheGet, cacheSet } from "@/lib/redis";
 import type { ShiprocketOrder } from "./shiprocket-order";
 
 /*
@@ -35,10 +36,20 @@ const TIMEOUT_MS = 8_000;
 export const shiprocketEnabled = () =>
   Boolean(email && password && pickupLocation);
 
+/** Shared by all instances, so each cold start doesn't log in again. */
+const TOKEN_KEY = "shiprocket:token";
+
 let token: { value: string; expiresAt: number } | undefined;
 
 async function getToken(): Promise<string> {
   if (token && token.expiresAt > Date.now()) return token.value;
+  const shared = await cacheGet<{ value: string; expiresAt: number }>(
+    TOKEN_KEY,
+  );
+  if (shared && shared.expiresAt > Date.now()) {
+    token = shared;
+    return token.value;
+  }
   const res = await fetch(`${BASE}/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -50,6 +61,7 @@ async function getToken(): Promise<string> {
     throw new Error(`Shiprocket login failed (${res.status})`);
   }
   token = { value: json.token, expiresAt: Date.now() + TOKEN_TTL_MS };
+  await cacheSet(TOKEN_KEY, token, TOKEN_TTL_MS / 1000);
   return token.value;
 }
 
@@ -66,6 +78,7 @@ async function request(path: string, init: RequestInit = {}, retry = true) {
   // A token revoked early (e.g. password reset): log in again once.
   if (res.status === 401 && retry) {
     token = undefined;
+    await cacheDelete(TOKEN_KEY);
     return request(path, init, false);
   }
   return res;
@@ -111,8 +124,17 @@ export async function isServiceable(
   pincode: string,
   weightKg: number,
 ): Promise<boolean> {
-  const cached = serviceable.get(pincode);
+  const key = `${pincode}:${weightKg}`;
+  const cached = serviceable.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
+  const shared = await cacheGet<boolean>(`shiprocket:serviceable:${key}`);
+  if (shared !== null) {
+    serviceable.set(key, {
+      value: shared,
+      expiresAt: Date.now() + SERVICEABLE_TTL_MS,
+    });
+    return shared;
+  }
 
   const query = new URLSearchParams({
     pickup_postcode: await getPickupPincode(),
@@ -121,14 +143,20 @@ export async function isServiceable(
     cod: "0",
   });
   const res = await request(`/courier/serviceability/?${query}`);
+  // An outage isn't an answer: throw rather than cache "not serviceable".
+  if (res.status >= 500 || res.status === 429) {
+    throw new Error(`Shiprocket serviceability failed (${res.status})`);
+  }
   const json = (await res.json().catch(() => ({}))) as {
     data?: { available_courier_companies?: unknown[] };
   };
   const value = (json.data?.available_courier_companies?.length ?? 0) > 0;
-  serviceable.set(pincode, {
+  serviceable.set(key, { value, expiresAt: Date.now() + SERVICEABLE_TTL_MS });
+  await cacheSet(
+    `shiprocket:serviceable:${key}`,
     value,
-    expiresAt: Date.now() + SERVICEABLE_TTL_MS,
-  });
+    SERVICEABLE_TTL_MS / 1000,
+  );
   return value;
 }
 

@@ -12,6 +12,16 @@ type SidebarPartner = { slug: string; name: string; logo: StaticImageData };
 const normalize = (s: string) =>
   s.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
+/*
+ * Logos range from wide wordmarks (Chanel) to compact marks (Stüssy). Giving
+ * each the same area, rather than the same box, makes them look equally sized.
+ */
+const LOGO_AREA = 1600;
+const LOGO_AREA_LG = 2600;
+
+const logoWidth = (logo: StaticImageData, area: number) =>
+  `${Math.round(Math.sqrt((area * logo.width) / logo.height))}px`;
+
 /** Partner search and logo list; each logo links to that partner's capsule. */
 export function PartnerSidebar({
   partners,
@@ -50,7 +60,7 @@ export function PartnerSidebar({
       {matches.length === 0 ? (
         <p className="mt-8 text-body-3 text-muted">No partners found.</p>
       ) : (
-        <ul className="mt-8 flex gap-8 overflow-x-auto pb-2 lg:flex-col lg:gap-9 lg:overflow-visible lg:pb-0">
+        <ul className="mt-8 flex gap-8 overflow-x-auto pb-2 lg:flex-col lg:gap-6 lg:overflow-visible lg:pb-0">
           {matches.map((p) => {
             const active = p.slug === activeSlug;
             return (
@@ -60,14 +70,20 @@ export function PartnerSidebar({
                   scroll={false}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "block w-fit transition-opacity focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary",
+                    "flex h-12 w-fit items-center transition-opacity focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary lg:h-14",
                     active ? "opacity-100" : "opacity-45 hover:opacity-100",
                   )}
                 >
                   <Image
                     src={p.logo}
                     alt={p.name}
-                    className="h-[56px] w-[170px] object-contain object-left lg:h-[76px] lg:w-[250px]"
+                    style={
+                      {
+                        "--logo-w": logoWidth(p.logo, LOGO_AREA),
+                        "--logo-w-lg": logoWidth(p.logo, LOGO_AREA_LG),
+                      } as React.CSSProperties
+                    }
+                    className="h-auto w-(--logo-w) lg:w-(--logo-w-lg)"
                   />
                 </Link>
               </li>

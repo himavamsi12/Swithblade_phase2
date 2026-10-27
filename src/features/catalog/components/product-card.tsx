@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { formatPriceCompact } from "@/lib/format";
+import { Price } from "@/features/currency/components/price";
 import { cn } from "@/lib/utils";
 import type { Product } from "../types";
 import { QuickAddButton } from "./quick-add-button";
@@ -23,7 +23,9 @@ export function ProductCard({
   variant = "shelf",
 }: ProductCardProps) {
   const listing = variant === "listing";
-  const price = formatPriceCompact(product.price, product.currency);
+  const price = (
+    <Price amount={product.price} currency={product.currency} compact />
+  );
   const href = `/products/${product.slug}` as const;
   const sizes = listing
     ? "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"

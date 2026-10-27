@@ -10,7 +10,7 @@ import {
   firstAvailableSize,
   SizePicker,
 } from "@/features/catalog/components/option-pickers";
-import { formatPriceCompact } from "@/lib/format";
+import { Price } from "@/features/currency/components/price";
 import { cn } from "@/lib/utils";
 import { wishlistActions } from "../store";
 import type { WishlistItem } from "../wishlist";
@@ -81,7 +81,7 @@ export function WishlistCard({ item }: { item: WishlistItem }) {
           {item.name}
         </Link>
         <p className="text-body-2 font-semibold">
-          {formatPriceCompact(item.price, item.currency)}
+          <Price amount={item.price} currency={item.currency} compact />
         </p>
       </div>
 

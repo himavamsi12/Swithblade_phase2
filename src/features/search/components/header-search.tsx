@@ -18,7 +18,7 @@ type HeaderSearchProps = {
  * The header's search button and the panel it opens: a full-width bar under
  * the header with suggested categories, over a dimmed page. Must sit inside a
  * positioned header, since the panel hangs off its bottom edge. While open,
- * the panel carries `data-search-open`, so the header can restyle itself
+ * the panel carries `data-header-panel-open` (shared with the cart drawer), so the header can restyle itself
  * with `:has()`.
  *
  * The panel stays mounted so it can animate both ways: it wipes down from
@@ -91,7 +91,7 @@ export function HeaderSearch({ icon, className }: HeaderSearchProps) {
         id={panelId}
         role="dialog"
         aria-label="Search"
-        data-search-open={open || undefined}
+        data-header-panel-open={open || undefined}
         inert={!open}
         className={cn(
           "absolute inset-x-0 top-full bg-white text-black shadow-[0_12px_24px_rgb(0_0_0/0.06)] motion-reduce:transition-none",
