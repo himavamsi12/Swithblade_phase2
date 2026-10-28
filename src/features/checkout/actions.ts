@@ -1,11 +1,17 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { after } from "next/server";
 import type { Orders } from "razorpay/dist/types/orders";
 import { z } from "zod";
 import { getSignedInCustomer } from "@/features/account/customer";
 import { MAX_QUANTITY } from "@/features/cart/cart";
 import { getProductBySlug } from "@/features/catalog/repository";
+import {
+  attachHolds,
+  holdStock,
+  releaseHolds,
+} from "@/features/stock/repository";
 import { getCheckoutStatus } from "@/features/store/repository";
 import {
   isServiceable,
@@ -186,6 +192,28 @@ export async function createCheckout(
   // Signed-in shoppers get the order on their account; guests check out by email.
   const session = await getSignedInCustomer();
 
+  // Reserve the items while the shopper pays, so nobody else can buy them.
+  const hold = await holdStock(
+    cart.lines.map((l) => ({
+      slug: l.product.slug,
+      name: l.product.name,
+      color: l.color,
+      size: l.size,
+      quantity: l.quantity,
+    })),
+    await stockHolder(session?.customer.id),
+  ).catch((error: unknown) => {
+    console.error("Couldn't hold stock", error);
+    return null;
+  });
+  if (!hold) {
+    return {
+      status: "error",
+      message: "Couldn't start checkout. Please try again.",
+    };
+  }
+  if (!hold.ok) return { status: "error", message: hold.message };
+
   const magic = USE_MAGIC_CHECKOUT && cart.currency === MAGIC_CURRENCY;
   try {
     const order = await razorpayClient(config).orders.create({
@@ -206,6 +234,7 @@ export async function createCheckout(
           }
         : {}),
     });
+    await attachHolds(hold.checkout, order.id);
     return {
       status: "ok",
       keyId: config.keyId,
@@ -221,11 +250,38 @@ export async function createCheckout(
     };
   } catch (error) {
     console.error("Razorpay order creation failed", error);
+    await releaseHolds(hold.checkout).catch((releaseError: unknown) =>
+      console.error("Couldn't release stock hold", releaseError),
+    );
     return {
       status: "error",
       message: "Couldn't start checkout. Please try again.",
     };
   }
+}
+
+const HOLDER_COOKIE = "sb_checkout";
+
+/**
+ * Who a stock hold belongs to: the account when signed in, else this
+ * browser (a random id in a cookie). Starting checkout again replaces the
+ * same holder's earlier hold instead of blocking them.
+ */
+async function stockHolder(customerId: number | undefined) {
+  if (customerId) return `customer:${customerId}`;
+  const jar = await cookies();
+  let id = jar.get(HOLDER_COOKIE)?.value;
+  if (!id || !/^[0-9a-f-]{36}$/.test(id)) {
+    id = crypto.randomUUID();
+    jar.set(HOLDER_COOKIE, id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+  return `guest:${id}`;
 }
 
 const paymentSchema = z.object({

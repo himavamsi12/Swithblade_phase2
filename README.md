@@ -117,9 +117,13 @@ published products with an INR price show. A product's price is its INR price
 options belong to option types named `size` and `color`; a Color option's
 `swatch` is the shop's swatch colour. Stock is the product's inventory, or each
 variant's when variants are on ("Track inventory" off or "Allow backorders" on
-always sells). Placing an order takes stock under a row lock; an item that sold
-out before the payment arrived is recorded, flagged on the order
-(`metadata.oversold`) and reported to staff. Catalog pages are cached and
+always sells). Starting checkout holds the bag's items for 15 minutes
+(Inventory → Stock holds); available stock is inventory minus unexpired holds,
+checked under a row lock, so two shoppers can't both pay for the last unit.
+Razorpay's payment window closes at 12 minutes, inside the hold. Payment turns
+the hold into the sale and takes the stock. If a payment still lands on stock
+promised to someone else, the order is recorded, flagged
+(`metadata.oversold`) and reported to staff for a refund. Catalog pages are cached and
 refreshed by Payload hooks when products, variants, options, media, categories
 or collections change. Search matches every word in the title, subtitle or
 description.

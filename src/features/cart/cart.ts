@@ -91,3 +91,13 @@ export function parseLines(value: unknown): CartLine[] {
       l.quantity >= 1,
   );
 }
+
+/**
+ * Adds a guest bag into the one saved on the shopper's account at sign-in.
+ * The same item stacks, still capped at MAX_QUANTITY.
+ */
+export const mergeLines = (saved: CartLine[], guest: CartLine[]) =>
+  guest.reduce(
+    (lines, { quantity, ...item }) => addLine(lines, item, quantity),
+    saved,
+  );

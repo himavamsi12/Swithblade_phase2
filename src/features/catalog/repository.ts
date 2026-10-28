@@ -1,13 +1,10 @@
 import "server-only";
-import type { PostgresAdapter } from "@payloadcms/db-postgres";
-import { sql } from "@payloadcms/db-postgres";
 import { unstable_cache } from "next/cache";
-import type { PayloadRequest, Where } from "payload";
+import type { Where } from "payload";
 import { getPayloadClient } from "@/features/account/customer";
 import { env } from "@/lib/env";
-import { DB_SCHEMA } from "@/payload/constants";
 import { PRODUCTS_TAG } from "./cache";
-import { matchVariant, toStorefrontProduct } from "./payload-product";
+import { toStorefrontProduct } from "./payload-product";
 import {
   placeholderCategory,
   placeholderProductBySlug,
@@ -197,91 +194,6 @@ export async function listRecommendedProducts(
   return latest.products.length > 0
     ? latest.products
     : placeholderRelated(limit);
-}
-
-/** The open transaction's database handle, so row locks hold until commit. */
-async function transactionDb(req: PayloadRequest) {
-  const adapter = req.payload.db as unknown as PostgresAdapter;
-  const id = req.transactionID ? await req.transactionID : undefined;
-  return (id !== undefined && adapter.sessions[id]?.db) || adapter.drizzle;
-}
-
-/**
- * Takes sold items out of stock, inside the order's transaction. Each row is
- * locked first, so two orders for the last item can't both read "1 left".
- * Stock never goes below zero; returns what was oversold (the payment is
- * already taken by then), for staff to sort out.
- */
-export async function takeStock(
-  lines: {
-    slug: string;
-    color: string | null;
-    size: string | null;
-    quantity: number;
-  }[],
-  req: PayloadRequest,
-): Promise<string[]> {
-  const { payload } = req;
-  const db = await transactionDb(req);
-  const oversold: string[] = [];
-
-  for (const line of lines) {
-    const label = [line.slug, line.color, line.size]
-      .filter(Boolean)
-      .join(" / ");
-    const { docs } = await payload.find({
-      collection: "products",
-      where: { handle: { equals: line.slug } },
-      depth: 2,
-      joins: { variants: { limit: 100 } },
-      limit: 1,
-      req,
-    });
-    const product = docs[0];
-    if (!product) {
-      oversold.push(`${label}: product no longer exists`);
-      continue;
-    }
-
-    const variant = product.enableVariants
-      ? matchVariant(product, line.color, line.size)
-      : null;
-    if (product.enableVariants && !variant) {
-      oversold.push(`${label}: variant no longer exists`);
-      continue;
-    }
-    const collection = variant ? "variants" : "products";
-    const id = variant?.id ?? product.id;
-
-    await db.execute(
-      sql`select 1 from ${sql.identifier(DB_SCHEMA)}.${sql.identifier(collection)} where id = ${id} for update`,
-    );
-    const current = variant
-      ? await payload.findByID({ collection: "variants", id, depth: 0, req })
-      : await payload.findByID({ collection: "products", id, depth: 0, req });
-    const stock = {
-      inventory: current.inventory,
-      manageInventory:
-        "manageInventory" in current ? current.manageInventory : true,
-      allowBackorder:
-        "allowBackorder" in current ? current.allowBackorder : false,
-    };
-    if (stock.manageInventory === false) continue;
-
-    const left = (stock.inventory ?? 0) - line.quantity;
-    if (left < 0 && !stock.allowBackorder) {
-      oversold.push(
-        `${label}: ${line.quantity} sold, ${Math.max(0, stock.inventory ?? 0)} were in stock`,
-      );
-    }
-    const data = { inventory: Math.max(0, left) };
-    if (variant) {
-      await payload.update({ collection: "variants", id, data, depth: 0, req });
-    } else {
-      await payload.update({ collection: "products", id, data, depth: 0, req });
-    }
-  }
-  return oversold;
 }
 
 /**

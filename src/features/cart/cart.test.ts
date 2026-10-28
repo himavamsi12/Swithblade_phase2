@@ -4,6 +4,7 @@ import {
   itemCount,
   lineKey,
   MAX_QUANTITY,
+  mergeLines,
   parseLines,
   removeLine,
   repriceLines,
@@ -81,6 +82,21 @@ describe("repriceLines", () => {
     expect(lines.map((l) => [l.price, l.currency])).toEqual([
       [499000, "INR"],
       [499000, "INR"],
+    ]);
+  });
+});
+
+describe("mergeLines", () => {
+  it("adds a guest bag into the saved one at sign-in", () => {
+    const saved = addLine([], vest, 2);
+    const guest = addLine(addLine([], vest, MAX_QUANTITY), {
+      ...vest,
+      size: "M",
+    });
+    const merged = mergeLines(saved, guest);
+    expect(merged.map((l) => [l.size, l.quantity])).toEqual([
+      ["XS", MAX_QUANTITY],
+      ["M", 1],
     ]);
   });
 });

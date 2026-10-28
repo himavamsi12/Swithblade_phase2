@@ -1,11 +1,12 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { Field } from "@/features/account/components/profile-card";
 import { inputClass } from "@/features/account/components/styles";
 import { siteConfig } from "@/config/site";
 import { cartActions } from "@/features/cart/store";
 import type { CartLine } from "@/features/cart/types";
+import { PAYMENT_WINDOW_SECONDS } from "@/features/stock/hold";
 import { createCheckout, verifyPayment } from "../actions";
 import type { DeliveryAddressInput } from "../address";
 
@@ -114,6 +115,8 @@ export function CheckoutButton({
 }) {
   const id = useId();
   const [pending, startTransition] = useTransition();
+  // Blocks a second tap before `pending` has re-rendered the button disabled.
+  const starting = useRef(false);
   const [error, setError] = useState<string | null>(null);
   // The bag (and this form) only renders in the browser, after the cart loads.
   const [address, setAddress] = useState(() => {
@@ -130,71 +133,87 @@ export function CheckoutButton({
 
   function checkout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (starting.current) return;
+    starting.current = true;
     setError(null);
     setFieldErrors({});
     saveAddress(address);
     startTransition(async () => {
-      const session = await createCheckout(
-        lines.map(({ slug, color, size, quantity, price, currency }) => ({
-          slug,
-          color,
-          size,
-          quantity,
-          price,
-          currency,
-        })),
-        address,
-      );
-      if (session.status === "error") {
-        if (session.repriced) cartActions.reprice(session.repriced);
-        if (session.fieldErrors) setFieldErrors(session.fieldErrors);
-        return fail(session.message);
-      }
-
       try {
-        await loadScript(session.magic ? SCRIPTS.magic : SCRIPTS.standard);
-      } catch {
-        return fail("Couldn't load the payment window. Please try again.");
+        await openCheckout();
+      } finally {
+        starting.current = false;
       }
-      if (!window.Razorpay) return fail("Payments are unavailable right now.");
-
-      // Razorpay keeps its window open after a failure so the shopper can
-      // retry there; only report it once they give up and close it.
-      let failed = false;
-      const razorpay = new window.Razorpay({
-        key: session.keyId,
-        order_id: session.orderId,
-        amount: session.amount,
-        currency: session.currency,
-        name: siteConfig.name,
-        prefill: session.prefill,
-        one_click_checkout: session.magic,
-        // No coupons yet; see /api/razorpay/promotions.
-        show_coupons: false,
-        modal: {
-          ondismiss: () => {
-            if (failed) onFailed();
-          },
-        },
-        handler: (response: RazorpaySuccess) => {
-          failed = false;
-          startTransition(async () => {
-            const result = await verifyPayment({
-              orderId: response.razorpay_order_id,
-              paymentId: response.razorpay_payment_id,
-              signature: response.razorpay_signature,
-            });
-            if (result.status === "error") return fail(result.message);
-            onPaid(result.orderNumber);
-            cartActions.clear();
-          });
-        },
-      });
-      razorpay.on("payment.failed", () => {
-        failed = true;
-      });
-      razorpay.open();
     });
+  }
+
+  async function openCheckout() {
+    const session = await createCheckout(
+      lines.map(({ slug, color, size, quantity, price, currency }) => ({
+        slug,
+        color,
+        size,
+        quantity,
+        price,
+        currency,
+      })),
+      address,
+    );
+    if (session.status === "error") {
+      if (session.repriced) cartActions.reprice(session.repriced);
+      if (session.fieldErrors) setFieldErrors(session.fieldErrors);
+      return fail(session.message);
+    }
+
+    try {
+      await loadScript(session.magic ? SCRIPTS.magic : SCRIPTS.standard);
+    } catch {
+      return fail("Couldn't load the payment window. Please try again.");
+    }
+    if (!window.Razorpay) return fail("Payments are unavailable right now.");
+
+    // Razorpay keeps its window open after a failure so the shopper can
+    // retry there; only report it once they give up and close it. A
+    // failure reported after a successful payment (a retry that raced it)
+    // is ignored: the order is paid.
+    let failed = false;
+    let paid = false;
+    const razorpay = new window.Razorpay({
+      key: session.keyId,
+      order_id: session.orderId,
+      amount: session.amount,
+      currency: session.currency,
+      name: siteConfig.name,
+      prefill: session.prefill,
+      one_click_checkout: session.magic,
+      // No coupons yet; see /api/razorpay/promotions.
+      show_coupons: false,
+      // Closes before the stock hold ends, so a payment can't outlive it.
+      timeout: PAYMENT_WINDOW_SECONDS,
+      modal: {
+        ondismiss: () => {
+          if (failed && !paid) onFailed();
+        },
+      },
+      handler: (response: RazorpaySuccess) => {
+        paid = true;
+        failed = false;
+        startTransition(async () => {
+          const result = await verifyPayment({
+            orderId: response.razorpay_order_id,
+            paymentId: response.razorpay_payment_id,
+            signature: response.razorpay_signature,
+          });
+          if (result.status === "error") return fail(result.message);
+          onPaid(result.orderNumber);
+          cartActions.clear();
+        });
+      },
+    });
+    razorpay.on("payment.failed", () => {
+      if (!paid) failed = true;
+    });
+    razorpay.open();
   }
 
   const field = (

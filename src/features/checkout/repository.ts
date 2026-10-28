@@ -7,8 +7,10 @@ import {
 } from "payload";
 import { z } from "zod";
 import { getPayloadClient } from "@/features/account/customer";
-import { getProductBySlug, takeStock } from "@/features/catalog/repository";
+import { getProductBySlug } from "@/features/catalog/repository";
 import { orderNumber } from "@/features/notifications/order-confirmation-email";
+import { takeStock } from "@/features/stock/repository";
+import { lockKey } from "@/payload/transaction";
 import type { Address, Customer, Order } from "@/payload-types";
 import { supportedCountries } from "@/payload/countries";
 import { currenciesConfig } from "@/payload/currencies";
@@ -331,8 +333,28 @@ export async function recordRazorpayPayment(
   const req = await createLocalReq({}, payload);
   await initTransaction(req);
   try {
+    // The callback and Razorpay's events (often several, sometimes repeated)
+    // can arrive together: one records the order, the rest wait here and
+    // then find it, so stock is never taken twice.
+    await lockKey(req, `razorpay-order:${razorpayOrderId}`);
+    const recorded = await payload.find({
+      collection: "orders",
+      where: { razorpayOrderId: { equals: razorpayOrderId } },
+      limit: 1,
+      depth: 0,
+      select: { displayId: true },
+      req,
+    });
+    if (recorded.docs[0]) {
+      await killTransaction(req);
+      return {
+        status: "duplicate",
+        orderId: recorded.docs[0].id,
+        orderNumber: orderNumber(recorded.docs[0]),
+      };
+    }
     // Paid already, so an oversold line is recorded and flagged, not refused.
-    const oversold = await takeStock(lines, req);
+    const oversold = await takeStock(lines, razorpayOrderId, req);
     if (oversold.length > 0) {
       console.error(`Order ${razorpayOrderId} oversold:`, oversold);
     }

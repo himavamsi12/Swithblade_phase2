@@ -98,6 +98,7 @@ export interface Config {
     'stock-locations': StockLocation;
     'shipping-options': ShippingOption;
     'shipping-profiles': ShippingProfile;
+    'stock-holds': StockHold;
     variantOptions: VariantOption;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -162,6 +163,7 @@ export interface Config {
     'stock-locations': StockLocationsSelect<false> | StockLocationsSelect<true>;
     'shipping-options': ShippingOptionsSelect<false> | ShippingOptionsSelect<true>;
     'shipping-profiles': ShippingProfilesSelect<false> | ShippingProfilesSelect<true>;
+    'stock-holds': StockHoldsSelect<false> | StockHoldsSelect<true>;
     variantOptions: VariantOptionsSelect<false> | VariantOptionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -899,6 +901,18 @@ export interface Customer {
     lastSignInAt?: string | null;
   };
   groups?: (number | CustomerGroup)[] | null;
+  /**
+   * The shopper's bag, shared across their devices.
+   */
+  bag?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   addresses?: {
     docs?: (number | Address)[];
     hasNextPage?: boolean;
@@ -1385,6 +1399,34 @@ export interface TaxRegion {
   createdAt: string;
 }
 /**
+ * Stock reserved for checkouts in progress. Holds end on their own after 15 minutes.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stock-holds".
+ */
+export interface StockHold {
+  id: number;
+  /**
+   * products:<id> or variants:<id>
+   */
+  item: string;
+  label?: string | null;
+  quantity: number;
+  status: 'active' | 'converted' | 'released';
+  expiresAt: string;
+  /**
+   * Groups the holds of one checkout.
+   */
+  checkout: string;
+  /**
+   * The shopper: customer:<id>, or guest:<browser id>.
+   */
+  holder: string;
+  razorpayOrderId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1511,6 +1553,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'shipping-profiles';
         value: number | ShippingProfile;
+      } | null)
+    | ({
+        relationTo: 'stock-holds';
+        value: number | StockHold;
       } | null)
     | ({
         relationTo: 'variantOptions';
@@ -1937,6 +1983,7 @@ export interface CustomersSelect<T extends boolean = true> {
         lastSignInAt?: T;
       };
   groups?: T;
+  bag?: T;
   addresses?: T;
   orders?: T;
   metadata?: T;
@@ -2250,6 +2297,22 @@ export interface ShippingProfilesSelect<T extends boolean = true> {
   name?: T;
   type?: T;
   metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stock-holds_select".
+ */
+export interface StockHoldsSelect<T extends boolean = true> {
+  item?: T;
+  label?: T;
+  quantity?: T;
+  status?: T;
+  expiresAt?: T;
+  checkout?: T;
+  holder?: T;
+  razorpayOrderId?: T;
   updatedAt?: T;
   createdAt?: T;
 }

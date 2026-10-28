@@ -1,4 +1,5 @@
 import { retryOrderFollowUps } from "@/features/checkout/retry";
+import { purgeOldHolds } from "@/features/stock/repository";
 import { isAuthorizedCron } from "@/lib/cron";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,14 @@ export async function GET(request: Request) {
   }
   try {
     const summary = await retryOrderFollowUps();
-    return Response.json(summary, { headers: { "Cache-Control": "no-store" } });
+    const holdsPurged = await purgeOldHolds().catch((error: unknown) => {
+      console.error("Purging old stock holds failed", error);
+      return 0;
+    });
+    return Response.json(
+      { ...summary, holdsPurged },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     console.error("Order retry cron failed", error);
     return Response.json({ error: "failed" }, { status: 500 });

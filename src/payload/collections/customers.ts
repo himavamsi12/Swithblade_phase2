@@ -100,6 +100,17 @@ export const Customers: CollectionConfig = {
       access: { update: ({ req }) => req.user?.collection === "users" },
     },
     {
+      name: "bag",
+      type: "json",
+      admin: {
+        position: "sidebar",
+        readOnly: true,
+        description: "The shopper's bag, shared across their devices.",
+      },
+      // Written by the storefront for the signed-in shopper only.
+      access: { create: () => false, update: () => false },
+    },
+    {
       name: "addresses",
       type: "join",
       collection: "addresses",

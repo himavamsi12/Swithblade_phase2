@@ -8,6 +8,7 @@ import {
 } from "@/features/account/customer";
 import { AuthForm } from "@/features/auth/components/auth-form";
 import { AuthShell } from "@/features/auth/components/auth-shell";
+import { SyncBagNow } from "@/features/cart/components/bag-sync";
 import { getCurrentUser } from "@/lib/supabase-server";
 
 export const metadata: Metadata = {
@@ -27,6 +28,8 @@ export default async function AccountPage({
       const addresses = await listCustomerAddresses(customer.id);
       return (
         <AccountShell firstName={customer.firstName ?? null}>
+          {/* Sign-in lands here: bring the guest bag into the account. */}
+          <SyncBagNow key={customer.id} />
           <ProfileCard
             profile={{
               email: customer.email ?? null,
@@ -66,6 +69,8 @@ export default async function AccountPage({
         </>
       }
     >
+      {/* Sign-out lands here: empty the bag in this browser. */}
+      <SyncBagNow key="guest" />
       {error === "link" && (
         <p role="alert" className="mb-4 text-center text-body-3 text-red-600">
           That link is invalid or has expired. Please try again.

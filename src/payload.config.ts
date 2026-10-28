@@ -27,6 +27,7 @@ import { Promotions } from "./payload/collections/promotions";
 import { Regions } from "./payload/collections/regions";
 import { ReturnReasons } from "./payload/collections/return-reasons";
 import { Returns } from "./payload/collections/returns";
+import { StockHolds } from "./payload/collections/stock-holds";
 import { SalesChannels } from "./payload/collections/sales-channels";
 import { ShippingOptions } from "./payload/collections/shipping-options";
 import { ShippingProfiles } from "./payload/collections/shipping-profiles";
@@ -93,6 +94,7 @@ export default buildConfig({
     ProductTypes,
     ProductTags,
     StockLocations,
+    StockHolds,
     ShippingOptions,
     ShippingProfiles,
   ],
