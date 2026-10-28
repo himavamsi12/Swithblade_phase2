@@ -41,4 +41,5 @@ export const siteConfig = {
   searchSuggestions: ["T-shirts", "Sweatshirts", "Polos"],
   wishlistHref: "/wishlist" as const satisfies Route,
   accountHref: "/account" as const satisfies Route,
+  supportEmail: "support@switchblade.com",
 } as const;

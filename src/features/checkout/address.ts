@@ -11,6 +11,12 @@ const text = (max: number, message: string) =>
   z.string().trim().min(1, message).max(max);
 
 export const deliveryAddressSchema = z.object({
+  /** Not part of the address notes: travels in its own `email` note. */
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email("Enter a valid email address.").max(254)),
   fullName: text(80, "Enter the full name."),
   phone: z
     .string()

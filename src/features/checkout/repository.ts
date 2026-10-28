@@ -7,7 +7,8 @@ import {
 } from "payload";
 import { z } from "zod";
 import { getPayloadClient } from "@/features/account/customer";
-import { getProductBySlug } from "@/features/catalog/repository";
+import { getProductBySlug, takeStock } from "@/features/catalog/repository";
+import { orderNumber } from "@/features/notifications/order-confirmation-email";
 import type { Address, Customer, Order } from "@/payload-types";
 import { supportedCountries } from "@/payload/countries";
 import { currenciesConfig } from "@/payload/currencies";
@@ -168,8 +169,52 @@ async function updateCustomerFromOrder(
   });
 }
 
+/** Orders placed in a time window, with the metadata follow-ups write to. */
+export async function listOrdersPlacedBetween(from: Date, to: Date) {
+  const payload = await getPayloadClient();
+  const { docs } = await payload.find({
+    collection: "orders",
+    where: {
+      and: [
+        { createdAt: { greater_than: from.toISOString() } },
+        { createdAt: { less_than: to.toISOString() } },
+      ],
+    },
+    sort: "createdAt",
+    limit: 500,
+    pagination: false,
+    depth: 0,
+    select: { metadata: true, displayId: true },
+  });
+  return docs;
+}
+
+/** Notes on each order that staff were told about it, so they're told once. */
+export async function markOrdersAlerted(orderIds: number[], at: Date) {
+  const payload = await getPayloadClient();
+  for (const id of orderIds) {
+    // Re-read: Shiprocket and email results are written to the same field.
+    const { metadata } = await payload.findByID({
+      collection: "orders",
+      id,
+      depth: 0,
+      select: { metadata: true },
+    });
+    const meta =
+      metadata && typeof metadata === "object"
+        ? (metadata as Record<string, unknown>)
+        : {};
+    await payload.update({
+      collection: "orders",
+      id,
+      data: { metadata: { ...meta, alertedAt: at.toISOString() } },
+      depth: 0,
+    });
+  }
+}
+
 export type RecordResult =
-  | { status: "recorded" | "duplicate"; orderId: number }
+  | { status: "recorded" | "duplicate"; orderId: number; orderNumber: string }
   | { status: "rejected"; reason: string };
 
 async function findByRazorpayOrder(razorpayOrderId: string) {
@@ -179,9 +224,33 @@ async function findByRazorpayOrder(razorpayOrderId: string) {
     where: { razorpayOrderId: { equals: razorpayOrderId } },
     limit: 1,
     depth: 0,
-    select: { razorpayOrderId: true },
+    select: { displayId: true },
   });
-  return docs[0]?.id ?? null;
+  const order = docs[0];
+  return order ? { orderId: order.id, orderNumber: orderNumber(order) } : null;
+}
+
+type RazorpayClient = ReturnType<typeof razorpayClient>;
+
+/**
+ * Captures an authorized payment. Throws if it stays uncaptured, so callers
+ * retry (the webhook gets a 500, the cron job tries again next run).
+ */
+async function capturePayment(
+  razorpay: RazorpayClient,
+  payment: { id: string; amount: number | string; currency: string },
+) {
+  try {
+    await razorpay.payments.capture(
+      payment.id,
+      payment.amount,
+      payment.currency,
+    );
+  } catch (error) {
+    // Lost a race with another caller (or auto-capture): fine if it's done.
+    const latest = await razorpay.payments.fetch(payment.id);
+    if (latest.status !== "captured") throw error;
+  }
 }
 
 export async function recordRazorpayPayment(
@@ -190,7 +259,7 @@ export async function recordRazorpayPayment(
   paymentId: string,
 ): Promise<RecordResult> {
   const existing = await findByRazorpayOrder(razorpayOrderId);
-  if (existing) return { status: "duplicate", orderId: existing };
+  if (existing) return { status: "duplicate", ...existing };
 
   // Ask Razorpay, not the browser, what was paid and for what.
   const razorpay = razorpayClient(config);
@@ -212,6 +281,11 @@ export async function recordRazorpayPayment(
   if (!lines) {
     return { status: "rejected", reason: "Order has no cart snapshot" };
   }
+  // An authorized payment is only a hold: Razorpay refunds it after a few
+  // days unless captured. Capture before recording, so every order is paid.
+  if (payment.status === "authorized") {
+    await capturePayment(razorpay, payment);
+  }
 
   const payload = await getPayloadClient();
   const customerId = Number(
@@ -223,18 +297,21 @@ export async function recordRazorpayPayment(
           .findByID({ collection: "customers", id: customerId, depth: 0 })
           .catch(() => null)
       : null;
-  const paymentEmail = realEmail(payment.email);
+  // The email given in Razorpay, else the one typed on the bag page.
+  const contactEmail =
+    realEmail(payment.email) ??
+    realEmail((rzpOrder.notes as Record<string, unknown> | undefined)?.email);
   // Guests are matched (or added) by the email they paid with, so the order
   // shows up in their account once they sign up with that email.
   const customer =
     signedIn ??
-    (paymentEmail
-      ? await findOrCreateCustomer(paymentEmail).catch((error: unknown) => {
+    (contactEmail
+      ? await findOrCreateCustomer(contactEmail).catch((error: unknown) => {
           console.error("Couldn't link order to a customer", error);
           return null;
         })
       : null);
-  const customerEmail = customer?.email ?? paymentEmail;
+  const customerEmail = customer?.email ?? contactEmail;
   const shipping = shippingAddress(
     (rzpOrder as { customer_details?: { shipping_address?: unknown } })
       .customer_details?.shipping_address ?? decodeAddressNotes(rzpOrder.notes),
@@ -254,6 +331,11 @@ export async function recordRazorpayPayment(
   const req = await createLocalReq({}, payload);
   await initTransaction(req);
   try {
+    // Paid already, so an oversold line is recorded and flagged, not refused.
+    const oversold = await takeStock(lines, req);
+    if (oversold.length > 0) {
+      console.error(`Order ${razorpayOrderId} oversold:`, oversold);
+    }
     const order = await payload.create({
       collection: "orders",
       data: {
@@ -262,8 +344,7 @@ export async function recordRazorpayPayment(
         customer: customer?.id ?? null,
         customerEmail,
         status: "processing",
-        paymentStatus:
-          payment.status === "captured" ? "captured" : "authorized",
+        paymentStatus: "captured",
         amount,
         currency: currency as Currency,
         totals: { subtotal, discountTotal: Math.max(0, subtotal - amount) },
@@ -284,6 +365,7 @@ export async function recordRazorpayPayment(
         }),
         metadata: {
           razorpay: { method: payment.method, contact: payment.contact },
+          ...(oversold.length > 0 && { oversold }),
         },
       },
       depth: 0,
@@ -310,12 +392,16 @@ export async function recordRazorpayPayment(
           console.error("Couldn't update customer from order", error),
       );
     }
-    return { status: "recorded", orderId: order.id };
+    return {
+      status: "recorded",
+      orderId: order.id,
+      orderNumber: orderNumber(order),
+    };
   } catch (error) {
     await killTransaction(req);
     // Lost a race with the other caller: the unique index kept one order.
     const raced = await findByRazorpayOrder(razorpayOrderId);
-    if (raced) return { status: "duplicate", orderId: raced };
+    if (raced) return { status: "duplicate", ...raced };
     throw error;
   }
 }

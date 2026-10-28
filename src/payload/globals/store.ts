@@ -1,5 +1,5 @@
 import type { GlobalConfig } from "payload";
-import { anyone, isSuperAdmin } from "../access";
+import { isAdmin, isSuperAdmin } from "../access";
 import { currencyOptions } from "../currencies";
 import { group } from "../groups";
 
@@ -8,7 +8,9 @@ export const Store: GlobalConfig = {
   slug: "store",
   label: "Store",
   admin: { group: group.settings },
-  access: { read: anyone, update: isSuperAdmin },
+  // Staff only: holds the staff notification email. The storefront reads the
+  // kill switch server-side, unaffected by access rules.
+  access: { read: isAdmin, update: isSuperAdmin },
   fields: [
     { name: "name", type: "text", required: true, defaultValue: "Switchblade" },
     {
@@ -19,8 +21,11 @@ export const Store: GlobalConfig = {
       defaultValue: "INR",
       options: currencyOptions,
     },
+    // Hidden until the storefront uses them (multi-region, channels,
+    // warehouses). The data is kept.
     {
       type: "row",
+      admin: { hidden: true },
       fields: [
         {
           name: "defaultRegion",
@@ -72,10 +77,14 @@ export const Store: GlobalConfig = {
       ],
     },
     {
+      // Hidden until order copies to staff are sent.
       name: "orderNotificationEmail",
       label: "Order notification email",
       type: "email",
-      admin: { description: "Receives a copy of every new order." },
+      admin: {
+        hidden: true,
+        description: "Receives a copy of every new order.",
+      },
     },
   ],
 };

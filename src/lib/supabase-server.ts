@@ -42,6 +42,10 @@ export async function getCurrentUser() {
   if (!claims?.sub) return null;
   return {
     id: claims.sub,
-    email: typeof claims.email === "string" ? claims.email : null,
+    email:
+      typeof claims.email === "string" && claims.email ? claims.email : null,
+    /** Set for phone OTP accounts, e.g. "919876543210". */
+    phone:
+      typeof claims.phone === "string" && claims.phone ? claims.phone : null,
   };
 }

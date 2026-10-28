@@ -6,6 +6,7 @@ import {
 } from "./address";
 
 const input = {
+  email: " Asha@Example.com ",
   fullName: "Asha Rao",
   phone: "+91 98765 43210",
   addressLine1: "Flat 117, Kondapur",
@@ -18,6 +19,7 @@ const input = {
 describe("deliveryAddressSchema", () => {
   it("normalises the phone and blank optional lines", () => {
     expect(deliveryAddressSchema.parse(input)).toMatchObject({
+      email: "asha@example.com",
       phone: "9876543210",
       addressLine2: null,
     });

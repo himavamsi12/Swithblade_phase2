@@ -1,13 +1,18 @@
 import type { CollectionConfig } from "payload";
 import { anyone, isAdmin } from "../access";
 import { group } from "../groups";
+import { revalidateCatalogHooks } from "../hooks/revalidate-catalog";
 
 /**
- * Product and content images. Stored on local disk under `/media`; switch to
- * the S3 storage adapter before deploying to a serverless host.
+ * Product and content images. Stored in Supabase Storage when the S3_* env
+ * vars are set (see payload.config.ts), otherwise on local disk under `/media`.
  */
 export const Media: CollectionConfig = {
   slug: "media",
+  hooks: {
+    afterChange: [revalidateCatalogHooks.afterChange],
+    afterDelete: [revalidateCatalogHooks.afterDelete],
+  },
   admin: { group: group.products },
   access: { read: anyone, create: isAdmin, update: isAdmin, delete: isAdmin },
   upload: {

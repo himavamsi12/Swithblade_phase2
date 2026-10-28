@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ecommercePlugin } from "@payloadcms/plugin-ecommerce";
 import { stripeAdapter } from "@payloadcms/plugin-ecommerce/payments/stripe";
+import { s3Storage as s3StoragePlugin } from "@payloadcms/storage-s3";
 import { buildConfig } from "payload";
 import sharp from "sharp";
 import {
@@ -34,7 +35,7 @@ import { TaxRegions } from "./payload/collections/tax-regions";
 import { Users } from "./payload/collections/users";
 import { supportedCountries } from "./payload/countries";
 import { currenciesConfig } from "./payload/currencies";
-import { payloadEnv, stripeEnabled } from "./payload/env";
+import { payloadEnv, s3Storage, stripeEnabled } from "./payload/env";
 import { databaseAdapter } from "./payload/db";
 import { Store } from "./payload/globals/store";
 import { orderCollections } from "./payload/order-collections";
@@ -42,6 +43,7 @@ import {
   addressesOverride,
   cartsOverride,
   transactionsOverride,
+  variantOptionsOverride,
   variantTypesOverride,
 } from "./payload/overrides/misc";
 import { ordersOverride } from "./payload/overrides/orders";
@@ -99,6 +101,27 @@ export default buildConfig({
   typescript: { outputFile: path.resolve(dirname, "payload-types.ts") },
   graphQL: { disablePlaygroundInProduction: true },
   plugins: [
+    // Media files in a (private) Supabase Storage bucket, served via Payload.
+    s3StoragePlugin({
+      enabled: Boolean(s3Storage),
+      // Same schema with or without storage configured, so one set of
+      // migrations fits every environment.
+      alwaysInsertFields: true,
+      collections: { media: true },
+      bucket: s3Storage?.bucket ?? "",
+      config: {
+        endpoint: s3Storage?.endpoint,
+        region: s3Storage?.region,
+        // Supabase's S3 endpoint needs path-style bucket URLs.
+        forcePathStyle: true,
+        credentials: s3Storage
+          ? {
+              accessKeyId: s3Storage.accessKeyId,
+              secretAccessKey: s3Storage.secretAccessKey,
+            }
+          : undefined,
+      },
+    }),
     ecommercePlugin({
       access: {
         adminOnlyFieldAccess,
@@ -120,6 +143,7 @@ export default buildConfig({
         variants: {
           variantsCollectionOverride: variantsOverride,
           variantTypesCollectionOverride: variantTypesOverride,
+          variantOptionsCollectionOverride: variantOptionsOverride,
         },
       },
       orders: { ordersCollectionOverride: ordersOverride },

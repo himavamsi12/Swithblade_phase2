@@ -48,6 +48,23 @@ describe("priceCart", () => {
     ).toBe(false);
   });
 
+  it("checks stock for the exact colour and size picked", () => {
+    const withVariants = product({
+      variants: [
+        { id: 1, color: "Navy", size: "S", available: true },
+        { id: 2, color: "Black", size: "S", available: false },
+      ],
+    });
+    const products = new Map([["vest", withVariants]]);
+    expect(priceCart([{ ...item, color: "Navy" }], products).ok).toBe(true);
+    expect(priceCart([{ ...item, color: "Black" }], products)).toMatchObject({
+      ok: false,
+      message: "Blocked Fleece Vest is no longer available in Black, S.",
+    });
+    // A combination the product doesn't have at all.
+    expect(priceCart([{ ...item, color: "Red" }], products).ok).toBe(false);
+  });
+
   it("flags a bag saved with old prices and returns the current ones", () => {
     const cart = priceCart(
       [{ ...item, price: 24500, currency: "USD" }],

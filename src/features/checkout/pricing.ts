@@ -45,7 +45,22 @@ export function priceCart(
     if (!product || !product.inStock) {
       return { ok: false, message: "An item in your bag is unavailable." };
     }
-    if (
+    if (product.variants) {
+      // Stock is per colour/size combination.
+      const variant = product.variants.find(
+        (v) =>
+          v.color === (item.color || null) && v.size === (item.size || null),
+      );
+      if (!variant?.available) {
+        const option = [item.color, item.size].filter(Boolean).join(", ");
+        return {
+          ok: false,
+          message: option
+            ? `${product.name} is no longer available in ${option}.`
+            : `${product.name} is no longer available.`,
+        };
+      }
+    } else if (
       item.size &&
       product.sizes.length > 0 &&
       !product.sizes.some((s) => s.label === item.size && s.available)
@@ -109,10 +124,11 @@ export type LineSnapshot = {
  * The bag is snapshotted into the Razorpay order's notes, which only our
  * server (holding the key secret) can write. Notes allow 15 keys of up to
  * 256 characters, so the JSON is split across `cart0`, `cart1`, … leaving one
- * key for the customer id and two for the delivery address (see address.ts).
+ * key each for the customer id and contact email, and two for the delivery
+ * address (see address.ts).
  */
 const NOTE_CHUNK = 255;
-const MAX_CART_NOTES = 12;
+const MAX_CART_NOTES = 11;
 
 export function encodeCartNotes(
   lines: PricedLine[],

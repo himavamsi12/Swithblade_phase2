@@ -30,6 +30,18 @@ export type Product = {
   /** Copy for the accordions on the product page. */
   details: string;
   shippingReturns: string;
+  /**
+   * Sellable colour/size combinations, for checkout. Absent on products
+   * without variants (and on design placeholders).
+   */
+  variants?: ProductVariant[];
+};
+
+export type ProductVariant = {
+  id: number;
+  color: string | null;
+  size: string | null;
+  available: boolean;
 };
 
 export type ProductColor = {

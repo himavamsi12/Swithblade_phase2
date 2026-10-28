@@ -8,6 +8,9 @@ import * as migration_20260930_140000_product_search from './20260930_140000_pro
 import * as migration_20261015_053138_add_order_razorpay_ids from './20261015_053138_add_order_razorpay_ids';
 import * as migration_20261015_054333_default_currency_inr from './20261015_054333_default_currency_inr';
 import * as migration_20261027_064946_kill_switches from './20261027_064946_kill_switches';
+import * as migration_20261027_065649_phone_customers from './20261027_065649_phone_customers';
+import * as migration_20261028_052856_media_storage_prefix from './20261028_052856_media_storage_prefix';
+import * as migration_20261028_071842_storefront_catalog_fields from './20261028_071842_storefront_catalog_fields';
 
 export const migrations = [
   {
@@ -58,6 +61,21 @@ export const migrations = [
   {
     up: migration_20261027_064946_kill_switches.up,
     down: migration_20261027_064946_kill_switches.down,
-    name: '20261027_064946_kill_switches'
+    name: '20261027_064946_kill_switches',
+  },
+  {
+    up: migration_20261027_065649_phone_customers.up,
+    down: migration_20261027_065649_phone_customers.down,
+    name: '20261027_065649_phone_customers',
+  },
+  {
+    up: migration_20261028_052856_media_storage_prefix.up,
+    down: migration_20261028_052856_media_storage_prefix.down,
+    name: '20261028_052856_media_storage_prefix',
+  },
+  {
+    up: migration_20261028_071842_storefront_catalog_fields.up,
+    down: migration_20261028_071842_storefront_catalog_fields.down,
+    name: '20261028_071842_storefront_catalog_fields'
   },
 ];

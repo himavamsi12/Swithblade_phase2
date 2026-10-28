@@ -1,6 +1,6 @@
 import "server-only";
 import { getPayloadClient } from "@/features/account/customer";
-import { emailEnabled, sendEmail } from "./email";
+import { emailEnabled, sendEmail, staffAlertEmail } from "./email";
 import { orderConfirmationEmail } from "./order-confirmation-email";
 
 /*
@@ -12,6 +12,52 @@ import { orderConfirmationEmail } from "./order-confirmation-email";
 
 type ChannelResult = { sentAt?: string; id?: string; error?: string };
 type Notifications = { orderPlaced?: { email?: ChannelResult } };
+
+/**
+ * Emails the staff alert inbox (STORE_ALERT_EMAIL). Returns false if alerts
+ * are off or sending failed, so the caller can try again later.
+ */
+export async function sendStaffAlert(alert: {
+  subject: string;
+  lines: string[];
+  idempotencyKey: string;
+}): Promise<boolean> {
+  const to = staffAlertEmail();
+  if (!to) return false;
+  const text = alert.lines.join("\n");
+  const escape = (s: string) =>
+    s.replace(
+      /[&<>]/g,
+      (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!,
+    );
+  try {
+    await sendEmail({
+      to,
+      subject: alert.subject,
+      text,
+      html: `<pre style="font:14px/1.5 monospace;white-space:pre-wrap">${escape(text)}</pre>`,
+      idempotencyKey: alert.idempotencyKey,
+    });
+    return true;
+  } catch (error) {
+    console.error("Staff alert not sent", error);
+    return false;
+  }
+}
+
+/** Why this order's confirmation email hasn't gone out, if it hasn't. */
+export function orderPlacedEmailError(metadata: unknown): string | null {
+  if (!orderPlacedEmailPending(metadata)) return null;
+  const meta = (metadata ?? {}) as { notifications?: Notifications };
+  return meta.notifications?.orderPlaced?.email?.error ?? "not sent yet";
+}
+
+/** Whether this order's confirmation email still has to go out. */
+export function orderPlacedEmailPending(metadata: unknown): boolean {
+  if (!emailEnabled()) return false;
+  const meta = (metadata ?? {}) as { notifications?: Notifications };
+  return !meta.notifications?.orderPlaced?.email?.sentAt;
+}
 
 export async function notifyOrderPlaced(orderId: number): Promise<void> {
   if (!emailEnabled()) return;

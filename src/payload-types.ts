@@ -370,6 +370,23 @@ export interface Product {
    */
   salesChannels?: (number | SalesChannel)[] | null;
   shippingProfile?: (number | null) | ShippingProfile;
+  /**
+   * The product page's Details accordion.
+   */
+  details?: string | null;
+  /**
+   * The product page's Shipping & Returns accordion.
+   */
+  shippingReturns?: string | null;
+  /**
+   * Optional. Where the product shot sits inside the listing card, in % of the card. Leave empty for a full-bleed photo.
+   */
+  imageFrame?: {
+    left?: number | null;
+    top?: number | null;
+    width?: number | null;
+    height?: number | null;
+  };
   weight?: number | null;
   length?: number | null;
   width?: number | null;
@@ -431,6 +448,8 @@ export interface Product {
 export interface Media {
   id: number;
   alt: string;
+  prefix?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -499,6 +518,10 @@ export interface VariantOption {
    * should be defaulted or dynamic based on label
    */
   value: string;
+  /**
+   * Color options only: the swatch shown in the shop, as a CSS colour, e.g. #1f2a44.
+   */
+  swatch?: string | null;
   updatedAt: string;
   createdAt: string;
   deletedAt?: string | null;
@@ -861,7 +884,7 @@ export interface ShippingProfile {
  */
 export interface Customer {
   id: number;
-  email: string;
+  email?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   company?: string | null;
@@ -1739,6 +1762,16 @@ export interface ProductsSelect<T extends boolean = true> {
   tags?: T;
   salesChannels?: T;
   shippingProfile?: T;
+  details?: T;
+  shippingReturns?: T;
+  imageFrame?:
+    | T
+    | {
+        left?: T;
+        top?: T;
+        width?: T;
+        height?: T;
+      };
   weight?: T;
   length?: T;
   width?: T;
@@ -1804,6 +1837,8 @@ export interface VariantTypesSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  prefix?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -2227,6 +2262,7 @@ export interface VariantOptionsSelect<T extends boolean = true> {
   variantType?: T;
   label?: T;
   value?: T;
+  swatch?: T;
   updatedAt?: T;
   createdAt?: T;
   deletedAt?: T;

@@ -29,7 +29,7 @@ export default async function AccountPage({
         <AccountShell firstName={customer.firstName ?? null}>
           <ProfileCard
             profile={{
-              email: customer.email,
+              email: customer.email ?? null,
               firstName: customer.firstName ?? null,
               lastName: customer.lastName ?? null,
               phone: customer.phone ?? null,

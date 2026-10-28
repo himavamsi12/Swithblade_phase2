@@ -29,6 +29,17 @@ export const getSignedInCustomer = cache(async () => {
   let customer = docs[0];
 
   // The database trigger normally creates this row at sign-up; recover if not.
+  if (!customer && !user.email && user.phone) {
+    // Phone-only account: nothing to match on, so link by Supabase user id.
+    customer = await payload.create({
+      collection: "customers",
+      data: {
+        phone: storedPhone(user.phone),
+        supabase: { userId: user.id, provider: "phone" },
+      },
+      depth: 0,
+    });
+  }
   if (!customer && user.email) {
     const byEmail = await payload.find({
       collection: "customers",
@@ -47,6 +58,12 @@ export const getSignedInCustomer = cache(async () => {
 
   return customer ? { user, customer } : null;
 });
+
+/** Supabase's "919876543210" in the storefront's "+91 9876543210" form. */
+function storedPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return /^91\d{10}$/.test(digits) ? `+91 ${digits.slice(2)}` : `+${digits}`;
+}
 
 export async function listCustomerAddresses(customerId: number) {
   const payload = await getPayloadClient();

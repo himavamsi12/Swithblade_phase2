@@ -12,6 +12,7 @@ import type { DeliveryAddressInput } from "../address";
 type AddressField = keyof DeliveryAddressInput;
 
 const EMPTY_ADDRESS: Record<AddressField, string> = {
+  email: "",
   fullName: "",
   phone: "",
   addressLine1: "",
@@ -97,19 +98,30 @@ function loadScript(src: string): Promise<void> {
  */
 export function CheckoutButton({
   lines,
+  accountEmail,
   onPaid,
+  onFailed,
   className,
 }: {
   lines: CartLine[];
+  /** The signed-in shopper's email, used when none is saved in this browser. */
+  accountEmail: string | null;
   /** Runs once the payment is verified, before the bag is emptied. */
-  onPaid: () => void;
+  onPaid: (orderNumber: string) => void;
+  /** Runs when the payment window closes after a failed payment. */
+  onFailed: () => void;
   className?: string;
 }) {
   const id = useId();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   // The bag (and this form) only renders in the browser, after the cart loads.
-  const [address, setAddress] = useState(loadAddress);
+  const [address, setAddress] = useState(() => {
+    const saved = loadAddress();
+    return saved.email || !accountEmail
+      ? saved
+      : { ...saved, email: accountEmail };
+  });
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<AddressField, string>>
   >({});
@@ -146,6 +158,9 @@ export function CheckoutButton({
       }
       if (!window.Razorpay) return fail("Payments are unavailable right now.");
 
+      // Razorpay keeps its window open after a failure so the shopper can
+      // retry there; only report it once they give up and close it.
+      let failed = false;
       const razorpay = new window.Razorpay({
         key: session.keyId,
         order_id: session.orderId,
@@ -156,7 +171,13 @@ export function CheckoutButton({
         one_click_checkout: session.magic,
         // No coupons yet; see /api/razorpay/promotions.
         show_coupons: false,
+        modal: {
+          ondismiss: () => {
+            if (failed) onFailed();
+          },
+        },
         handler: (response: RazorpaySuccess) => {
+          failed = false;
           startTransition(async () => {
             const result = await verifyPayment({
               orderId: response.razorpay_order_id,
@@ -164,14 +185,14 @@ export function CheckoutButton({
               signature: response.razorpay_signature,
             });
             if (result.status === "error") return fail(result.message);
-            onPaid();
+            onPaid(result.orderNumber);
             cartActions.clear();
           });
         },
       });
-      razorpay.on("payment.failed", () =>
-        fail("Payment failed. You have not been charged; please try again."),
-      );
+      razorpay.on("payment.failed", () => {
+        failed = true;
+      });
       razorpay.open();
     });
   }
@@ -201,6 +222,12 @@ export function CheckoutButton({
         <legend className="mb-3 text-body-3 font-semibold tracking-[0.04em] uppercase">
           Delivery address
         </legend>
+        {field("email", "Email", {
+          type: "email",
+          autoComplete: "email",
+          inputMode: "email",
+          required: true,
+        })}
         {field("fullName", "Full name", {
           autoComplete: "name",
           required: true,

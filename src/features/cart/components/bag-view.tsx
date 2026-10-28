@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Minus, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Check, Minus, Plus, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -29,9 +29,14 @@ const paymentMarks = [
 ];
 
 /** Bag heading, line items and the order summary. */
-export function BagView() {
+export function BagView({ accountEmail }: { accountEmail: string | null }) {
   const { lines, count, ready } = useCart();
-  const [paid, setPaid] = useState(false);
+  const [paidOrder, setPaidOrder] = useState<string | null>(null);
+
+  const [failed, setFailed] = useState(false);
+
+  if (paidOrder) return <OrderPlaced orderNumber={paidOrder} />;
+  if (failed) return <PaymentFailed onRetry={() => setFailed(false)} />;
 
   return (
     <>
@@ -47,11 +52,7 @@ export function BagView() {
         <BagSkeleton />
       ) : lines.length === 0 ? (
         <div className="flex flex-col items-start gap-4 py-16">
-          <p className="text-body-1" role={paid ? "status" : undefined}>
-            {paid
-              ? "Payment received. Thank you for your order!"
-              : "Your bag is empty."}
-          </p>
+          <p className="text-body-1">Your bag is empty.</p>
           <Link
             href="/products"
             className={cn(
@@ -70,12 +71,95 @@ export function BagView() {
             ))}
           </ul>
           <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
-            <OrderSummary lines={lines} onPaid={() => setPaid(true)} />
+            <OrderSummary
+              lines={lines}
+              accountEmail={accountEmail}
+              onPaid={setPaidOrder}
+              onFailed={() => setFailed(true)}
+            />
             <AccountCard />
           </aside>
         </div>
       )}
     </>
+  );
+}
+
+/** Shown in place of the bag once the payment is verified. */
+function OrderPlaced({ orderNumber }: { orderNumber: string }) {
+  return (
+    <div
+      role="status"
+      className="mx-auto flex max-w-[424px] flex-col items-center py-12 text-center md:py-16"
+    >
+      <span className="flex size-[52px] items-center justify-center rounded-full bg-green-600 text-white">
+        <Check aria-hidden className="size-8" strokeWidth={2.5} />
+      </span>
+      <h1 className="mt-6 text-h4 md:text-h3">Thank you for shopping!</h1>
+      <p className="mt-2 text-body-1 text-muted">
+        Your order has been received and is being processed.
+      </p>
+      <div className="mt-12 w-full border border-stroke px-6 py-8">
+        <p className="text-body-2 text-muted">Order Reference</p>
+        <p className="mt-1 text-h5 select-all">#{orderNumber}</p>
+        <p className="mt-6 text-body-3 text-muted">
+          Please save this for future reference
+        </p>
+      </div>
+      <Link
+        href="/"
+        className={cn(
+          "mt-4 flex h-10 w-full items-center justify-center bg-primary text-body-3 text-white transition-opacity hover:opacity-90",
+          focusRing,
+        )}
+      >
+        Return to Home
+      </Link>
+    </div>
+  );
+}
+
+/** Shown in place of the bag when the shopper closes Razorpay after a failure. */
+function PaymentFailed({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      role="alert"
+      className="mx-auto flex max-w-[456px] flex-col items-center py-12 text-center md:py-16"
+    >
+      <span className="flex size-[52px] items-center justify-center rounded-full bg-red-600 text-white">
+        <X aria-hidden className="size-8" strokeWidth={2.5} />
+      </span>
+      <h1 className="mt-6 text-h4 md:text-h3">Payment Failed!</h1>
+      <p className="mt-2 text-body-1 text-muted">
+        Please retry checking out. If the amount has been debited, it will be
+        refunded within 5–7 business days.
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className={cn(
+          "mt-12 flex h-10 w-full items-center justify-center bg-primary text-body-3 text-white transition-opacity hover:opacity-90",
+          focusRing,
+        )}
+      >
+        Retry Checkout
+      </button>
+      <div className="mt-4 w-full border border-stroke px-6 py-8">
+        <p className="text-body-2 text-muted">Need Help?</p>
+        <p className="mt-1 text-h5">Contact Support</p>
+        <p className="mt-6 text-body-3 text-muted">
+          Our team is available 24/7 to assist you,
+          <br />
+          reach us{" "}
+          <a
+            href={`mailto:${siteConfig.supportEmail}`}
+            className={cn("text-primary underline", focusRing)}
+          >
+            {siteConfig.supportEmail}
+          </a>
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -169,10 +253,14 @@ function BagLine({ line }: { line: CartLine }) {
 
 function OrderSummary({
   lines,
+  accountEmail,
   onPaid,
+  onFailed,
 }: {
   lines: CartLine[];
-  onPaid: () => void;
+  accountEmail: string | null;
+  onPaid: (orderNumber: string) => void;
+  onFailed: () => void;
 }) {
   const totals = subtotals(lines);
   const row = "flex items-center justify-between text-body-3";
@@ -222,7 +310,9 @@ function OrderSummary({
       ))}
       <CheckoutButton
         lines={lines}
+        accountEmail={accountEmail}
         onPaid={onPaid}
+        onFailed={onFailed}
         className={cn(
           "mt-4 h-12 w-full bg-primary text-body-2 text-white transition-opacity hover:opacity-90 disabled:opacity-60",
           focusRing,

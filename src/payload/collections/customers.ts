@@ -7,7 +7,8 @@ import { metadataField } from "../fields/metadata";
  * Shoppers. They sign in with Supabase Auth on the storefront; this collection
  * mirrors each Supabase account so staff can see and manage customers here.
  * Rows are created and kept in sync by a database trigger on `auth.users`
- * (see the `sync_supabase_customers` migration), so nothing is missed.
+ * (see the `sync_supabase_customers` and `phone_customers` migrations), so
+ * nothing is missed. Phone sign-ups have a phone number but no email.
  */
 export const Customers: CollectionConfig = {
   slug: "customers",
@@ -33,7 +34,7 @@ export const Customers: CollectionConfig = {
     {
       name: "email",
       type: "email",
-      required: true,
+      // Empty for shoppers who signed up with a phone number.
       unique: true,
       index: true,
     },

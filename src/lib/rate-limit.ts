@@ -11,6 +11,10 @@ const LIMITS = {
   signIn: [10, "10 m"],
   /** Reset emails: stops the form being used to spam inboxes. */
   passwordReset: [3, "15 m"],
+  /** OTP texts: each one costs money, and stops SMS bombing a number. */
+  otpSend: [5, "15 m"],
+  /** OTP code entries: slows guessing a code. */
+  otpVerify: [10, "10 m"],
   /** Razorpay orders: each one is an API call and a serviceability check. */
   checkout: [15, "10 m"],
 } as const satisfies Record<string, readonly [number, Duration]>;

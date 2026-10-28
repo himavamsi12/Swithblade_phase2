@@ -16,6 +16,20 @@ type ShiprocketMeta = {
   at: string;
 };
 
+/** Whether this order still has to reach Shiprocket. */
+export function shiprocketPending(metadata: unknown): boolean {
+  if (!shiprocketEnabled()) return false;
+  const meta = (metadata ?? {}) as { shiprocket?: ShiprocketMeta };
+  return !meta.shiprocket?.orderId;
+}
+
+/** Why this order hasn't reached Shiprocket, if it hasn't. */
+export function shiprocketError(metadata: unknown): string | null {
+  if (!shiprocketPending(metadata)) return null;
+  const meta = (metadata ?? {}) as { shiprocket?: ShiprocketMeta };
+  return meta.shiprocket?.error ?? "not sent yet";
+}
+
 export async function sendOrderToShiprocket(orderId: number): Promise<void> {
   if (!shiprocketEnabled()) return;
   try {

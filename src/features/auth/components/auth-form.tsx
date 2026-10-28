@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState, useId } from "react";
+import { Smartphone } from "lucide-react";
+import { useActionState, useId, useState } from "react";
 import google from "@/assets/icons/brands/google.svg";
 import { cn } from "@/lib/utils";
 import { continueWithEmail, continueWithGoogle } from "../actions";
@@ -13,15 +14,18 @@ import {
   PrimaryButton,
   TextField,
 } from "./form-fields";
+import { PhoneForm } from "./phone-form";
 import { focusRing } from "./styles";
 
 /**
- * Login or create account in one step: email + password, or Google. Works
+ * Login or create account in one step: email + password, phone OTP, or
+ * Google. Works
  * without JavaScript (plain form posts to a server action); with it, errors
  * show inline and the buttons show progress.
  */
 export function AuthForm() {
   const id = useId();
+  const [usePhone, setUsePhone] = useState(false);
   const [state, emailAction, emailPending] = useActionState(
     continueWithEmail,
     initialAuthState,
@@ -33,49 +37,67 @@ export function AuthForm() {
 
   return (
     <div className="flex flex-col">
-      <form action={emailAction} noValidate className="flex flex-col gap-2">
-        <TextField
-          id={`${id}-email`}
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          inputMode="email"
-          required
-          placeholder="Enter your email"
-          defaultValue={state.email}
-          error={state.fieldErrors?.email}
-        />
-        <PasswordField
-          id={`${id}-password`}
-          label="Password"
-          name="password"
-          autoComplete="current-password"
-          required
-          minLength={8}
-          placeholder="Enter your password"
-          error={state.fieldErrors?.password}
-        />
-        <Link
-          href="/account/forgot-password"
+      {usePhone ? (
+        <PhoneForm onUseEmail={() => setUsePhone(false)} />
+      ) : (
+        <form action={emailAction} noValidate className="flex flex-col gap-2">
+          <TextField
+            id={`${id}-email`}
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            required
+            placeholder="Enter your email"
+            defaultValue={state.email}
+            error={state.fieldErrors?.email}
+          />
+          <PasswordField
+            id={`${id}-password`}
+            label="Password"
+            name="password"
+            autoComplete="current-password"
+            required
+            minLength={8}
+            placeholder="Enter your password"
+            error={state.fieldErrors?.password}
+          />
+          <Link
+            href="/account/forgot-password"
+            className={cn(
+              "mt-2 self-start text-body-3 underline underline-offset-2",
+              focusRing,
+            )}
+          >
+            Forgot Password?
+          </Link>
+          <PrimaryButton
+            pending={emailPending}
+            pendingLabel="Please wait…"
+            className="mt-5"
+          >
+            Continue
+          </PrimaryButton>
+          <FormMessage state={state} />
+        </form>
+      )}
+
+      <p className="my-5 text-center text-body-1 text-muted">Or</p>
+
+      {!usePhone && (
+        <button
+          type="button"
+          onClick={() => setUsePhone(true)}
           className={cn(
-            "mt-2 self-start text-body-3 underline underline-offset-2",
+            "mb-3 flex h-[50px] w-full items-center justify-center gap-3 border border-stroke bg-white text-[18px] text-black transition-colors hover:bg-card",
             focusRing,
           )}
         >
-          Forgot Password?
-        </Link>
-        <PrimaryButton
-          pending={emailPending}
-          pendingLabel="Please wait…"
-          className="mt-5"
-        >
-          Continue
-        </PrimaryButton>
-        <FormMessage state={state} />
-      </form>
-
-      <p className="my-5 text-center text-body-1 text-muted">Or</p>
+          <Smartphone size={22} strokeWidth={1.5} aria-hidden />
+          Continue with phone
+        </button>
+      )}
 
       <form action={googleAction}>
         <button

@@ -57,7 +57,8 @@ Rules of thumb:
 
 - `app/` stays thin. Domain logic lives in `features/`.
 - Data access goes through a feature's `repository.ts` (marked `server-only`).
-  The catalog currently serves mock data; replace the repository, not the pages.
+  The catalog reads the Payload admin's products (design placeholders fill
+  empty shelves until real products exist; they can't be bought).
 - Money is integer minor units (cents). Format with `formatPrice`.
 - Env vars are validated in `src/lib/env.ts`. Add new ones to `.env.example`.
 
@@ -108,7 +109,43 @@ Customers is staff-only in Payload; shoppers never get a Payload session.
 - Foreign keys and filter/sort columns are indexed; money is stored as exact
   `numeric` in minor units.
 
+### Catalog and stock (Payload)
+
+The storefront and checkout read **Products** from the Payload admin; only
+published products with an INR price show. A product's price is its INR price
+(variant prices are ignored). Sizes and colours come from variants whose
+options belong to option types named `size` and `color`; a Color option's
+`swatch` is the shop's swatch colour. Stock is the product's inventory, or each
+variant's when variants are on ("Track inventory" off or "Allow backorders" on
+always sells). Placing an order takes stock under a row lock; an item that sold
+out before the payment arrived is recorded, flagged on the order
+(`metadata.oversold`) and reported to staff. Catalog pages are cached and
+refreshed by Payload hooks when products, variants, options, media, categories
+or collections change. Search matches every word in the title, subtitle or
+description.
+
+### Payments
+
+Razorpay payments are captured when the order is recorded, so an order is
+never left on an authorization that Razorpay would refund. The webhook handles
+`payment.authorized`, `payment.captured` and `order.paid`.
+
+### Order safety net (cron)
+
+`vercel.json` runs `/api/cron/retry-orders` every 15 minutes (needs
+`CRON_SECRET`; Vercel Hobby only allows daily crons). It records paid Razorpay
+payments from the last two days that have no order, and retries the Shiprocket
+hand-off and confirmation email for orders from the last three days where they
+failed. Every step is idempotent. With `STORE_ALERT_EMAIL` set, staff get one
+email about orders still stuck after an hour, oversold orders, and orders the
+job had to recover (a sign the webhook isn't set up).
+
+### Media storage
+
+With the `S3_*` env vars set, the Media collection stores files in a private
+Supabase Storage bucket through Payload's S3 adapter and serves them via
+`/api/media/file/…`. Uploads through Vercel are capped at 4.5 MB per file.
+
 ## Not decided yet
 
-Media storage for serverless deploys (Payload's S3 adapter with Supabase
-Storage), transactional email, and wiring the storefront/cart to Payload.
+Wiring the storefront/cart to Payload.

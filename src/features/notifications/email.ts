@@ -11,6 +11,8 @@ const schema = z.object({
   EMAIL_FROM: z.string().min(1).optional(),
   /** Where replies go, e.g. a support inbox. */
   EMAIL_REPLY_TO: z.email().optional(),
+  /** Staff inbox for problems needing a person, e.g. an order not shipped. */
+  STORE_ALERT_EMAIL: z.email().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -23,11 +25,15 @@ const {
   RESEND_API_KEY: apiKey,
   EMAIL_FROM: from,
   EMAIL_REPLY_TO: replyTo,
+  STORE_ALERT_EMAIL: alertEmail,
 } = parsed.data;
 
 const TIMEOUT_MS = 8_000;
 
 export const emailEnabled = () => Boolean(apiKey && from);
+
+/** The staff alert inbox, or null if alerts are off. */
+export const staffAlertEmail = () => (emailEnabled() && alertEmail) || null;
 
 export type Email = {
   to: string;

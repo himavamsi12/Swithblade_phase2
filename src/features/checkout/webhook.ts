@@ -18,7 +18,8 @@ const eventSchema = z.object({
 
 /**
  * Backs up the checkout callback: if the shopper closes the tab after paying,
- * Razorpay's `order.paid` / `payment.captured` event still records the order.
+ * Razorpay's `payment.authorized`, `payment.captured` or `order.paid` event
+ * still records (and captures) the order.
  * Returns the HTTP status to answer with (non-2xx makes Razorpay retry).
  */
 export async function handleRazorpayWebhook(
@@ -39,7 +40,9 @@ export async function handleRazorpayWebhook(
   if (!parsed.success) return 400;
   const payment = parsed.data.payload.payment?.entity;
   if (
-    !["order.paid", "payment.captured"].includes(parsed.data.event) ||
+    !["order.paid", "payment.authorized", "payment.captured"].includes(
+      parsed.data.event,
+    ) ||
     !payment?.order_id
   ) {
     return 200; // Not an event we act on.

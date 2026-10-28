@@ -3,6 +3,7 @@ import { isAdmin } from "../access";
 import { group } from "../groups";
 import { handleField } from "../fields/handle";
 import { metadataField } from "../fields/metadata";
+import { revalidateCatalogHooks } from "../hooks/revalidate-catalog";
 
 const publicCategories: Where = {
   and: [{ isActive: { equals: true } }, { isInternal: { equals: false } }],
@@ -11,6 +12,10 @@ const publicCategories: Where = {
 /** Nested category tree (Medusa: Products → Categories). */
 export const ProductCategories: CollectionConfig = {
   slug: "product-categories",
+  hooks: {
+    afterChange: [revalidateCatalogHooks.afterChange],
+    afterDelete: [revalidateCatalogHooks.afterDelete],
+  },
   labels: { singular: "Category", plural: "Categories" },
   admin: {
     group: group.products,

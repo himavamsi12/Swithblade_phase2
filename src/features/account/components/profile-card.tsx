@@ -19,7 +19,8 @@ import {
 } from "./styles";
 
 export type Profile = {
-  email: string;
+  /** Null for shoppers who signed up with their phone number. */
+  email: string | null;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
@@ -27,7 +28,8 @@ export type Profile = {
 
 const initials = (p: Profile) =>
   ((p.firstName?.[0] ?? "") + (p.lastName?.[0] ?? "")).toUpperCase() ||
-  p.email[0]!.toUpperCase();
+  p.email?.[0]?.toUpperCase() ||
+  "?";
 
 /** Name, email and phone, shown read-only with an in-place "Edit profile". */
 export function ProfileCard({ profile }: { profile: Profile }) {
@@ -52,7 +54,9 @@ export function ProfileCard({ profile }: { profile: Profile }) {
           >
             {fullName || "Your profile"}
           </h2>
-          <p className="truncate text-body-3 text-muted">{profile.email}</p>
+          <p className="truncate text-body-3 text-muted">
+            {profile.email ?? formatPhone(profile.phone)}
+          </p>
         </div>
         {!editing && (
           <button
@@ -80,7 +84,10 @@ export function ProfileCard({ profile }: { profile: Profile }) {
             <div key={label} className={boxClass}>
               <dt className="sr-only">{label}</dt>
               <dd className={cn("truncate", !value && "text-muted")}>
-                {value || `Add ${label!.toLowerCase()}`}
+                {value ||
+                  (label === "Email"
+                    ? "No email (signed in with phone)"
+                    : `Add ${label!.toLowerCase()}`)}
               </dd>
             </div>
           ))}
@@ -146,15 +153,17 @@ function ProfileForm({
             className={inputClass}
           />
         </Field>
-        <Field id={`${id}-email`} label="Email (used to sign in)">
-          <input
-            id={`${id}-email`}
-            value={profile.email}
-            disabled
-            readOnly
-            className={inputClass}
-          />
-        </Field>
+        {profile.email && (
+          <Field id={`${id}-email`} label="Email (used to sign in)">
+            <input
+              id={`${id}-email`}
+              value={profile.email}
+              disabled
+              readOnly
+              className={inputClass}
+            />
+          </Field>
+        )}
         <Field id={`${id}-phone`} label="Phone" error={errors.phone}>
           <div className="flex gap-2">
             <select

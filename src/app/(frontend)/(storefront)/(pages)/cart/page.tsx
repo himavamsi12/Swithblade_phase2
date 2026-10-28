@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getSignedInCustomer } from "@/features/account/customer";
 import { BagView } from "@/features/cart/components/bag-view";
 import { YouMayAlsoLike } from "@/features/catalog/components/you-may-also-like";
 import { listRecommendedProducts } from "@/features/catalog/repository";
@@ -12,7 +13,11 @@ export const metadata: Metadata = {
 };
 
 export default async function CartPage() {
-  const recommended = await listRecommendedProducts(8);
+  const [recommended, session] = await Promise.all([
+    listRecommendedProducts(8),
+    // Only pre-fills the checkout email, so a lookup failure mustn't break the bag.
+    getSignedInCustomer().catch(() => null),
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-480 px-4 pb-24 md:px-12 md:pb-[120px]">
@@ -25,7 +30,7 @@ export default async function CartPage() {
       </Link>
 
       <div className="mt-10 md:mt-14">
-        <BagView />
+        <BagView accountEmail={session?.customer.email ?? null} />
       </div>
 
       <YouMayAlsoLike products={recommended} className="pt-24 md:pt-[200px]" />

@@ -1,15 +1,17 @@
 "use server";
 
 import type { Route } from "next";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { env } from "@/lib/env";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { isAuthProviderEnabled } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
   credentialsSchema,
   newPasswordSchema,
+  otpSchema,
+  phoneSchema,
   type AuthFormState,
 } from "./schema";
 
@@ -22,15 +24,12 @@ const GENERIC_ERROR = "Something went wrong. Please try again.";
 const TOO_MANY_ATTEMPTS =
   "Too many attempts. Please wait a few minutes and try again.";
 
-/** Absolute URL of this site, for links in auth emails and OAuth redirects. */
-async function siteOrigin() {
-  const h = await headers();
-  const origin = h.get("origin");
-  if (origin) return origin;
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : process.env.NEXT_PUBLIC_SITE_URL!;
-}
+/**
+ * Absolute URL of this site, for links in auth emails and OAuth redirects.
+ * From config, never from request headers, which a caller can forge to point
+ * a reset link at their own domain.
+ */
+const siteOrigin = () => new URL(env.NEXT_PUBLIC_SITE_URL).origin;
 
 function fieldErrors(error: z.ZodError): AuthFormState["fieldErrors"] {
   const { fieldErrors } = z.flattenError(error);
@@ -94,7 +93,7 @@ export async function continueWithEmail(
   const signUp = await supabase.auth.signUp({
     ...parsed.data,
     options: {
-      emailRedirectTo: `${await siteOrigin()}/auth/callback?next=/account`,
+      emailRedirectTo: `${siteOrigin()}/auth/callback?next=/account`,
     },
   });
 
@@ -141,7 +140,7 @@ export async function continueWithGoogle(): Promise<AuthFormState> {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${await siteOrigin()}/auth/callback?next=/account`,
+      redirectTo: `${siteOrigin()}/auth/callback?next=/account`,
     },
   });
   if (error || !data.url) {
@@ -152,6 +151,97 @@ export async function continueWithGoogle(): Promise<AuthFormState> {
   }
   // External Supabase/Google URL, outside the app's typed routes.
   redirect(data.url as Route);
+}
+
+/** "+919876543210" → "+91 98765 43210", for messages. */
+const displayPhone = (e164: string) =>
+  `${e164.slice(0, 3)} ${e164.slice(3, 8)} ${e164.slice(8)}`;
+
+/**
+ * Phone OTP sign-in, creating the account on first use. One action for both
+ * steps: `step=send` texts a code (also used to resend), `step=verify`
+ * checks it and signs the shopper in.
+ */
+export async function continueWithPhone(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const parsedPhone = phoneSchema.safeParse(
+    String(formData.get("phone") ?? ""),
+  );
+  if (!parsedPhone.success) {
+    return {
+      status: "error",
+      fieldErrors: { phone: parsedPhone.error.issues[0]?.message },
+    };
+  }
+  const phone = parsedPhone.data;
+  const ip = `ip:${await clientIp()}`;
+  const supabase = await createSupabaseServerClient();
+
+  // Set on the code screen (verify or resend), so errors keep the shopper there.
+  const sentAt = Number(formData.get("sentAt")) || undefined;
+
+  if (formData.get("step") === "verify") {
+    const otp = otpSchema.safeParse(String(formData.get("otp") ?? ""));
+    if (!otp.success) {
+      return {
+        status: "error",
+        phone,
+        sentAt,
+        fieldErrors: { otp: otp.error.issues[0]?.message },
+      };
+    }
+    if (!(await rateLimit("otpVerify", ip, `phone:${phone}`))) {
+      return { status: "error", phone, sentAt, message: TOO_MANY_ATTEMPTS };
+    }
+    const { error } = await supabase.auth.verifyOtp({
+      phone,
+      token: otp.data,
+      type: "sms",
+    });
+    if (!error) redirect("/account");
+    return {
+      status: "error",
+      phone,
+      sentAt,
+      fieldErrors: {
+        otp:
+          error.code === "otp_expired"
+            ? "That code is wrong or has expired. Check it, or send a new one."
+            : GENERIC_ERROR,
+      },
+    };
+  }
+
+  const resend = sentAt ? { phone, sentAt } : {};
+  if (!(await isAuthProviderEnabled("phone"))) {
+    return {
+      status: "error",
+      message: "Phone sign-in isn't available yet. Please continue with email.",
+    };
+  }
+  if (!(await rateLimit("otpSend", ip, `phone:${phone}`))) {
+    return { status: "error", ...resend, message: TOO_MANY_ATTEMPTS };
+  }
+  const { error } = await supabase.auth.signInWithOtp({ phone });
+  if (error) {
+    console.error("Sending sign-in OTP failed", error.code, error.message);
+    return {
+      status: "error",
+      ...resend,
+      message:
+        error.code === "over_sms_send_rate_limit"
+          ? "Too many codes sent. Please wait a minute and try again."
+          : "Couldn't send the code. Check the number and try again.",
+    };
+  }
+  return {
+    status: "success",
+    phone,
+    sentAt: Date.now(),
+    message: `We sent a 6-digit code to ${displayPhone(phone)}.`,
+  };
 }
 
 /** Sends a reset link to the email typed in the form. */
@@ -180,7 +270,7 @@ export async function sendPasswordReset(
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
-    redirectTo: `${await siteOrigin()}/auth/callback?next=/account/reset-password`,
+    redirectTo: `${siteOrigin()}/auth/callback?next=/account/reset-password`,
   });
   if (error?.code === "over_email_send_rate_limit") {
     return {

@@ -25,6 +25,16 @@ const schema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOKS_SIGNING_SECRET: z.string().optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+  /**
+   * Media storage on Supabase Storage's S3 endpoint (Storage -> S3 Connection),
+   * e.g. https://<project>.storage.supabase.co/storage/v1/s3. Uploads go to
+   * local disk while unset, which serverless hosts wipe.
+   */
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -36,6 +46,19 @@ if (!parsed.success) {
 }
 
 export const payloadEnv = parsed.data;
+
+export const s3Storage = (() => {
+  const {
+    S3_ENDPOINT: endpoint,
+    S3_REGION: region,
+    S3_BUCKET: bucket,
+    S3_ACCESS_KEY_ID: accessKeyId,
+    S3_SECRET_ACCESS_KEY: secretAccessKey,
+  } = payloadEnv;
+  return endpoint && region && bucket && accessKeyId && secretAccessKey
+    ? { endpoint, region, bucket, accessKeyId, secretAccessKey }
+    : null;
+})();
 
 export const stripeEnabled = Boolean(
   payloadEnv.STRIPE_SECRET_KEY && payloadEnv.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,

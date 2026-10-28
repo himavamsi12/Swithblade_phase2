@@ -63,7 +63,7 @@ export type CheckoutSession =
       amount: number;
       currency: string;
       magic: boolean;
-      prefill: { name: string; contact: string };
+      prefill: { name: string; email: string; contact: string };
     }
   | {
       status: "error";
@@ -164,7 +164,11 @@ export async function createCheckout(
   const slugs = [...new Set(items.data.map((i) => i.slug))];
   const products = new Map(
     await Promise.all(
-      slugs.map(async (slug) => [slug, await getProductBySlug(slug)] as const),
+      // Fresh, not cached: a price or stock change applies to the next checkout.
+      slugs.map(
+        async (slug) =>
+          [slug, await getProductBySlug(slug, { fresh: true })] as const,
+      ),
     ),
   );
   const cart = priceCart(items.data, products);
@@ -191,6 +195,8 @@ export async function createCheckout(
       notes: {
         ...cartNotes,
         ...addressNotes,
+        // So guests get a confirmation even if Razorpay doesn't ask for one.
+        email: address.data.email,
         ...(session && { customer: String(session.customer.id) }),
       },
       ...(magic
@@ -207,7 +213,11 @@ export async function createCheckout(
       amount: Number(order.amount),
       currency: order.currency,
       magic,
-      prefill: { name: address.data.fullName, contact: address.data.phone },
+      prefill: {
+        name: address.data.fullName,
+        email: address.data.email,
+        contact: address.data.phone,
+      },
     };
   } catch (error) {
     console.error("Razorpay order creation failed", error);
@@ -236,7 +246,8 @@ const NOT_CONFIRMED = {
 export async function verifyPayment(
   input: unknown,
 ): Promise<
-  { status: "ok"; orderId: number } | { status: "error"; message: string }
+  | { status: "ok"; orderId: number; orderNumber: string }
+  | { status: "error"; message: string }
 > {
   const config = razorpayConfig();
   const payment = paymentSchema.safeParse(input);
@@ -266,7 +277,11 @@ export async function verifyPayment(
     if (result.status === "recorded") {
       after(() => afterOrderRecorded(result.orderId));
     }
-    return { status: "ok", orderId: result.orderId };
+    return {
+      status: "ok",
+      orderId: result.orderId,
+      orderNumber: result.orderNumber,
+    };
   } catch (error) {
     // Paid but not saved: the webhook retries recording it.
     console.error("Recording Razorpay payment failed", error);

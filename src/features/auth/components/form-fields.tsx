@@ -95,14 +95,15 @@ export function PrimaryButton({
   pendingLabel,
   children,
   className,
-}: {
+  ...props
+}: Omit<ComponentProps<"button">, "type" | "disabled"> & {
   pending: boolean;
   pendingLabel: string;
   children: ReactNode;
-  className?: string;
 }) {
   return (
     <button
+      {...props}
       type="submit"
       disabled={pending}
       className={cn(
