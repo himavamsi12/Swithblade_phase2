@@ -5,7 +5,7 @@
  *   so it is unaffected; any other role (Supabase's `anon`/`authenticated`,
  *   a leaked read-only key) gets no rows without an explicit policy.
  * - Revokes Supabase API roles' access to the Payload schema, now and for
- *   tables created later.
+ *   tables created later, and their EXECUTE on `public.rls_auto_enable()`.
  * - Stops sessions that sit idle inside a transaction from holding locks.
  */
 import { sql } from "@payloadcms/db-postgres";
@@ -65,6 +65,17 @@ for (const { rolname } of rows as { rolname: string }[]) {
     sql`alter default privileges in schema ${schema} revoke all on functions from ${role}`,
   );
 }
+
+// Supabase's `ensure_rls` event trigger function. Event triggers fire without
+// an EXECUTE check, so this only stops it being callable over the API.
+await db.drizzle.execute(sql`
+  do $$
+  begin
+    if to_regprocedure('public.rls_auto_enable()') is not null then
+      revoke execute on function public.rls_auto_enable() from public, anon, authenticated;
+    end if;
+  end $$;
+`);
 
 await db.drizzle.execute(
   sql`alter role current_user set idle_in_transaction_session_timeout = '30s'`,

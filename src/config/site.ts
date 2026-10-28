@@ -23,7 +23,7 @@ export const siteConfig = {
     { label: "Promises", href: "/promises" as const satisfies Route },
     { label: "Collaboration", href: "/collaboration" as const satisfies Route },
   ],
-  // Footer accordion. Only "Shop" has content so far; the rest is TBD from the client.
+  // Footer accordion. Empty sections are TBD from the client.
   footerSections: [
     {
       title: "Shop",
@@ -34,7 +34,15 @@ export const siteConfig = {
     },
     { title: "Discover", links: [] },
     { title: "Connect with us", links: [] },
-    { title: "Support", links: [] },
+    {
+      title: "Support",
+      links: [
+        { label: "FAQ", href: "/faq" as Route },
+        { label: "Returns & refunds", href: "/returns-policy" as Route },
+        { label: "Terms & conditions", href: "/terms-and-conditions" as Route },
+        { label: "Privacy policy", href: "/privacy-policy" as Route },
+      ],
+    },
     { title: "Socials", links: [] },
   ],
   // Quick links shown in the header search panel before anything is typed.

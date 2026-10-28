@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SmoothScroll } from "@/components/layout/smooth-scroll";
 import { siteConfig } from "@/config/site";
 import { archivo } from "@/lib/fonts";
 import "./globals.css";
@@ -26,7 +27,10 @@ export const viewport: Viewport = {
 export default function FrontendLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${archivo.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <SmoothScroll />
+        {children}
+      </body>
     </html>
   );
 }

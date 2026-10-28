@@ -256,7 +256,7 @@ export interface Order {
   transactions?: (number | Transaction)[] | null;
   status?: OrderStatus;
   amount?: number | null;
-  currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+  currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
   paymentStatus?:
     | ('awaiting' | 'authorized' | 'captured' | 'partially_refunded' | 'refunded' | 'canceled' | 'requires_action')
     | null;
@@ -353,14 +353,14 @@ export interface Product {
     hasNextPage?: boolean;
     totalDocs?: number;
   };
+  priceInINREnabled?: boolean | null;
+  priceInINR?: number | null;
   priceInUSDEnabled?: boolean | null;
   priceInUSD?: number | null;
   priceInEUREnabled?: boolean | null;
   priceInEUR?: number | null;
   priceInGBPEnabled?: boolean | null;
   priceInGBP?: number | null;
-  priceInINREnabled?: boolean | null;
-  priceInINR?: number | null;
   type?: (number | null) | ProductType;
   collection?: (number | null) | ProductCollection;
   categories?: (number | ProductCategory)[] | null;
@@ -539,14 +539,14 @@ export interface Variant {
   product: number | Product;
   options: (number | VariantOption)[];
   inventory?: number | null;
+  priceInINREnabled?: boolean | null;
+  priceInINR?: number | null;
   priceInUSDEnabled?: boolean | null;
   priceInUSD?: number | null;
   priceInEUREnabled?: boolean | null;
   priceInEUR?: number | null;
   priceInGBPEnabled?: boolean | null;
   priceInGBP?: number | null;
-  priceInINREnabled?: boolean | null;
-  priceInINR?: number | null;
   sku?: string | null;
   barcode?: string | null;
   ean?: string | null;
@@ -826,7 +826,7 @@ export interface ShippingOption {
    */
   prices?:
     | {
-        currency: 'USD' | 'EUR' | 'GBP' | 'INR';
+        currency: 'INR' | 'USD' | 'EUR' | 'GBP';
         amount: number;
         id?: string | null;
       }[]
@@ -1022,7 +1022,7 @@ export interface Transaction {
   order?: (number | null) | Order;
   cart?: (number | null) | Cart;
   amount?: number | null;
-  currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+  currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1045,7 +1045,7 @@ export interface Cart {
   purchasedAt?: string | null;
   status?: ('active' | 'purchased' | 'abandoned') | null;
   subtotal?: number | null;
-  currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+  currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1056,7 +1056,7 @@ export interface Cart {
 export interface Region {
   id: number;
   name: string;
-  currency: 'USD' | 'EUR' | 'GBP' | 'INR';
+  currency: 'INR' | 'USD' | 'EUR' | 'GBP';
   /**
    * A country can belong to only one region.
    */
@@ -1101,7 +1101,7 @@ export interface Promotion {
      * Percent (0–100), or an amount in the smallest currency unit.
      */
     value: number;
-    currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+    currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
     targetType: 'order' | 'items' | 'shipping_methods';
     allocation?: ('across' | 'each') | null;
     maxQuantity?: number | null;
@@ -1123,7 +1123,7 @@ export interface Promotion {
     customerGroups?: (number | CustomerGroup)[] | null;
     regions?: (number | Region)[] | null;
     minSubtotal?: number | null;
-    currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+    currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
   };
   startsAt?: string | null;
   endsAt?: string | null;
@@ -1157,7 +1157,7 @@ export interface Campaign {
   endsAt?: string | null;
   budget?: {
     type?: ('spend' | 'usage') | null;
-    currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+    currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
     limit?: number | null;
     used?: number | null;
   };
@@ -1202,7 +1202,7 @@ export interface Return {
   location?: (number | null) | StockLocation;
   shippingOption?: (number | null) | ShippingOption;
   refundAmount?: number | null;
-  currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+  currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
   receivedAt?: string | null;
   internalNote?: string | null;
   /**
@@ -1269,7 +1269,7 @@ export interface PriceList {
   prices?:
     | {
         variant: number | Variant;
-        currency: 'USD' | 'EUR' | 'GBP' | 'INR';
+        currency: 'INR' | 'USD' | 'EUR' | 'GBP';
         amount: number;
         minQuantity?: number | null;
         maxQuantity?: number | null;
@@ -1748,14 +1748,14 @@ export interface ProductsSelect<T extends boolean = true> {
   enableVariants?: T;
   variantTypes?: T;
   variants?: T;
+  priceInINREnabled?: T;
+  priceInINR?: T;
   priceInUSDEnabled?: T;
   priceInUSD?: T;
   priceInEUREnabled?: T;
   priceInEUR?: T;
   priceInGBPEnabled?: T;
   priceInGBP?: T;
-  priceInINREnabled?: T;
-  priceInINR?: T;
   type?: T;
   collection?: T;
   categories?: T;
@@ -1894,14 +1894,14 @@ export interface VariantsSelect<T extends boolean = true> {
   product?: T;
   options?: T;
   inventory?: T;
+  priceInINREnabled?: T;
+  priceInINR?: T;
   priceInUSDEnabled?: T;
   priceInUSD?: T;
   priceInEUREnabled?: T;
   priceInEUR?: T;
   priceInGBPEnabled?: T;
   priceInGBP?: T;
-  priceInINREnabled?: T;
-  priceInINR?: T;
   sku?: T;
   barcode?: T;
   ean?: T;
@@ -2314,7 +2314,7 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface Store {
   id: number;
   name: string;
-  defaultCurrency: 'USD' | 'EUR' | 'GBP' | 'INR';
+  defaultCurrency: 'INR' | 'USD' | 'EUR' | 'GBP';
   defaultRegion?: (number | null) | Region;
   defaultSalesChannel?: (number | null) | SalesChannel;
   defaultLocation?: (number | null) | StockLocation;

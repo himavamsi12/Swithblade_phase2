@@ -17,7 +17,8 @@ const INR = {
  */
 export const currenciesConfig: CurrenciesConfig = {
   defaultCurrency: "INR",
-  supportedCurrencies: [USD, EUR, GBP, INR],
+  // INR first: admin price fields and currency pickers follow this order.
+  supportedCurrencies: [INR, USD, EUR, GBP],
 };
 
 export const currencyOptions = currenciesConfig.supportedCurrencies.map(

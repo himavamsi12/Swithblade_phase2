@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useWishlist } from "../store";
 import { WishlistCard } from "./wishlist-card";
 
@@ -28,18 +28,11 @@ export function WishlistView() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-start gap-4 py-16">
-          <p className="text-body-1">Your wishlist is empty.</p>
-          <p className="text-body-2 text-muted">
-            Tap the heart on any product to save it here.
-          </p>
-          <Link
-            href="/products"
-            className="mt-2 inline-flex h-12 items-center bg-primary px-8 text-body-2 text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            Continue shopping
-          </Link>
-        </div>
+        <EmptyState
+          message="Your wishlist is empty"
+          action="Discover more"
+          className="pt-16 md:pt-28"
+        />
       ) : (
         <ul className="mt-8 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4">
           {items.map((item) => (

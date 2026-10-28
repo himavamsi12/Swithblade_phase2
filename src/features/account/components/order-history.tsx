@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useId, useState } from "react";
+import { Collapse } from "@/components/ui/disclosure";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { OrderStatusKey, OrderView } from "../customer";
@@ -55,10 +56,11 @@ function OrderCard({
   const panelId = useId();
   const status = statusStyles[order.status];
 
+  // Collapsed cards show a compact summary; the open card spells out dates.
   const facts: [string, string][] = [
     ["Order ID", order.number],
-    ["Ordered date", date(order.orderedAt)],
-    ...(order.expectedDeliveryAt
+    [open ? "Ordered date" : "Date", date(order.orderedAt)],
+    ...(open && order.expectedDeliveryAt
       ? ([["Expected delivery", date(order.expectedDeliveryAt)]] as [
           string,
           string,
@@ -104,11 +106,14 @@ function OrderCard({
           size={16}
           strokeWidth={1.5}
           aria-hidden
-          className={cn("shrink-0 transition-transform", open && "rotate-180")}
+          className={cn(
+            "shrink-0 transition-transform duration-300",
+            open && "rotate-180",
+          )}
         />
       </button>
 
-      <div id={panelId} hidden={!open}>
+      <Collapse open={open} id={panelId}>
         <ul className="border-t border-stroke">
           {order.items.map((item) => (
             <li
@@ -189,7 +194,7 @@ function OrderCard({
             Return history
           </Link>
         </div>
-      </div>
+      </Collapse>
     </article>
   );
 }

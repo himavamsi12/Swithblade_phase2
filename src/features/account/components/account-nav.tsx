@@ -7,10 +7,15 @@ import { signOut } from "@/features/auth/actions";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
 
-const tabs: { href: Route; label: string }[] = [
+// Return history is reached from each order card, so it lives under the
+// Order history tab rather than having a tab of its own.
+const tabs: { href: Route; label: string; matches?: string[] }[] = [
   { href: "/account", label: "Account details" },
-  { href: "/account/orders" as Route, label: "Order history" },
-  { href: "/account/returns" as Route, label: "Return history" },
+  {
+    href: "/account/orders" as Route,
+    label: "Order history",
+    matches: ["/account/returns"],
+  },
 ];
 
 const item = "block w-fit pb-3 text-body-1 uppercase";
@@ -24,7 +29,8 @@ export function AccountNav() {
       className="flex gap-6 overflow-x-auto border-b border-stroke lg:flex-col lg:gap-8 lg:self-start lg:overflow-visible lg:pb-6"
     >
       {tabs.map((tab) => {
-        const active = pathname === tab.href;
+        const active =
+          pathname === tab.href || !!tab.matches?.includes(pathname);
         return (
           <Link
             key={tab.href}

@@ -11,6 +11,7 @@ import * as migration_20261027_064946_kill_switches from './20261027_064946_kill
 import * as migration_20261027_065649_phone_customers from './20261027_065649_phone_customers';
 import * as migration_20261028_052856_media_storage_prefix from './20261028_052856_media_storage_prefix';
 import * as migration_20261028_071842_storefront_catalog_fields from './20261028_071842_storefront_catalog_fields';
+import * as migration_20261028_101419_currencies_inr_first from './20261028_101419_currencies_inr_first';
 
 export const migrations = [
   {
@@ -76,6 +77,11 @@ export const migrations = [
   {
     up: migration_20261028_071842_storefront_catalog_fields.up,
     down: migration_20261028_071842_storefront_catalog_fields.down,
-    name: '20261028_071842_storefront_catalog_fields'
+    name: '20261028_071842_storefront_catalog_fields',
+  },
+  {
+    up: migration_20261028_101419_currencies_inr_first.up,
+    down: migration_20261028_101419_currencies_inr_first.down,
+    name: '20261028_101419_currencies_inr_first'
   },
 ];

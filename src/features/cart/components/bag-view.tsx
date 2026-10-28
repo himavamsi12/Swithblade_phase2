@@ -8,6 +8,7 @@ import applePay from "@/assets/icons/payments/applepay.svg";
 import googlePay from "@/assets/icons/payments/googlepay.svg";
 import mastercard from "@/assets/icons/payments/mastercard.svg";
 import visa from "@/assets/icons/payments/visa.svg";
+import { EmptyState } from "@/components/ui/empty-state";
 import { siteConfig } from "@/config/site";
 import { CheckoutButton } from "@/features/checkout/components/checkout-button";
 import { ChargeNote } from "@/features/currency/components/charge-note";
@@ -41,7 +42,7 @@ export function BagView({ accountEmail }: { accountEmail: string | null }) {
   return (
     <>
       <h1 className="text-h4 font-semibold uppercase md:text-h3">
-        Bag{" "}
+        Your bag{" "}
         <span className="font-normal" aria-label={`${count} items`}>
           [{ready ? count : "…"}]
         </span>
@@ -51,18 +52,11 @@ export function BagView({ accountEmail }: { accountEmail: string | null }) {
       {!ready ? (
         <BagSkeleton />
       ) : lines.length === 0 ? (
-        <div className="flex flex-col items-start gap-4 py-16">
-          <p className="text-body-1">Your bag is empty.</p>
-          <Link
-            href="/products"
-            className={cn(
-              "inline-flex h-12 items-center bg-primary px-8 text-body-2 text-white transition-opacity hover:opacity-90",
-              focusRing,
-            )}
-          >
-            Continue shopping
-          </Link>
-        </div>
+        <EmptyState
+          message="Your shopping bag is empty"
+          action="Continue Shopping"
+          className="pt-16 md:pt-40"
+        />
       ) : (
         <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,736px)_412px] lg:justify-between">
           <ul aria-label="Items in your bag">

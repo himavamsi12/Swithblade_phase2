@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Disclosure } from "@/components/ui/disclosure";
 import { ProductGallery } from "@/features/catalog/components/product-gallery";
 import { ProductPurchase } from "@/features/catalog/components/product-purchase";
 import { PromiseLabel } from "@/features/catalog/components/promise-label";
@@ -95,21 +96,24 @@ export default async function ProductPage({
               { title: "Details", body: product.details },
               { title: "Shipping & Returns", body: product.shippingReturns },
             ].map((item) => (
-              <details
+              <Disclosure
                 key={item.title}
-                className="group border-b border-border"
+                className="border-b border-border"
+                summaryClassName="py-2 text-body-2"
+                summary={
+                  <>
+                    {item.title}
+                    <span
+                      aria-hidden
+                      className="transition-transform duration-300 group-data-open:rotate-45"
+                    >
+                      +
+                    </span>
+                  </>
+                }
               >
-                <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-body-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary [&::-webkit-details-marker]:hidden">
-                  {item.title}
-                  <span
-                    aria-hidden
-                    className="transition-transform group-open:rotate-45"
-                  >
-                    +
-                  </span>
-                </summary>
                 <p className="pb-4 text-body-3 text-muted">{item.body}</p>
-              </details>
+              </Disclosure>
             ))}
           </div>
         </div>
