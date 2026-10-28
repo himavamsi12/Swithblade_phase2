@@ -132,8 +132,9 @@ never left on an authorization that Razorpay would refund. The webhook handles
 
 ### Order safety net (cron)
 
-`vercel.json` runs `/api/cron/retry-orders` every 15 minutes (needs
-`CRON_SECRET`; Vercel Hobby only allows daily crons). It records paid Razorpay
+`vercel.json` runs `/api/cron/retry-orders` daily at 03:00 UTC (needs
+`CRON_SECRET`). Vercel Hobby only allows daily crons; on Pro, change the
+schedule to `*/15 * * * *` so stuck orders are retried within minutes. It records paid Razorpay
 payments from the last two days that have no order, and retries the Shiprocket
 hand-off and confirmation email for orders from the last three days where they
 failed. Every step is idempotent. With `STORE_ALERT_EMAIL` set, staff get one
