@@ -22,12 +22,28 @@ export const productsOverride: CollectionOverride = ({
     useAsTitle: "title",
     defaultColumns: [
       "title",
+      "stockSummary",
+      "priceSummary",
       "collection",
-      "salesChannels",
       "_status",
       "updatedAt",
     ],
     listSearchableFields: ["title", "handle", "subtitle"],
+    // "Preview" button: the product page on the same site as this admin.
+    preview: (doc) =>
+      typeof doc.handle === "string" && doc.handle
+        ? `/products/${encodeURIComponent(doc.handle)}`
+        : null,
+    description:
+      "Add a product, then use Variants & pricing to create its colours and sizes and set stock.",
+    components: {
+      ...defaultCollection.admin?.components,
+      beforeList: ["/payload/admin/back-link#BackLink"],
+      edit: {
+        ...defaultCollection.admin?.components?.edit,
+        beforeDocumentControls: ["/payload/admin/back-link#BackLink"],
+      },
+    },
   },
   fields: staffOnly(
     [
@@ -37,7 +53,16 @@ export const productsOverride: CollectionOverride = ({
           {
             label: "General",
             fields: [
-              { name: "title", type: "text", required: true },
+              {
+                name: "title",
+                type: "text",
+                required: true,
+                admin: {
+                  components: {
+                    Cell: "/payload/admin/product-cells#ProductCell",
+                  },
+                },
+              },
               { name: "subtitle", type: "text" },
               { name: "description", type: "textarea" },
               {
@@ -59,7 +84,39 @@ export const productsOverride: CollectionOverride = ({
           },
           {
             label: "Variants & pricing",
-            fields: defaultCollection.fields,
+            fields: [
+              ...defaultCollection.fields,
+              {
+                name: "variantManager",
+                type: "ui",
+                admin: {
+                  components: {
+                    Field: "/payload/admin/variant-manager#VariantManager",
+                  },
+                },
+              },
+              // List-view columns only.
+              {
+                name: "stockSummary",
+                label: "Stock",
+                type: "ui",
+                admin: {
+                  components: {
+                    Cell: "/payload/admin/product-cells#StockCell",
+                  },
+                },
+              },
+              {
+                name: "priceSummary",
+                label: "Price",
+                type: "ui",
+                admin: {
+                  components: {
+                    Cell: "/payload/admin/product-cells#PriceCell",
+                  },
+                },
+              },
+            ],
           },
           {
             label: "Organize",

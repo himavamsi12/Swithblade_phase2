@@ -53,8 +53,33 @@ import { variantsOverride } from "./payload/overrides/variants";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
+/*
+ * Origins whose admin login cookie Payload accepts (its CSRF check). The
+ * admin is reached on more than serverURL: Vercel's production and
+ * deployment domains, and locally on whatever port `next dev` picked.
+ */
+const vercelOrigins = [
+  process.env.VERCEL_PROJECT_PRODUCTION_URL,
+  process.env.VERCEL_URL,
+  process.env.VERCEL_BRANCH_URL,
+]
+  .filter((host): host is string => Boolean(host))
+  .map((host) => `https://${host}`);
+const devOrigins =
+  process.env.NODE_ENV === "production"
+    ? []
+    : [3000, 3001, 3002, 3003].map((port) => `http://localhost:${port}`);
+const trustedOrigins = [
+  ...new Set(
+    [payloadEnv.NEXT_PUBLIC_SITE_URL, ...vercelOrigins, ...devOrigins].map(
+      (url) => new URL(url).origin,
+    ),
+  ),
+];
+
 export default buildConfig({
   serverURL: payloadEnv.NEXT_PUBLIC_SITE_URL,
+  csrf: trustedOrigins,
   secret: payloadEnv.PAYLOAD_SECRET,
   sharp,
   admin: {

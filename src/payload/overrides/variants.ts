@@ -17,6 +17,14 @@ export const variantsOverride: CollectionOverride = ({
     group: group.inventory,
     defaultColumns: ["title", "sku", "inventory", "updatedAt"],
     listSearchableFields: ["title", "sku", "barcode"],
+    components: {
+      ...defaultCollection.admin?.components,
+      beforeList: ["/payload/admin/back-link#BackLink"],
+      edit: {
+        ...defaultCollection.admin?.components?.edit,
+        beforeDocumentControls: ["/payload/admin/back-link#BackLink"],
+      },
+    },
   },
   fields: staffOnly(
     [

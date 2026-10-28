@@ -334,6 +334,8 @@ export interface Order {
   createdAt: string;
 }
 /**
+ * Add a product, then use Variants & pricing to create its colours and sizes and set stock.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "products".
  */

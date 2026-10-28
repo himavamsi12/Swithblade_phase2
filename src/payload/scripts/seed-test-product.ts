@@ -1,10 +1,12 @@
 /**
  * One-off: creates the Color and Size option types (from the design) and a
  * "Test Tee" at ₹1 with every colour × size, 1 in stock each, for Razorpay
- * test payments. Idempotent. Delete the product before launch.
+ * test payments, with sample photos. Idempotent. Delete the product before
+ * launch.
  *
  *   pnpm payload run src/payload/scripts/seed-test-product.ts
  */
+import path from "node:path";
 import { getPayload } from "payload";
 import config from "../../payload.config";
 
@@ -114,6 +116,37 @@ if (existing.docs[0]) {
   payload.logger.info(
     `Created "Test Tee" (id ${product.id}) with ${COLORS.length * SIZES.length} variants.`,
   );
+}
+
+// Sample photos from the design, as the product's thumbnail and gallery.
+// Uploads to Supabase Storage when the S3_* env vars are set, else to ./media.
+const testTee = (
+  await payload.find({
+    collection: "products",
+    where: { handle: { equals: HANDLE } },
+    limit: 1,
+    depth: 0,
+    draft: true,
+  })
+).docs[0];
+if (testTee && !testTee.images?.length) {
+  const ids: number[] = [];
+  for (const n of [1, 2, 3, 4, 5, 6]) {
+    const media = await payload.create({
+      collection: "media",
+      data: { alt: `Test Tee, photo ${n}` },
+      filePath: path.resolve(`public/images/products/detail/${n}.png`),
+      depth: 0,
+    });
+    ids.push(media.id);
+  }
+  await payload.update({
+    collection: "products",
+    id: testTee.id,
+    data: { thumbnail: ids[0], images: ids, _status: "published" },
+    depth: 0,
+  });
+  payload.logger.info(`Added ${ids.length} photos to "Test Tee".`);
 }
 
 await payload.destroy();

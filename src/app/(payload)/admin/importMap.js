@@ -1,5 +1,10 @@
 import { PriceCell as PriceCell_e27bf7b8cc50640dcdd584767b8eac3c } from '@payloadcms/plugin-ecommerce/client'
 import { PriceInput as PriceInput_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
+import { ProductCell as ProductCell_58ee845eee47359816a345d4cbde8c7c } from '../../../payload/admin/product-cells'
+import { VariantManager as VariantManager_9afb36b7f51fabf03bd570866040f16f } from '../../../payload/admin/variant-manager'
+import { StockCell as StockCell_58ee845eee47359816a345d4cbde8c7c } from '../../../payload/admin/product-cells'
+import { PriceCell as PriceCell_58ee845eee47359816a345d4cbde8c7c } from '../../../payload/admin/product-cells'
+import { BackLink as BackLink_ae0cb64448013429545bcc312d3afd16 } from '../../../payload/admin/back-link'
 import { VariantOptionsSelector as VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
 import { Icon as Icon_7c32d6b01f1e3bfd0e7105220c111148 } from '../../../payload/admin/brand'
 import { Logo as Logo_7c32d6b01f1e3bfd0e7105220c111148 } from '../../../payload/admin/brand'
@@ -12,6 +17,11 @@ import { S3ClientUploadHandler as S3ClientUploadHandler_f97aa6c64367fa259c5bc056
 export const importMap = {
   "@payloadcms/plugin-ecommerce/client#PriceCell": PriceCell_e27bf7b8cc50640dcdd584767b8eac3c,
   "@payloadcms/plugin-ecommerce/rsc#PriceInput": PriceInput_b91672ccd6e8b071c11142ab941fedfb,
+  "/payload/admin/product-cells#ProductCell": ProductCell_58ee845eee47359816a345d4cbde8c7c,
+  "/payload/admin/variant-manager#VariantManager": VariantManager_9afb36b7f51fabf03bd570866040f16f,
+  "/payload/admin/product-cells#StockCell": StockCell_58ee845eee47359816a345d4cbde8c7c,
+  "/payload/admin/product-cells#PriceCell": PriceCell_58ee845eee47359816a345d4cbde8c7c,
+  "/payload/admin/back-link#BackLink": BackLink_ae0cb64448013429545bcc312d3afd16,
   "@payloadcms/plugin-ecommerce/rsc#VariantOptionsSelector": VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb,
   "/payload/admin/brand#Icon": Icon_7c32d6b01f1e3bfd0e7105220c111148,
   "/payload/admin/brand#Logo": Logo_7c32d6b01f1e3bfd0e7105220c111148,
