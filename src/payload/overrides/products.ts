@@ -16,6 +16,9 @@ export const productsOverride: CollectionOverride = ({
 }) => ({
   ...defaultCollection,
   hooks: withCatalogRevalidation(defaultCollection.hooks),
+  // The plugin autosaves drafts, which saves an empty product the moment
+  // "Create new" opens. Keep drafts (Save draft / Publish) without that.
+  versions: { drafts: { autosave: false } },
   admin: {
     ...defaultCollection.admin,
     group: group.products,

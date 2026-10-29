@@ -14,6 +14,7 @@ import * as migration_20261028_071842_storefront_catalog_fields from './20261028
 import * as migration_20261028_101419_currencies_inr_first from './20261028_101419_currencies_inr_first';
 import * as migration_20261028_111507_customer_saved_bag from './20261028_111507_customer_saved_bag';
 import * as migration_20261028_112647_stock_holds from './20261028_112647_stock_holds';
+import * as migration_20261029_060415_disable_draft_autosave from './20261029_060415_disable_draft_autosave';
 
 export const migrations = [
   {
@@ -94,6 +95,11 @@ export const migrations = [
   {
     up: migration_20261028_112647_stock_holds.up,
     down: migration_20261028_112647_stock_holds.down,
-    name: '20261028_112647_stock_holds'
+    name: '20261028_112647_stock_holds',
+  },
+  {
+    up: migration_20261029_060415_disable_draft_autosave.up,
+    down: migration_20261029_060415_disable_draft_autosave.down,
+    name: '20261029_060415_disable_draft_autosave'
   },
 ];

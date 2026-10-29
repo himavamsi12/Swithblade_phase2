@@ -5,7 +5,7 @@ import { VariantManager as VariantManager_9afb36b7f51fabf03bd570866040f16f } fro
 import { StockCell as StockCell_58ee845eee47359816a345d4cbde8c7c } from '../../../payload/admin/product-cells'
 import { PriceCell as PriceCell_58ee845eee47359816a345d4cbde8c7c } from '../../../payload/admin/product-cells'
 import { BackLink as BackLink_ae0cb64448013429545bcc312d3afd16 } from '../../../payload/admin/back-link'
-import { VariantOptionsSelector as VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
+import { VariantOptionsField as VariantOptionsField_08c3dbefad59c08745c075c2f15a6b25 } from '../../../payload/admin/variant-options-field'
 import { Icon as Icon_7c32d6b01f1e3bfd0e7105220c111148 } from '../../../payload/admin/brand'
 import { Logo as Logo_7c32d6b01f1e3bfd0e7105220c111148 } from '../../../payload/admin/brand'
 import { StoreSwitcher as StoreSwitcher_6865bef062c79e7e52ae81683d11bb53 } from '../../../payload/admin/store-switcher'
@@ -22,7 +22,7 @@ export const importMap = {
   "/payload/admin/product-cells#StockCell": StockCell_58ee845eee47359816a345d4cbde8c7c,
   "/payload/admin/product-cells#PriceCell": PriceCell_58ee845eee47359816a345d4cbde8c7c,
   "/payload/admin/back-link#BackLink": BackLink_ae0cb64448013429545bcc312d3afd16,
-  "@payloadcms/plugin-ecommerce/rsc#VariantOptionsSelector": VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb,
+  "/payload/admin/variant-options-field#VariantOptionsField": VariantOptionsField_08c3dbefad59c08745c075c2f15a6b25,
   "/payload/admin/brand#Icon": Icon_7c32d6b01f1e3bfd0e7105220c111148,
   "/payload/admin/brand#Logo": Logo_7c32d6b01f1e3bfd0e7105220c111148,
   "/payload/admin/store-switcher#StoreSwitcher": StoreSwitcher_6865bef062c79e7e52ae81683d11bb53,

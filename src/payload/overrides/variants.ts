@@ -1,4 +1,5 @@
 import type { CollectionOverride } from "@payloadcms/plugin-ecommerce/types";
+import type { Field } from "payload";
 import { group } from "../groups";
 import { metadataField } from "../fields/metadata";
 import { staffOnly } from "../fields/staff-only";
@@ -10,6 +11,8 @@ export const variantsOverride: CollectionOverride = ({
 }) => ({
   ...defaultCollection,
   hooks: withCatalogRevalidation(defaultCollection.hooks),
+  // As for products: no empty variant saved on opening "Create new".
+  versions: { drafts: { autosave: false } },
   // Listed under Inventory, like Medusa's inventory items.
   labels: { singular: "Inventory item", plural: "Inventory" },
   admin: {
@@ -28,7 +31,37 @@ export const variantsOverride: CollectionOverride = ({
   },
   fields: staffOnly(
     [
-      ...defaultCollection.fields,
+      ...defaultCollection.fields.map((field) => {
+        if (!("name" in field)) return field;
+        if (field.name === "product") {
+          // The plugin makes this read-only, expecting variants to be made
+          // from their product's page; that left Inventory → Create new
+          // unsaveable. Pickable on create, fixed once saved.
+          return {
+            ...field,
+            admin: { ...field.admin, readOnly: false },
+            access: {
+              ...("access" in field ? field.access : {}),
+              update: () => false,
+            },
+          } as Field;
+        }
+        if (field.name === "options") {
+          return {
+            ...field,
+            admin: {
+              ...field.admin,
+              components: {
+                ...field.admin?.components,
+                // Guards the plugin's picker against a missing product.
+                Field:
+                  "/payload/admin/variant-options-field#VariantOptionsField",
+              },
+            },
+          } as Field;
+        }
+        return field;
+      }),
       {
         type: "row",
         fields: [
