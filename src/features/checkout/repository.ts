@@ -13,6 +13,7 @@ import { takeStock } from "@/features/stock/repository";
 import { lockKey } from "@/payload/transaction";
 import type { Address, Customer, Order } from "@/payload-types";
 import { supportedCountries } from "@/payload/countries";
+import { isDemo } from "@/payload/demo";
 import { currenciesConfig } from "@/payload/currencies";
 import { decodeAddressNotes } from "./address";
 import { decodeCartNotes } from "./pricing";
@@ -188,7 +189,9 @@ export async function listOrdersPlacedBetween(from: Date, to: Date) {
     depth: 0,
     select: { metadata: true, displayId: true },
   });
-  return docs;
+  // Sample orders from `pnpm seed:demo` must never reach Shiprocket, email
+  // or staff alerts.
+  return docs.filter((order) => !isDemo(order.metadata));
 }
 
 /** Notes on each order that staff were told about it, so they're told once. */
