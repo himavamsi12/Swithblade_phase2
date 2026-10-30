@@ -84,6 +84,24 @@ locations & shipping, store). Built on `@payloadcms/plugin-ecommerce`.
   account created becomes an admin.
 - Stripe is enabled only when its keys are set.
 
+### Staff sign-in codes (authenticator app)
+
+Every staff account needs an authenticator app (Google Authenticator,
+Microsoft Authenticator, Authy, 1Password…). After the first password sign-in
+the admin shows a QR code to scan, then asks for the 6-digit code at every
+sign-in. Built on `payload-totp` (`src/payload/staff-totp.ts`), with a
+patch in `patches/` so its links and requests stay on the site being used.
+Until a code is entered, that session can't read or change anything; the
+storefront and other public reads are unaffected. Too many wrong codes lock
+the account like wrong passwords do.
+
+Lost phone: the code can't be skipped. To let someone set up again, clear
+their secret in Supabase → SQL Editor:
+
+```sql
+update payload.users set totp_secret = null where email = 'name@example.com';
+```
+
 ### Customers (Supabase Auth → Payload)
 
 Shoppers sign in with Supabase Auth (`/account`). A database trigger on

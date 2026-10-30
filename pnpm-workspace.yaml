@@ -1,3 +1,6 @@
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+
+patchedDependencies:
+  payload-totp@3.0.6: patches/payload-totp@3.0.6.patch

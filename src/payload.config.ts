@@ -40,6 +40,7 @@ import { payloadEnv, s3Storage, stripeEnabled } from "./payload/env";
 import { databaseAdapter } from "./payload/db";
 import { Store } from "./payload/globals/store";
 import { orderCollections } from "./payload/order-collections";
+import { staffTotp } from "./payload/staff-totp";
 import {
   addressesOverride,
   cartsOverride,
@@ -217,5 +218,7 @@ export default buildConfig({
       "shipping-options",
       "shipping-profiles",
     ]),
+    // Authenticator codes at admin sign-in. Last: it wraps every collection.
+    staffTotp("Switchblade Admin"),
   ],
 });

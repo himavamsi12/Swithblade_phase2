@@ -1,0 +1,79 @@
+diff --git a/dist/components/Field/Setup.js b/dist/components/Field/Setup.js
+index ce9ada439acc1f6a9af4764323f7124ee7ae3efd..370530f9c2c21296ca8047046f46cace61e5cd5c 100644
+--- a/dist/components/Field/Setup.js
++++ b/dist/components/Field/Setup.js
+@@ -5,7 +5,7 @@ export default function Setup({ backUrl, i18n, payload }) {
+     let url = formatAdminURL({
+         adminRoute: payload.config.routes.admin,
+         path: '/setup-totp',
+-        serverURL: payload.config.serverURL
++        serverURL: ''
+     });
+     if (backUrl) {
+         // `req.url` is absolute and, without a `serverURL`, always `http://<host>`, so on an HTTPS
+diff --git a/dist/components/Provider/index.js b/dist/components/Provider/index.js
+index 5626c80a9058b007f26276132f4271c56e6b26b3..e463d2d1aeff31ab8bd451cb7437633a2f74be95 100644
+--- a/dist/components/Provider/index.js
++++ b/dist/components/Provider/index.js
+@@ -24,9 +24,9 @@ export const TOTPProvider = async (args)=>{
+         'api-key',
+         'totp'
+     ].includes(user._strategy ?? '') && normalizedPathname !== normalizedVerifyUrl) {
+-        redirect(`${payload.config.serverURL}${verifyUrl}?back=${encodeURIComponent(pathname)}`);
++        redirect(`${verifyUrl}?back=${encodeURIComponent(pathname)}`);
+     } else if (user && !user.hasTotp && pluginOptions.forceSetup && normalizedPathname !== normalizedSetupUrl && user._strategy !== 'api-key') {
+-        redirect(`${payload.config.serverURL}${setupUrl}?back=${encodeURIComponent(pathname)}`);
++        redirect(`${setupUrl}?back=${encodeURIComponent(pathname)}`);
+     } else {
+         return /*#__PURE__*/ _jsx(TOTPProviderClient, {
+             forceSetup: pluginOptions.forceSetup,
+diff --git a/dist/components/views/Remove/index.js b/dist/components/views/Remove/index.js
+index db09a8db74acee402025ce38bf78d94fe6d38f91..19fe329e8a4fc8fe8c18936fdf99c49cba9c56ef 100644
+--- a/dist/components/views/Remove/index.js
++++ b/dist/components/views/Remove/index.js
+@@ -2,8 +2,10 @@ import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+ import { MinimalTemplate } from '@payloadcms/next/templates';
+ import Form from './Form.js';
+ import styles from './index.module.css';
++// Patched: same-site paths, as serverURL can be another host (see patches/).
++const serverURL = '';
+ export const Remove = (args)=>{
+-    const { i18n, payload: { config: { routes: { api: apiRoute }, serverURL } }, pluginOptions } = args;
++    const { i18n, payload: { config: { routes: { api: apiRoute } } }, pluginOptions } = args;
+     return /*#__PURE__*/ _jsxs(MinimalTemplate, {
+         className: styles.root,
+         children: [
+diff --git a/dist/components/views/Setup/index.js b/dist/components/views/Setup/index.js
+index cbea6daf9cca138a0c44691cb9b76b78544a8d67..1c23523fdebb9d9502eca08052a3eddd189b1e25 100644
+--- a/dist/components/views/Setup/index.js
++++ b/dist/components/views/Setup/index.js
+@@ -7,9 +7,11 @@ import QRCode from '../../QRCode/index.js';
+ import Form from './Form.js';
+ import styles from './index.module.css';
+ import ShowSecret from './ShowSecret/index.js';
++// Patched: same-site paths, as serverURL can be another host (see patches/).
++const serverURL = '';
+ export const TOTPSetup = (args)=>{
+     const i18n = args.i18n;
+-    const { initPageResult: { req: { payload: { config: { routes: { admin: adminRoute, api: apiRoute }, serverURL } }, user: _user } }, pluginOptions, searchParams: { back } = {} } = args;
++    const { initPageResult: { req: { payload: { config: { routes: { admin: adminRoute, api: apiRoute } } }, user: _user } }, pluginOptions, searchParams: { back } = {} } = args;
+     const user = _user;
+     if (!user) {
+         const url = formatAdminURL({
+diff --git a/dist/components/views/Verify/index.js b/dist/components/views/Verify/index.js
+index a21a4b979054305035baf5d38482c7e7c725354a..913c410434f9ef272d95e4e39b91f473f3f6b218 100644
+--- a/dist/components/views/Verify/index.js
++++ b/dist/components/views/Verify/index.js
+@@ -4,9 +4,11 @@ import { formatAdminURL } from '@payloadcms/ui/shared';
+ import { redirect } from 'next/navigation.js';
+ import Form from './Form.js';
+ import styles from './index.module.css';
++// Patched: same-site paths, as serverURL can be another host (see patches/).
++const serverURL = '';
+ export const TOTPVerify = (args)=>{
+     const i18n = args.i18n;
+-    const { initPageResult: { req: { payload: { config: { routes: { admin: adminRoute, api: apiRoute }, serverURL } }, user: _user } }, pluginOptions, searchParams: { back } = {} } = args;
++    const { initPageResult: { req: { payload: { config: { routes: { admin: adminRoute, api: apiRoute } } }, user: _user } }, pluginOptions, searchParams: { back } = {} } = args;
+     const user = _user;
+     if (!user) {
+         const url = formatAdminURL({

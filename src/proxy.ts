@@ -3,12 +3,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { readSupabaseEnv } from "@/lib/supabase-env";
 
 /**
- * Keeps the shopper's Supabase session fresh: validates the auth cookie and,
+ * Tells admin pages their path (for the authenticator check), and keeps the
+ * shopper's Supabase session fresh: validates the auth cookie and,
  * when the access token has expired, refreshes it and writes the new cookies
  * to both the request (for this render) and the response (for the browser).
  * Based on Supabase's official Next.js example.
  */
 export async function proxy(request: NextRequest) {
+  // Admin pages: payload-totp reads the path from this header to send a
+  // signed-in session that still owes a code to the code page.
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    const headers = new Headers(request.headers);
+    headers.set("x-pathname", request.nextUrl.pathname);
+    return NextResponse.next({ request: { headers } });
+  }
+
   let response = NextResponse.next({ request });
 
   const { SUPABASE_URL: url, SUPABASE_PUBLISHABLE_KEY: key } =
@@ -47,7 +56,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Pages only: skip static files, images, the Payload admin and APIs.
-    "/((?!_next/static|_next/image|favicon.ico|admin|api|images|media|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|txt|xml)$).*)",
+    // Pages only (the admin included): skip static files, images and APIs.
+    "/((?!_next/static|_next/image|favicon.ico|api|images|media|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|txt|xml)$).*)",
   ],
 };
