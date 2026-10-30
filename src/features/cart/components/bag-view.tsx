@@ -30,7 +30,14 @@ const paymentMarks = [
 ];
 
 /** Bag heading, line items and the order summary. */
-export function BagView({ accountEmail }: { accountEmail: string | null }) {
+export function BagView({
+  accountEmail,
+  signedIn,
+}: {
+  accountEmail: string | null;
+  /** Hides the "log in or sign up" card for shoppers already signed in. */
+  signedIn: boolean;
+}) {
   const { lines, count, ready } = useCart();
   const [paidOrder, setPaidOrder] = useState<string | null>(null);
 
@@ -71,7 +78,7 @@ export function BagView({ accountEmail }: { accountEmail: string | null }) {
               onPaid={setPaidOrder}
               onFailed={() => setFailed(true)}
             />
-            <AccountCard />
+            {!signedIn && <AccountCard />}
           </aside>
         </div>
       )}

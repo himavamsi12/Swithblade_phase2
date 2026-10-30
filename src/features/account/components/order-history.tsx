@@ -181,10 +181,12 @@ function OrderCard({
             >
               Track order
             </a>
-          ) : (
+          ) : order.status === "processing" || order.status === "packed" ? (
             <span className="text-body-4 text-muted uppercase">
               Tracking available once shipped
             </span>
+          ) : (
+            <span />
           )}
           <div className="flex items-center gap-5">
             {order.returnable && (

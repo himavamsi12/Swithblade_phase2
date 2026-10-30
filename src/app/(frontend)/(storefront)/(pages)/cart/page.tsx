@@ -30,7 +30,10 @@ export default async function CartPage() {
       </Link>
 
       <div className="mt-10 md:mt-14">
-        <BagView accountEmail={session?.customer.email ?? null} />
+        <BagView
+          accountEmail={session?.customer.email ?? null}
+          signedIn={session !== null}
+        />
       </div>
 
       <YouMayAlsoLike products={recommended} className="pt-24 md:pt-[200px]" />

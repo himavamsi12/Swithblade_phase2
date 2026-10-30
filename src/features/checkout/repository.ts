@@ -415,7 +415,11 @@ async function recordPayment(
             productSlug: l.slug,
             unitPrice: l.unitPrice,
             quantity: l.quantity,
-            image: product?.image ?? null,
+            // The bought colour's photo, so a blue tee isn't shown in red.
+            image:
+              product?.colors.find((c) => c.name === l.color)?.image ??
+              product?.image ??
+              null,
           };
         }),
         metadata: {
