@@ -342,13 +342,13 @@ export interface Order {
 export interface Product {
   id: number;
   title: string;
-  subtitle?: string | null;
-  description?: string | null;
-  thumbnail?: (number | null) | Media;
+  subtitle: string;
+  description: string;
+  thumbnail: number | Media;
   /**
    * Gallery shown on the product page, in order.
    */
-  images?: (number | Media)[] | null;
+  images: (number | Media)[];
   inventory?: number | null;
   enableVariants?: boolean | null;
   variantTypes?: (number | VariantType)[] | null;

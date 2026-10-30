@@ -71,12 +71,13 @@ export const productsOverride: CollectionOverride = ({
                   },
                 },
               },
-              { name: "subtitle", type: "text" },
-              { name: "description", type: "textarea" },
+              { name: "subtitle", type: "text", required: true },
+              { name: "description", type: "textarea", required: true },
               {
                 name: "thumbnail",
                 type: "upload",
                 relationTo: "media",
+                required: true,
               },
               {
                 name: "images",
@@ -84,6 +85,7 @@ export const productsOverride: CollectionOverride = ({
                 type: "upload",
                 relationTo: "media",
                 hasMany: true,
+                required: true,
                 admin: {
                   description: "Gallery shown on the product page, in order.",
                 },

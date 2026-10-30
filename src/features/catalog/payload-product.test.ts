@@ -81,6 +81,8 @@ const doc = (over: Partial<PayloadProduct> = {}): PayloadProduct => ({
   id: 1,
   title: "Blocked Fleece Vest",
   handle: "blocked-fleece-vest",
+  subtitle: "Fleece",
+  description: "A blocked fleece vest.",
   priceInINREnabled: true,
   priceInINR: 249900,
   inventory: 5,

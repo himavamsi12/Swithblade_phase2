@@ -94,9 +94,11 @@ if (existing.docs[0]) {
       priceInINR: PRICE,
       discountable: false,
       highlighted: false,
-      _status: "published",
+      // Published once its photos are added below.
+      _status: "draft",
     },
     depth: 0,
+    draft: true,
   });
   for (const c of COLORS) {
     for (const s of SIZES) {
