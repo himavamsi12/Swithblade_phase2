@@ -383,6 +383,16 @@ export interface Product {
    */
   shippingReturns?: string | null;
   /**
+   * Optional. Photos per colour: the first is the colour's tile in the picker, and picking the colour shows these in the gallery. Colours without photos show their swatch.
+   */
+  colorImages?:
+    | {
+        color: number | VariantOption;
+        images: (number | Media)[];
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Optional. Where the product shot sits inside the listing card, in % of the card. Leave empty for a full-bleed photo.
    */
   imageFrame?: {
@@ -1812,6 +1822,13 @@ export interface ProductsSelect<T extends boolean = true> {
   shippingProfile?: T;
   details?: T;
   shippingReturns?: T;
+  colorImages?:
+    | T
+    | {
+        color?: T;
+        images?: T;
+        id?: T;
+      };
   imageFrame?:
     | T
     | {

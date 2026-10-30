@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import type { ProductColor, ProductSize } from "../types";
 
@@ -25,10 +26,17 @@ export function ColorPicker({
 }) {
   if (colors.length === 0) return null;
   const compact = density === "compact";
+  // Photo tiles when any colour has a photo; colours without one keep their
+  // swatch, at the same tile size.
+  const photos = colors.some((c) => c.image);
   return (
     <div className={cn("flex flex-col", compact ? "gap-2" : "gap-3")}>
       <p className={label}>Color: {colors[value]?.name}</p>
-      <div role="radiogroup" aria-label="Color" className="flex gap-2">
+      <div
+        role="radiogroup"
+        aria-label="Color"
+        className={cn("flex flex-wrap", photos && !compact ? "gap-3" : "gap-2")}
+      >
         {colors.map((color, i) => (
           <button
             key={color.name}
@@ -38,17 +46,34 @@ export function ColorPicker({
             aria-label={color.name}
             onClick={() => onChange(i)}
             className={cn(
-              "flex items-center justify-center border bg-card",
-              compact ? "size-9" : "size-11",
+              "relative flex items-center justify-center overflow-hidden border bg-card",
+              compact
+                ? "size-9"
+                : photos
+                  ? "size-20 md:size-[108px]"
+                  : "size-11",
               i === value ? "border-black" : "border-transparent",
               focusRing,
             )}
           >
-            <span
-              aria-hidden
-              className={cn("rounded-t-sm", compact ? "h-5 w-4" : "h-6 w-5")}
-              style={{ backgroundColor: color.swatch }}
-            />
+            {color.image ? (
+              <Image
+                src={color.image}
+                alt=""
+                fill
+                sizes={compact ? "36px" : "108px"}
+                className="object-contain p-1"
+              />
+            ) : (
+              <span
+                aria-hidden
+                className={cn(
+                  "rounded-t-sm",
+                  compact ? "h-5 w-4" : photos ? "h-10 w-8" : "h-6 w-5",
+                )}
+                style={{ backgroundColor: color.swatch }}
+              />
+            )}
           </button>
         ))}
       </div>

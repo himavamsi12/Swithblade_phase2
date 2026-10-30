@@ -128,6 +128,30 @@ describe("toStorefrontProduct", () => {
     expect(toStorefrontProduct(doc({ inventory: 0 }))?.inStock).toBe(false);
   });
 
+  it("gives colours with photos a picker tile and their own gallery", () => {
+    const navyFront = media("navy-front");
+    const navyBack = media("navy-back");
+    const product = toStorefrontProduct(
+      {
+        ...withVariants,
+        colorImages: [{ color: navy, images: [navyFront, navyBack] }],
+      },
+      ORIGIN,
+    )!;
+    expect(product.colors).toEqual([
+      { name: "Black", swatch: "black" },
+      {
+        name: "Navy",
+        swatch: "#1f2a44",
+        image: "/api/media/file/navy-front-700.jpg",
+        gallery: [
+          "/api/media/file/navy-front.jpg",
+          "/api/media/file/navy-back.jpg",
+        ],
+      },
+    ]);
+  });
+
   it("builds colours and sizes from variants, in admin order", () => {
     const product = toStorefrontProduct(withVariants)!;
     expect(product.colors).toEqual([

@@ -192,6 +192,41 @@ export const productsOverride: CollectionOverride = ({
                 },
               },
               {
+                name: "colorImages",
+                label: "Colour photos",
+                labels: { singular: "Colour", plural: "Colours" },
+                type: "array",
+                admin: {
+                  description:
+                    "Optional. Photos per colour: the first is the colour's tile in the picker, and picking the colour shows these in the gallery. Colours without photos show their swatch.",
+                },
+                fields: [
+                  {
+                    type: "row",
+                    fields: [
+                      {
+                        name: "color",
+                        label: "Colour",
+                        type: "relationship",
+                        relationTo: "variantOptions",
+                        required: true,
+                        filterOptions: {
+                          "variantType.name": { in: ["color", "colour"] },
+                        },
+                      },
+                      {
+                        name: "images",
+                        label: "Photos",
+                        type: "upload",
+                        relationTo: "media",
+                        hasMany: true,
+                        required: true,
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
                 name: "imageFrame",
                 label: "Card image frame",
                 type: "group",

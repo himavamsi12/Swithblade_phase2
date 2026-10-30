@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cartActions } from "@/features/cart/store";
 import { cn } from "@/lib/utils";
-import type { Product, ProductColor, ProductSize } from "../types";
+import type { Product, ProductSize } from "../types";
 import { ColorPicker, firstAvailableSize, SizePicker } from "./option-pickers";
+import { useProductColor } from "./product-color";
 import { SizeGuideDialog } from "./size-guide-dialog";
 
 type ProductPurchaseProps = {
@@ -13,7 +14,6 @@ type ProductPurchaseProps = {
     Product,
     "id" | "slug" | "name" | "price" | "currency" | "image" | "inStock"
   >;
-  colors: ProductColor[];
   sizes: ProductSize[];
   /** Model photo shown in the size guide. */
   modelImage: string | null;
@@ -22,14 +22,20 @@ type ProductPurchaseProps = {
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
-/** Colour and size pickers with the add-to-bag actions. */
+/**
+ * Colour and size pickers with the add-to-bag actions. The colour is shared
+ * with the gallery through ProductColorProvider.
+ */
 export function ProductPurchase({
   product,
-  colors,
   sizes,
   modelImage,
 }: ProductPurchaseProps) {
-  const [colorIndex, setColorIndex] = useState(0);
+  const {
+    colors,
+    index: colorIndex,
+    setIndex: setColorIndex,
+  } = useProductColor();
   const [size, setSize] = useState(() => firstAvailableSize(sizes));
   const router = useRouter();
   const [justAdded, setJustAdded] = useState(false);
@@ -49,7 +55,7 @@ export function ProductPurchase({
       productId: product.id,
       slug: product.slug,
       name: product.name,
-      image: product.image,
+      image: colors[colorIndex]?.image ?? product.image,
       price: product.price,
       currency: product.currency,
       color: colors[colorIndex]?.name ?? null,

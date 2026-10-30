@@ -48,6 +48,10 @@ export type ProductColor = {
   name: string;
   /** CSS colour shown in the swatch. */
   swatch: string;
+  /** Photo tile shown in the colour picker instead of the swatch. */
+  image?: string | null;
+  /** This colour's product page photos; the full gallery when absent. */
+  gallery?: string[];
 };
 
 export type ProductSize = {

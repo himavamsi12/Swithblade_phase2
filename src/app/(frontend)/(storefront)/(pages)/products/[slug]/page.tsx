@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Disclosure } from "@/components/ui/disclosure";
-import { ProductGallery } from "@/features/catalog/components/product-gallery";
+import {
+  ColorGallery,
+  ProductColorProvider,
+} from "@/features/catalog/components/product-color";
 import { ProductPurchase } from "@/features/catalog/components/product-purchase";
 import { PromiseLabel } from "@/features/catalog/components/promise-label";
 import { YouMayAlsoLike } from "@/features/catalog/components/you-may-also-like";
@@ -38,88 +41,89 @@ export default async function ProductPage({
 
   return (
     <div className="mx-auto w-full max-w-480 px-4 pb-16 md:px-12 md:pb-[120px]">
-      <div className="grid gap-8 pt-6 md:pt-12 lg:grid-cols-[7fr_3fr]">
-        <ProductGallery images={product.gallery} name={product.name} />
+      <ProductColorProvider colors={product.colors}>
+        <div className="grid gap-8 pt-6 md:pt-12 lg:grid-cols-[7fr_3fr]">
+          <ColorGallery images={product.gallery} name={product.name} />
 
-        <div className="lg:sticky lg:top-6 lg:self-start lg:pt-11 lg:pl-11">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <h1 className="text-body-1 uppercase">{product.name}</h1>
-              <p className="text-body-2">
-                <Price
-                  amount={product.price}
-                  currency={product.currency}
-                  compact
-                />
-              </p>
-            </div>
-            <WishlistButton
-              className="mt-0.5"
-              item={{
-                productId: product.id,
-                slug: product.slug,
-                name: product.name,
-                image: product.image,
-                imageFrame: product.imageFrame,
-                price: product.price,
-                currency: product.currency,
-                inStock: product.inStock,
-                colors: product.colors,
-                sizes: product.sizes,
-              }}
-            />
-          </div>
-
-          <p className="mt-6 text-body-3 text-muted">{product.description}</p>
-
-          {product.highlighted && <PromiseLabel className="mt-6" />}
-
-          <div className="mt-8">
-            <ProductPurchase
-              product={{
-                id: product.id,
-                slug: product.slug,
-                name: product.name,
-                price: product.price,
-                currency: product.currency,
-                image: product.image,
-                inStock: product.inStock,
-              }}
-              colors={product.colors}
-              sizes={product.sizes}
-              modelImage={product.gallery[1] ?? product.image}
-            />
-          </div>
-
-          <div className="mt-10 lg:mt-[200px]">
-            {[
-              { title: "Details", body: product.details },
-              { title: "Shipping & Returns", body: product.shippingReturns },
-            ].map((item) => (
-              <Disclosure
-                key={item.title}
-                className="border-b border-border"
-                summaryClassName="py-2 text-body-2"
-                summary={
-                  <>
-                    {item.title}
-                    <span
-                      aria-hidden
-                      className="transition-transform duration-300 group-data-open:rotate-45"
-                    >
-                      +
-                    </span>
-                  </>
-                }
-              >
-                <p className="pb-4 text-body-3 whitespace-pre-line text-muted">
-                  {item.body}
+          <div className="lg:sticky lg:top-6 lg:self-start lg:pt-11 lg:pl-11">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <h1 className="text-body-1 uppercase">{product.name}</h1>
+                <p className="text-body-2">
+                  <Price
+                    amount={product.price}
+                    currency={product.currency}
+                    compact
+                  />
                 </p>
-              </Disclosure>
-            ))}
+              </div>
+              <WishlistButton
+                className="mt-0.5"
+                item={{
+                  productId: product.id,
+                  slug: product.slug,
+                  name: product.name,
+                  image: product.image,
+                  imageFrame: product.imageFrame,
+                  price: product.price,
+                  currency: product.currency,
+                  inStock: product.inStock,
+                  colors: product.colors,
+                  sizes: product.sizes,
+                }}
+              />
+            </div>
+
+            <p className="mt-6 text-body-3 text-muted">{product.description}</p>
+
+            {product.highlighted && <PromiseLabel className="mt-6" />}
+
+            <div className="mt-8">
+              <ProductPurchase
+                product={{
+                  id: product.id,
+                  slug: product.slug,
+                  name: product.name,
+                  price: product.price,
+                  currency: product.currency,
+                  image: product.image,
+                  inStock: product.inStock,
+                }}
+                sizes={product.sizes}
+                modelImage={product.gallery[1] ?? product.image}
+              />
+            </div>
+
+            <div className="mt-10 lg:mt-[200px]">
+              {[
+                { title: "Details", body: product.details },
+                { title: "Shipping & Returns", body: product.shippingReturns },
+              ].map((item) => (
+                <Disclosure
+                  key={item.title}
+                  className="border-b border-border"
+                  summaryClassName="py-2 text-body-2"
+                  summary={
+                    <>
+                      {item.title}
+                      <span
+                        aria-hidden
+                        className="transition-transform duration-300 group-data-open:rotate-45"
+                      >
+                        +
+                      </span>
+                    </>
+                  }
+                >
+                  <p className="pb-4 text-body-3 whitespace-pre-line text-muted">
+                    {item.body}
+                  </p>
+                </Disclosure>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </ProductColorProvider>
 
       <YouMayAlsoLike products={related} className="pt-16 md:pt-[150px]" />
     </div>

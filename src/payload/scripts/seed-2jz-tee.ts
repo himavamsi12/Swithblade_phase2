@@ -1,7 +1,7 @@
 /**
  * Adds the "2JZ Archival T-Shirt" (from 2JZ T-Shirt.docx) as a draft:
  * ₹1,999, Red and Blue in S–2XL, 10 in stock each, with the doc's photos
- * from public/images/products/2jz-archival-tee. Idempotent.
+ * from public/images/products/2jz-archival-tee, per colour. Idempotent.
  *
  *   pnpm payload run src/payload/scripts/seed-2jz-tee.ts
  *   pnpm payload run src/payload/scripts/seed-2jz-tee.ts photos
@@ -27,11 +27,31 @@ const COLORS = [
   { label: "Blue", swatch: "#1d3fbf" },
 ];
 const PHOTOS = [
-  { file: "red-front.png", alt: "2JZ Archival T-Shirt in red, front" },
-  { file: "red-side.png", alt: "2JZ Archival T-Shirt in red, side" },
-  { file: "red-back.png", alt: "2JZ Archival T-Shirt in red, back graphic" },
-  { file: "blue-front.png", alt: "2JZ Archival T-Shirt in blue, front" },
-  { file: "blue-back.png", alt: "2JZ Archival T-Shirt in blue, back" },
+  {
+    file: "red-front.png",
+    color: "Red",
+    alt: "2JZ Archival T-Shirt in red, front",
+  },
+  {
+    file: "red-side.png",
+    color: "Red",
+    alt: "2JZ Archival T-Shirt in red, side",
+  },
+  {
+    file: "red-back.png",
+    color: "Red",
+    alt: "2JZ Archival T-Shirt in red, back graphic",
+  },
+  {
+    file: "blue-front.png",
+    color: "Blue",
+    alt: "2JZ Archival T-Shirt in blue, front",
+  },
+  {
+    file: "blue-back.png",
+    color: "Blue",
+    alt: "2JZ Archival T-Shirt in blue, back",
+  },
 ];
 
 async function variantType(name: string, label: string) {
@@ -179,6 +199,27 @@ if (!product.images?.length || replacePhotos) {
     await payload.delete({ collection: "media", id, depth: 0 });
   }
   payload.logger.info(`Added ${ids.length} photos to "${TITLE}".`);
+}
+
+// Each colour's photos, in PHOTOS order, for the picker tiles and gallery.
+const current = (await findProduct())!;
+if (!current.colorImages?.length || replacePhotos) {
+  const images = (current.images ?? []).map((m) =>
+    typeof m === "object" ? m.id : m,
+  );
+  await payload.update({
+    collection: "products",
+    id: current.id,
+    data: {
+      colorImages: COLORS.map((c) => ({
+        color: colorIds.get(c.label)!,
+        images: images.filter((_, i) => PHOTOS[i]?.color === c.label),
+      })),
+      _status: current._status,
+    },
+    depth: 0,
+  });
+  payload.logger.info(`Set the colour photos of "${TITLE}".`);
 }
 
 await payload.destroy();

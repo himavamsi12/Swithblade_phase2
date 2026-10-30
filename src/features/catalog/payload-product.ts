@@ -152,7 +152,22 @@ export function toStorefrontProduct(
   }));
   const colors: ProductColor[] = uniqueOptions(
     withOptions.map((v) => v.color),
-  ).map((o) => ({ name: o.label, swatch: o.swatch || o.value }));
+  ).map((o) => {
+    const photos =
+      doc.colorImages?.find((c) => (populated(c.color)?.id ?? c.color) === o.id)
+        ?.images ?? [];
+    const colorGallery = photos
+      .map((m) => mediaUrl(m, "large", origin))
+      .filter((url): url is string => Boolean(url));
+    return {
+      name: o.label,
+      swatch: o.swatch || o.value,
+      ...(colorGallery.length > 0 && {
+        image: mediaUrl(photos[0], "card", origin),
+        gallery: colorGallery,
+      }),
+    };
+  });
   const sizes = uniqueOptions(withOptions.map((v) => v.size)).map((o) => ({
     label: o.label,
     available: variants.some((v) => v.size === o.label && v.available),
