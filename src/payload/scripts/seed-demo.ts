@@ -217,7 +217,7 @@ async function seedDemo() {
   await payload.create({
     collection: "shipping-options",
     data: {
-      name: "[DEMO] Standard delivery (3–7 days)",
+      name: "[DEMO] Standard delivery (3–6 days)",
       stockLocation: location.id,
       serviceZone: "India",
       shippingProfile: profile.id,
@@ -312,7 +312,7 @@ async function seedDemo() {
         details:
           "Relaxed fit. 100% cotton fleece. Machine wash cold, dry flat.",
         shippingReturns:
-          "Free delivery in 3–7 business days. Returns within 7 days of delivery.",
+          "Free delivery in 3–6 business days. Returns within 7 days of delivery.",
         metadata,
         ...data,
       } as never,

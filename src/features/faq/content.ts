@@ -22,8 +22,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         question: "Do you ship internationally?",
-        answer:
-          "Not yet. We currently deliver within India only. You can still browse prices in other currencies, but orders are charged in INR and shipped to Indian addresses.",
+        answer: "Yes.",
       },
       {
         question: "Can I modify or cancel my order after placing it?",
@@ -33,10 +32,6 @@ export const faqCategories: FaqCategory[] = [
         question: "What payment methods do you accept?",
         answer:
           "We accept UPI, credit and debit cards, net banking and popular wallets through our secure payment partner. Cash on delivery isn't available at the moment.",
-      },
-      {
-        question: "Can I edit my order after it has been placed?",
-        answer: `We can't change the items in an order once it's placed. If you need a different size or colour, contact us at ${email} before it ships, or request an exchange once it arrives.`,
       },
       {
         question: "Can I change my shipping address?",
@@ -82,7 +77,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         question: "What if the size doesn't fit?",
-        answer: `You can exchange it for another size within ${RETURN_WINDOW_DAYS} days of delivery, subject to stock. If your size is unavailable, we'll refund you instead.`,
+        answer: `You can exchange it for another size within ${RETURN_WINDOW_DAYS} days of delivery, subject to stock. The new size is delivered in ${DELIVERY_TIME}. If your size is unavailable, we'll refund you instead.`,
       },
     ],
   },

@@ -65,7 +65,7 @@ export async function shippingInfo(
           {
             id: "standard",
             name: "Standard Delivery",
-            description: "Free delivery in 3–7 business days",
+            description: "Free delivery in 3–6 business days",
             serviceable,
             shipping_fee: 0,
             cod: false,

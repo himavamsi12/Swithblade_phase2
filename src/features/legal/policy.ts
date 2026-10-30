@@ -13,6 +13,6 @@ export const DAMAGE_REPORT_HOURS = 48;
 export const REFUND_TIME = "5–7 business days";
 
 /** Matches the standard delivery option offered at checkout. */
-export const DELIVERY_TIME = "3–7 business days";
+export const DELIVERY_TIME = "3–6 business days";
 
 export const JURISDICTION = "Hyderabad, Telangana";
