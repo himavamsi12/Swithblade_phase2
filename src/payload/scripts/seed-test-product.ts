@@ -92,6 +92,8 @@ if (existing.docs[0]) {
       variantTypes: [color.id, size.id],
       priceInINREnabled: true,
       priceInINR: PRICE,
+      discountable: false,
+      highlighted: false,
       _status: "published",
     },
     depth: 0,

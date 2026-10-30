@@ -434,10 +434,13 @@ export interface Product {
    */
   handle?: string | null;
   /**
-   * Allow promotions to apply.
+   * Can promotions apply to this product?
    */
-  discountable?: boolean | null;
-  highlighted?: boolean | null;
+  discountable: boolean;
+  /**
+   * Show the star badge on the product's card and page?
+   */
+  highlighted: boolean;
   /**
    * Custom key/value data for integrations.
    */

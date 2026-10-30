@@ -6,6 +6,11 @@ import { withCatalogRevalidation } from "../hooks/revalidate-catalog";
 import { metadataField } from "../fields/metadata";
 import { staffOnly } from "../fields/staff-only";
 
+/** Yes / No questions that must be answered, with no preset answer. */
+const YES_NO = "/payload/admin/yes-no-field#YesNoField";
+const answered = (value: boolean | null | undefined) =>
+  typeof value === "boolean" || "Choose Yes or No.";
+
 /**
  * Medusa's product model on top of the ecommerce plugin's products. The
  * plugin's own fields (variants, prices, inventory) live in the
@@ -309,18 +314,25 @@ export const productsOverride: CollectionOverride = ({
       {
         name: "discountable",
         type: "checkbox",
-        defaultValue: true,
+        required: true,
+        validate: answered,
         admin: {
           position: "sidebar",
-          description: "Allow promotions to apply.",
+          description: "Can promotions apply to this product?",
+          components: { Field: YES_NO },
         },
       },
       {
         name: "highlighted",
         label: "Show star badge",
         type: "checkbox",
-        defaultValue: false,
-        admin: { position: "sidebar" },
+        required: true,
+        validate: answered,
+        admin: {
+          position: "sidebar",
+          description: "Show the star badge on the product's card and page?",
+          components: { Field: YES_NO },
+        },
       },
       metadataField,
     ],

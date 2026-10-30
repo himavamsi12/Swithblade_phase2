@@ -16,6 +16,7 @@ import * as migration_20261028_111507_customer_saved_bag from './20261028_111507
 import * as migration_20261028_112647_stock_holds from './20261028_112647_stock_holds';
 import * as migration_20261029_060415_disable_draft_autosave from './20261029_060415_disable_draft_autosave';
 import * as migration_20261030_063235_product_color_images from './20261030_063235_product_color_images';
+import * as migration_20261030_064542_yes_no_product_flags from './20261030_064542_yes_no_product_flags';
 
 export const migrations = [
   {
@@ -106,6 +107,11 @@ export const migrations = [
   {
     up: migration_20261030_063235_product_color_images.up,
     down: migration_20261030_063235_product_color_images.down,
-    name: '20261030_063235_product_color_images'
+    name: '20261030_063235_product_color_images',
+  },
+  {
+    up: migration_20261030_064542_yes_no_product_flags.up,
+    down: migration_20261030_064542_yes_no_product_flags.down,
+    name: '20261030_064542_yes_no_product_flags'
   },
 ];

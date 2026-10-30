@@ -4,6 +4,7 @@ import { ProductCell as ProductCell_58ee845eee47359816a345d4cbde8c7c } from '../
 import { VariantManager as VariantManager_9afb36b7f51fabf03bd570866040f16f } from '../../../payload/admin/variant-manager'
 import { StockCell as StockCell_58ee845eee47359816a345d4cbde8c7c } from '../../../payload/admin/product-cells'
 import { PriceCell as PriceCell_58ee845eee47359816a345d4cbde8c7c } from '../../../payload/admin/product-cells'
+import { YesNoField as YesNoField_2e17029b3b430132c276b417ecaf177d } from '../../../payload/admin/yes-no-field'
 import { BackLink as BackLink_ae0cb64448013429545bcc312d3afd16 } from '../../../payload/admin/back-link'
 import { VariantOptionsField as VariantOptionsField_08c3dbefad59c08745c075c2f15a6b25 } from '../../../payload/admin/variant-options-field'
 import { Icon as Icon_7c32d6b01f1e3bfd0e7105220c111148 } from '../../../payload/admin/brand'
@@ -21,6 +22,7 @@ export const importMap = {
   "/payload/admin/variant-manager#VariantManager": VariantManager_9afb36b7f51fabf03bd570866040f16f,
   "/payload/admin/product-cells#StockCell": StockCell_58ee845eee47359816a345d4cbde8c7c,
   "/payload/admin/product-cells#PriceCell": PriceCell_58ee845eee47359816a345d4cbde8c7c,
+  "/payload/admin/yes-no-field#YesNoField": YesNoField_2e17029b3b430132c276b417ecaf177d,
   "/payload/admin/back-link#BackLink": BackLink_ae0cb64448013429545bcc312d3afd16,
   "/payload/admin/variant-options-field#VariantOptionsField": VariantOptionsField_08c3dbefad59c08745c075c2f15a6b25,
   "/payload/admin/brand#Icon": Icon_7c32d6b01f1e3bfd0e7105220c111148,

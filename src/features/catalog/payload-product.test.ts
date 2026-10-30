@@ -84,6 +84,8 @@ const doc = (over: Partial<PayloadProduct> = {}): PayloadProduct => ({
   priceInINREnabled: true,
   priceInINR: 249900,
   inventory: 5,
+  discountable: true,
+  highlighted: false,
   thumbnail: front,
   images: [front, media("model")],
   createdAt: at,

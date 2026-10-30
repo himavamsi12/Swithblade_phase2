@@ -139,6 +139,8 @@ if (product) {
       variantTypes: [color.id, size.id],
       priceInINREnabled: true,
       priceInINR: PRICE,
+      discountable: true,
+      highlighted: false,
       _status: "draft",
     },
     depth: 0,
