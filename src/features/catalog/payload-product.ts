@@ -21,7 +21,7 @@ import type {
  */
 
 /** The storefront prices in one currency: the store default. */
-export const STORE_CURRENCY = "INR";
+const STORE_CURRENCY = "INR";
 
 const SHELVES: readonly ProductCollection[] = ["new-arrivals", "recommended"];
 

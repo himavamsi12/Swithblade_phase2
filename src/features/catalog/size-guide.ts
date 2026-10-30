@@ -103,7 +103,7 @@ export const averageProportions: Proportions = {
 };
 
 /** Slider labels from narrowest to broadest, per body part. */
-export const proportionLabels: Record<
+const proportionLabels: Record<
   BodyPart,
   [string, string, string, string, string]
 > = {

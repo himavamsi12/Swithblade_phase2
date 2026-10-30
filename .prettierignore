@@ -10,3 +10,4 @@ src/payload/migrations/
 .mcp.json
 .agents/
 src/app/(payload)/nav-icons.css
+docs/reference/

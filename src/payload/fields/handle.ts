@@ -1,6 +1,6 @@
 import type { Field, FieldHook } from "payload";
 
-export const toHandle = (value: string) =>
+const toHandle = (value: string) =>
   value
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")

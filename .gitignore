@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Local Payload uploads (production uses Supabase Storage)
 /media
+
+# Business documents kept next to the code, not in git
+/docs/reference/

@@ -20,8 +20,6 @@ import type { Product, ProductCollection } from "./types";
  * variants and inventory). Only published products with an INR price show.
  */
 
-/** Cache tag, revalidated by Payload hooks when catalog data changes. */
-export { PRODUCTS_TAG };
 /** Fallback cache lifetime, in seconds, in case a revalidation is missed. */
 const REVALIDATE = 60;
 
