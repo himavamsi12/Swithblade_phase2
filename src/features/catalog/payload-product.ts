@@ -159,7 +159,11 @@ export function toStorefrontProduct(
   }));
 
   const collection = populated(doc.collection) as PayloadCollection | null;
-  const category = populated(doc.categories?.[0]) as ProductCategory | null;
+  const categories = (doc.categories ?? [])
+    .map((entry) => populated(entry) as ProductCategory | null)
+    .filter((entry): entry is ProductCategory => entry !== null);
+  const category = categories[0] ?? null;
+  const productType = populated(doc.type);
   const frame = doc.imageFrame;
   const hasFrame =
     frame?.left != null &&
@@ -181,6 +185,12 @@ export function toStorefrontProduct(
       ? variants.some((v) => v.available)
       : variantAvailable({ inventory: doc.inventory }),
     category: category?.handle ?? undefined,
+    categoryLabel: category?.name ?? undefined,
+    categories: categories.flatMap((entry) =>
+      entry.handle ? [{ slug: entry.handle, label: entry.name }] : [],
+    ),
+    productType: productType?.value ?? undefined,
+    collectionName: collection?.title ?? undefined,
     colorCount: colors.length || undefined,
     collections: SHELVES.filter((s) => s === collection?.handle),
     highlighted: doc.highlighted ?? false,

@@ -12,6 +12,10 @@ export type Product = {
   inStock: boolean;
   /** Listing category slug, e.g. "sweatshirts". */
   category?: string;
+  categoryLabel?: string;
+  categories?: { slug: string; label: string }[];
+  productType?: string;
+  collectionName?: string;
   /** Number of colour variants, shown on listing cards. */
   colorCount?: number;
   /** Homepage shelves this product appears on. */

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type {
   Media,
   Product as PayloadProduct,
+  ProductCategory,
+  ProductCollection,
+  ProductType,
   Variant,
   VariantOption,
   VariantType,
@@ -116,7 +119,56 @@ describe("toStorefrontProduct", () => {
       colors: [],
       sizes: [],
     });
+
     expect(toStorefrontProduct(doc(), ORIGIN)?.variants).toBeUndefined();
+  });
+
+  it("maps taxonomy values for storefront filtering", () => {
+    const category: ProductCategory = {
+      id: 8,
+      name: "Sweatshirts",
+      handle: "sweatshirts",
+      createdAt: at,
+      updatedAt: at,
+    };
+    const secondCategory: ProductCategory = {
+      ...category,
+      id: 9,
+      name: "Tops",
+      handle: "tops",
+    };
+    const productType: ProductType = {
+      id: 4,
+      value: "Fleece",
+      createdAt: at,
+      updatedAt: at,
+    };
+    const collection: ProductCollection = {
+      id: 5,
+      title: "Winter Edit",
+      handle: "winter-edit",
+      createdAt: at,
+      updatedAt: at,
+    };
+
+    expect(
+      toStorefrontProduct(
+        doc({
+          categories: [category, secondCategory],
+          type: productType,
+          collection,
+        }),
+      ),
+    ).toMatchObject({
+      category: "sweatshirts",
+      categoryLabel: "Sweatshirts",
+      categories: [
+        { slug: "sweatshirts", label: "Sweatshirts" },
+        { slug: "tops", label: "Tops" },
+      ],
+      productType: "Fleece",
+      collectionName: "Winter Edit",
+    });
   });
 
   it("can't sell a product without an INR price or a handle", () => {
