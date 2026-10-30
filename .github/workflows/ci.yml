@@ -8,8 +8,25 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # A throwaway database, so the build can prerender pages without any
+    # real credentials. Nothing here touches Supabase.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DATABASE_MIGRATION_URL: postgres://postgres:postgres@localhost:5432/postgres
+      PAYLOAD_SECRET: ci-only-secret-not-used-anywhere-0123456789
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,4 +39,5 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
+      - run: pnpm migrate
       - run: pnpm build
