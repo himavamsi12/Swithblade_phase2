@@ -258,7 +258,37 @@ async function capturePayment(
   }
 }
 
-export async function recordRazorpayPayment(
+/** Saves in progress on this server instance, by Razorpay order id. */
+const inFlight = new Map<string, Promise<RecordResult>>();
+
+/**
+ * A successful payment brings the checkout callback and up to three webhook
+ * events within a second. Callers on the same instance share one save
+ * instead of each holding a database connection while they wait for the
+ * order lock, which ran the small serverless pool dry and timed every one
+ * of them out. Callers on other instances still meet at the lock.
+ */
+export function recordRazorpayPayment(
+  config: RazorpayConfig,
+  razorpayOrderId: string,
+  paymentId: string,
+): Promise<RecordResult> {
+  const running = inFlight.get(razorpayOrderId);
+  if (running) {
+    return running.then((result) =>
+      result.status === "recorded"
+        ? { ...result, status: "duplicate" }
+        : result,
+    );
+  }
+  const promise = recordPayment(config, razorpayOrderId, paymentId).finally(
+    () => inFlight.delete(razorpayOrderId),
+  );
+  inFlight.set(razorpayOrderId, promise);
+  return promise;
+}
+
+async function recordPayment(
   config: RazorpayConfig,
   razorpayOrderId: string,
   paymentId: string,
