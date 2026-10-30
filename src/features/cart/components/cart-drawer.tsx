@@ -8,7 +8,7 @@ import { ChargeNote } from "@/features/currency/components/charge-note";
 import { Price } from "@/features/currency/components/price";
 import { cn } from "@/lib/utils";
 import { MAX_QUANTITY, subtotals } from "../cart";
-import { cartActions, lineKey, useCart } from "../store";
+import { cartActions, lineKey, syncBag, useCart } from "../store";
 import type { CartLine } from "../types";
 
 const focusRing =
@@ -45,6 +45,8 @@ export function CartDrawer({ icon, className }: CartDrawerProps) {
     const header = button.current?.closest("header");
     setTop(Math.max(0, header?.getBoundingClientRect().bottom ?? 0));
     setOpen(true);
+    // Show what was added on the shopper's other devices.
+    void syncBag();
   };
   const close = () => setOpen(false);
 
