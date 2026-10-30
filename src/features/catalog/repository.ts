@@ -82,8 +82,10 @@ export async function listProductsByCollection(
   const { products } = await select({
     where: { "collection.handle": { equals: collection } },
   });
-  // TEMPORARY: design placeholders until real products join this shelf.
-  return products.length > 0 ? products : placeholderShelf(collection);
+  // TEMPORARY: design placeholders fill the shelf until it has enough real
+  // products; real ones always come first.
+  const fill = placeholderShelf(collection).slice(products.length);
+  return [...products, ...fill];
 }
 
 /**
@@ -208,10 +210,16 @@ export async function listCollaborationProducts(
 }
 
 /**
- * Promise pieces: products whose earnings go to the cause behind them. They
- * carry the star badge in the shop.
- * TEMPORARY: design placeholders until products carry a promise flag.
+ * Promise pieces: products whose earnings go to the cause behind them, ticked
+ * "Show star badge" in the admin. They carry the star badge in the shop.
  */
 export async function listPromiseProducts(limit = 8): Promise<Product[]> {
-  return placeholderRelated(limit).map((p) => ({ ...p, highlighted: true }));
+  const { products } = await select({
+    where: { highlighted: { equals: true } },
+    limit,
+  });
+  // TEMPORARY: design placeholders until real products are promise pieces.
+  return products.length > 0
+    ? products
+    : placeholderRelated(limit).map((p) => ({ ...p, highlighted: true }));
 }

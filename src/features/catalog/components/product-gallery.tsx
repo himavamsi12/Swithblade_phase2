@@ -38,6 +38,11 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
   const cursorRef = useRef<HTMLSpanElement>(null);
   const [hoverSide, setHoverSide] = useState<"prev" | "next" | null>(null);
 
+  // Next slides photos downwards, previous upwards.
+  const slideStyle = {
+    "--lightbox-dir": outgoing !== null && outgoing > index ? -1 : 1,
+  } as React.CSSProperties;
+
   const count = images.length;
   const hasPrev = index > 0;
   const hasNext = index < count - 1;
@@ -128,10 +133,11 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            {/* Photo change: the new photo slides down into view while the old
-                one slides down and out. */}
+            {/* Photo change: the new photo slides into view while the old one
+                slides out, downwards for next and upwards for previous. */}
             <div
               key={`in-${index}`}
+              style={slideStyle}
               className={cn(
                 "absolute inset-0",
                 outgoing !== null && "animate-lightbox-in",
@@ -150,6 +156,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
               <div
                 key={`out-${outgoing}-${index}`}
                 aria-hidden
+                style={slideStyle}
                 className="absolute inset-0 animate-lightbox-out"
                 onAnimationEnd={() => setOutgoing(null)}
               >

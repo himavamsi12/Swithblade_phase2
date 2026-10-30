@@ -178,6 +178,21 @@ body {
   mask: var(--star-badge) center / contain no-repeat;
 }
 
+/* The artwork fades to near white towards its bottom point; tint that part
+   back to brand blue, clipped to the star by the mask above. */
+.star-badge__shape::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 35%,
+    rgb(2 56 187 / 0.45) 70%,
+    rgb(2 56 187 / 0.7) 100%
+  );
+  mix-blend-mode: multiply;
+}
+
 .star-badge__shape::after {
   content: "";
   position: absolute;
@@ -237,9 +252,10 @@ html:has([data-cart-open]) {
 }
 
 /* Full-screen product photo change: both photos move downwards. */
+/* --lightbox-dir: 1 slides downwards (next), -1 upwards (previous). */
 @keyframes lightbox-slide-in {
   from {
-    transform: translateY(-100%);
+    transform: translateY(calc(var(--lightbox-dir, 1) * -100%));
   }
   to {
     transform: translateY(0);
@@ -251,7 +267,7 @@ html:has([data-cart-open]) {
     transform: translateY(0);
   }
   to {
-    transform: translateY(100%);
+    transform: translateY(calc(var(--lightbox-dir, 1) * 100%));
   }
 }
 
