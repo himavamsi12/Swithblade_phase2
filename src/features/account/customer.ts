@@ -4,6 +4,7 @@ import { getPayload } from "payload";
 import { cache } from "react";
 import { orderNumber } from "@/features/notifications/order-confirmation-email";
 import { getCurrentUser } from "@/lib/supabase-server";
+import { canRequestReturn } from "./return-request";
 
 /*
  * Server-side access to the signed-in shopper's own Payload records. Payload's
@@ -100,6 +101,8 @@ export type OrderView = {
   currency: string | null;
   status: OrderStatusKey;
   trackingUrl: string | null;
+  /** Delivered and still inside the return window. */
+  returnable: boolean;
   items: {
     key: string;
     title: string;
@@ -161,6 +164,7 @@ export async function listCustomerOrders(
     },
   });
 
+  const now = new Date();
   return docs.map((o) => {
     const snapshot = (o.lineItems ?? []).map((li, i) => ({
       key: li.id ?? String(i),
@@ -185,6 +189,13 @@ export async function listCustomerOrders(
       };
     });
     const tracking = (o.fulfillments ?? []).find((f) => f.trackingUrl);
+    const deliveredAt =
+      (o.fulfillments ?? [])
+        .map((f) => f.deliveredAt)
+        .filter((d): d is string => Boolean(d))
+        .sort()
+        .at(-1) ?? null;
+    const status = statusOf(o);
 
     return {
       id: o.id,
@@ -193,8 +204,9 @@ export async function listCustomerOrders(
       expectedDeliveryAt: o.expectedDeliveryAt ?? null,
       total: o.amount ?? null,
       currency: o.currency ?? null,
-      status: statusOf(o),
+      status,
       trackingUrl: tracking?.trackingUrl ?? null,
+      returnable: canRequestReturn(status, deliveredAt, now),
       items: snapshot.length > 0 ? snapshot : fromRelations,
     };
   });

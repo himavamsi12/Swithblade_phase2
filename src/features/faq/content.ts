@@ -49,7 +49,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         question: "How do I start a return?",
-        answer: `Sign in, go to Order History and select the order you want to return, or contact us at ${email}. We'll send instructions for sending the item back or arrange a reverse pickup.`,
+        answer: `Sign in, go to Order History and choose Request return on the delivered order (it's there for ${RETURN_WINDOW_DAYS} days after delivery), or email us at ${email} with your order number. We'll send instructions for sending the item back or arrange a reverse pickup.`,
       },
       {
         question: "When will I get my refund?",

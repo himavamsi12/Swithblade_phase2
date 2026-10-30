@@ -5,9 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useId, useState } from "react";
 import { Collapse } from "@/components/ui/disclosure";
+import { siteConfig } from "@/config/site";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { OrderStatusKey, OrderView } from "../customer";
+import { returnRequestHref } from "../return-request";
 import { focusRing } from "./styles";
 
 const statusStyles: Record<
@@ -184,15 +186,28 @@ function OrderCard({
               Tracking available once shipped
             </span>
           )}
-          <Link
-            href="/account/returns"
-            className={cn(
-              "text-body-4 text-dark-grey uppercase underline underline-offset-2 hover:text-black",
-              focusRing,
+          <div className="flex items-center gap-5">
+            {order.returnable && (
+              <a
+                href={returnRequestHref(siteConfig.supportEmail, order)}
+                className={cn(
+                  "text-body-4 font-semibold uppercase underline underline-offset-2",
+                  focusRing,
+                )}
+              >
+                Request return
+              </a>
             )}
-          >
-            Return history
-          </Link>
+            <Link
+              href="/account/returns"
+              className={cn(
+                "text-body-4 text-dark-grey uppercase underline underline-offset-2 hover:text-black",
+                focusRing,
+              )}
+            >
+              Return history
+            </Link>
+          </div>
         </div>
       </Collapse>
     </article>
