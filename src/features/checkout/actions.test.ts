@@ -99,7 +99,7 @@ const address = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   cookieJar.clear();
   session = null;
   storeStatus = { open: true, message: "" };

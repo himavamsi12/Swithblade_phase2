@@ -45,9 +45,9 @@ describe("sendEmail", () => {
       RequestInit,
     ];
     expect(url).toBe("https://api.resend.com/emails");
-    expect(new Headers(init.headers).get("Idempotency-Key")).toBe(
-      "order-placed/1",
-    );
+    const headers = new Headers(init.headers);
+    expect(headers.get("Authorization")).toBe("Bearer re_test");
+    expect(headers.get("Idempotency-Key")).toBe("order-placed/1");
     expect(JSON.parse(init.body as string)).toMatchObject({
       from: "Shop <orders@shop.example>",
       to: ["asha@example.com"],

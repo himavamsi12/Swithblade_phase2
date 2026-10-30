@@ -31,7 +31,7 @@ async function load() {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   redisConfigured = true;
   forwardedFor = "203.0.113.5, 10.0.0.1";
   limit.mockResolvedValue({ success: true });

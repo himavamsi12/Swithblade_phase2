@@ -72,7 +72,7 @@ async function redirectOf(run: () => Promise<unknown>) {
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   allowed = true;
   providerOn = true;
 });

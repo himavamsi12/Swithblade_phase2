@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeOrders } from "@/test/fake-orders";
 
 /*
  * Order confirmation emails and staff alerts: one email per order, the
@@ -6,32 +7,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * never an error that could touch a paid order.
  */
 
-let order: {
-  id: number;
-  displayId: number;
-  customerEmail: string | null;
-  metadata: Record<string, unknown> | null;
-};
-const payload = {
-  findByID: vi.fn(async () => structuredClone(order)),
-  update: vi.fn(
-    async ({ data }: { data: { metadata: Record<string, unknown> } }) => {
-      order.metadata = data.metadata;
-    },
-  ),
-};
-
-let enabled = true;
-let alertInbox: string | null = "staff@example.com";
-const sendEmail = vi.fn();
-vi.mock("server-only", () => ({}));
-vi.mock("@/features/account/customer", () => ({
-  getPayloadClient: async () => payload,
+const mocks = vi.hoisted(() => ({
+  enabled: true,
+  alertInbox: "staff@example.com" as string | null,
+  sendEmail: vi.fn(),
 }));
+
+vi.mock("server-only", () => ({}));
+vi.mock("@/features/account/customer", async () => {
+  const { fakeOrders } = await import("@/test/fake-orders");
+  return { getPayloadClient: async () => fakeOrders.payload };
+});
 vi.mock("./email", () => ({
-  emailEnabled: () => enabled,
-  staffAlertEmail: () => alertInbox,
-  sendEmail,
+  emailEnabled: () => mocks.enabled,
+  staffAlertEmail: () => mocks.alertInbox,
+  sendEmail: mocks.sendEmail,
 }));
 vi.mock("./order-confirmation-email", () => ({
   orderConfirmationEmail: () => ({
@@ -48,16 +38,19 @@ const {
   sendStaffAlert,
 } = await import("./repository");
 
+const { sendEmail } = mocks;
+const metadata = () => fakeOrders.order.metadata;
+
 beforeEach(() => {
-  vi.clearAllMocks();
-  enabled = true;
-  alertInbox = "staff@example.com";
-  order = {
+  vi.resetAllMocks();
+  mocks.enabled = true;
+  mocks.alertInbox = "staff@example.com";
+  fakeOrders.set({
     id: 9,
     displayId: 1009,
     customerEmail: "asha@example.com",
     metadata: {},
-  };
+  });
   sendEmail.mockResolvedValue({ id: "email_1" });
 });
 
@@ -74,20 +67,46 @@ describe("notifyOrderPlaced", () => {
         idempotencyKey: "order-placed/9",
       }),
     );
-    expect(orderPlacedEmailPending(order.metadata)).toBe(false);
+    expect(orderPlacedEmailPending(metadata())).toBe(false);
   });
 
   it("keeps the Shiprocket result written while the email was sending", async () => {
     sendEmail.mockImplementationOnce(async () => {
-      order.metadata = { shiprocket: { orderId: "SR1" } };
+      fakeOrders.set({
+        ...fakeOrders.order,
+        metadata: { shiprocket: { orderId: "SR1" } },
+      });
       return { id: "email_1" };
     });
 
     await notifyOrderPlaced(9);
 
-    expect(order.metadata).toMatchObject({
+    expect(metadata()).toMatchObject({
       shiprocket: { orderId: "SR1" },
       notifications: { orderPlaced: { email: { id: "email_1" } } },
+    });
+  });
+
+  it("keeps another channel's result written while the email was sending", async () => {
+    sendEmail.mockImplementationOnce(async () => {
+      fakeOrders.set({
+        ...fakeOrders.order,
+        metadata: {
+          notifications: { orderPlaced: { whatsapp: { sentAt: "now" } } },
+        },
+      });
+      return { id: "email_1" };
+    });
+
+    await notifyOrderPlaced(9);
+
+    expect(metadata()).toMatchObject({
+      notifications: {
+        orderPlaced: {
+          whatsapp: { sentAt: "now" },
+          email: { id: "email_1" },
+        },
+      },
     });
   });
 
@@ -95,31 +114,31 @@ describe("notifyOrderPlaced", () => {
     sendEmail.mockRejectedValueOnce(new Error("Resend 500: busy"));
 
     await expect(notifyOrderPlaced(9)).resolves.toBeUndefined();
-    expect(orderPlacedEmailError(order.metadata)).toBe("Resend 500: busy");
+    expect(orderPlacedEmailError(metadata())).toBe("Resend 500: busy");
 
     await notifyOrderPlaced(9);
     expect(sendEmail).toHaveBeenCalledTimes(2);
-    expect(orderPlacedEmailPending(order.metadata)).toBe(false);
+    expect(orderPlacedEmailPending(metadata())).toBe(false);
   });
 
   it("notes an order with no email address instead of sending", async () => {
-    order.customerEmail = null;
+    fakeOrders.set({ ...fakeOrders.order, customerEmail: null });
     await notifyOrderPlaced(9);
     expect(sendEmail).not.toHaveBeenCalled();
-    expect(orderPlacedEmailError(order.metadata)).toBe(
+    expect(orderPlacedEmailError(metadata())).toBe(
       "Order has no email address",
     );
   });
 
   it("swallows a database outage rather than failing the caller", async () => {
-    payload.findByID.mockRejectedValueOnce(new Error("db down"));
+    fakeOrders.payload.findByID.mockRejectedValueOnce(new Error("db down"));
     await expect(notifyOrderPlaced(9)).resolves.toBeUndefined();
   });
 
   it("does nothing while email isn't set up", async () => {
-    enabled = false;
+    mocks.enabled = false;
     await notifyOrderPlaced(9);
-    expect(payload.findByID).not.toHaveBeenCalled();
+    expect(fakeOrders.payload.findByID).not.toHaveBeenCalled();
     expect(orderPlacedEmailPending({})).toBe(false);
   });
 });
@@ -143,10 +162,10 @@ describe("sendStaffAlert", () => {
   });
 
   it("reports false when alerts are off or the send fails", async () => {
-    alertInbox = null;
+    mocks.alertInbox = null;
     expect(await sendStaffAlert(alert)).toBe(false);
 
-    alertInbox = "staff@example.com";
+    mocks.alertInbox = "staff@example.com";
     sendEmail.mockRejectedValueOnce(new Error("down"));
     expect(await sendStaffAlert(alert)).toBe(false);
   });

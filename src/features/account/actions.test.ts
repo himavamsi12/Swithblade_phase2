@@ -78,7 +78,7 @@ const address = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   session = { customer: { id: 1 } };
   customers = {
     1: { email: "asha@example.com", firstName: "Asha" },

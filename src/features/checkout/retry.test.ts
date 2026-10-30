@@ -45,7 +45,7 @@ const { retryOrderFollowUps } = await import("./retry");
 const done = { shipped: true, emailSent: true };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
   orders = [];
   payments = [];
 });
