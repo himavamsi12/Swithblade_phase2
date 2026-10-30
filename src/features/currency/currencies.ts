@@ -1,10 +1,10 @@
 /** Display currencies the shopper can pick. Checkout always charges INR. */
 export const currencies = [
-  { code: "INR", label: "Indian Rupees (₹)", locale: "en-IN" },
-  { code: "USD", label: "US Dollars ($)", locale: "en-US" },
-  { code: "EUR", label: "Euros (€)", locale: "en-IE" },
-  { code: "GBP", label: "British Pounds (£)", locale: "en-GB" },
-  { code: "AED", label: "UAE Dirhams (د.إ)", locale: "en-AE" },
+  { code: "INR", label: "Indian Rupees (₹)", symbol: "₹", locale: "en-IN" },
+  { code: "USD", label: "US Dollars ($)", symbol: "$", locale: "en-US" },
+  { code: "EUR", label: "Euros (€)", symbol: "€", locale: "en-IE" },
+  { code: "GBP", label: "British Pounds (£)", symbol: "£", locale: "en-GB" },
+  { code: "AED", label: "UAE Dirhams (د.إ)", symbol: "د.إ", locale: "en-AE" },
 ] as const;
 
 export type CurrencyCode = (typeof currencies)[number]["code"];

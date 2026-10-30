@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
-import { createLocalStore, useIsClient } from "@/lib/local-store";
+import { createLocalStore } from "@/lib/local-store";
 import {
   convert,
   currencies,
@@ -17,37 +17,23 @@ import {
 
 export { currencies, type CurrencyCode };
 
-type Preference = {
-  currency: CurrencyCode | null;
-  /** Chosen or closed the prompt, so it shouldn't open again. */
-  answered: boolean;
-};
+type Preference = { currency: CurrencyCode | null };
 
-const EMPTY: Preference = { currency: null, answered: false };
+const EMPTY: Preference = { currency: null };
 
 const parse = (v: unknown): Preference => {
   if (typeof v !== "object" || v === null) return EMPTY;
-  const { currency, answered } = v as Record<string, unknown>;
-  return {
-    currency: isCurrencyCode(currency) ? currency : null,
-    answered: answered === true,
-  };
+  const { currency } = v as Record<string, unknown>;
+  return { currency: isCurrencyCode(currency) ? currency : null };
 };
 
 const store = createLocalStore("switchblade.currency.v1", parse, EMPTY);
 
 export const currencyActions = {
-  choose: (currency: CurrencyCode) => store.set({ currency, answered: true }),
-  dismiss: () => store.set({ ...store.get(), answered: true }),
+  choose: (currency: CurrencyCode) => store.set({ currency }),
 };
 
-export function useCurrencyPreference() {
-  return {
-    ...store.useValue(),
-    /** False during server render and hydration. */
-    ready: useIsClient(),
-  };
-}
+export const useCurrencyPreference = () => store.useValue();
 
 /* Exchange rates, fetched once per page load and only when first needed. */
 

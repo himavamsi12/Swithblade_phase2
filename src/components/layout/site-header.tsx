@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { CartDrawer } from "@/features/cart/components/cart-drawer";
+import { HeaderCurrency } from "@/features/currency/components/header-currency";
 import { HeaderSearch } from "@/features/search/components/header-search";
 import { cn } from "@/lib/utils";
 import { NavMenu } from "./nav-menu";
@@ -130,6 +131,7 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
             }
             className={iconButton}
           />
+          <HeaderCurrency className={iconButton} />
           <Link
             href={siteConfig.wishlistHref}
             aria-label="Wishlist"

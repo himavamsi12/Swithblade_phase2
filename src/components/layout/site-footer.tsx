@@ -3,7 +3,6 @@ import Link from "next/link";
 import footerWordmark from "@/assets/icons/footer-wordmark.svg";
 import { siteConfig } from "@/config/site";
 import { Disclosure } from "@/components/ui/disclosure";
-import { FooterCurrency } from "@/features/currency/components/footer-currency";
 import { FooterStar } from "./footer-star";
 
 export function SiteFooter() {
@@ -45,7 +44,6 @@ export function SiteFooter() {
               )}
             </Disclosure>
           ))}
-          <FooterCurrency />
         </div>
 
         <FooterStar className="mt-2" />
