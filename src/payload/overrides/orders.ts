@@ -5,12 +5,15 @@ import type {
 } from "payload";
 import { group } from "../groups";
 import { metadataField } from "../fields/metadata";
+import { lockKey } from "../transaction";
 
 const FIRST_DISPLAY_ID = 1001;
 
 /**
- * Gives each order a human-friendly number (#1001, #1002…). The unique index
- * on `displayId` makes a concurrent clash fail loudly instead of duplicating.
+ * Gives each order a human-friendly number (#1001, #1002…). Orders created
+ * at the same moment take turns (a lock held until the order's transaction
+ * commits), so two shoppers paying together never get the same number; the
+ * unique index on `displayId` is the backstop.
  */
 const assignDisplayId: CollectionBeforeChangeHook = async ({
   data,
@@ -18,6 +21,7 @@ const assignDisplayId: CollectionBeforeChangeHook = async ({
   req,
 }) => {
   if (operation !== "create" || data.displayId) return data;
+  await lockKey(req, "orders:display-id");
   const { docs } = await req.payload.find({
     collection: "orders",
     sort: "-displayId",

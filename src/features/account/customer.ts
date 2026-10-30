@@ -49,11 +49,24 @@ export const getSignedInCustomer = cache(async () => {
     });
     customer =
       byEmail.docs[0] ??
-      (await payload.create({
-        collection: "customers",
-        data: { email: user.email.toLowerCase() },
-        depth: 0,
-      }));
+      (await payload
+        .create({
+          collection: "customers",
+          data: { email: user.email.toLowerCase() },
+          depth: 0,
+        })
+        // Two first requests at once (e.g. page + bag sync): the unique email
+        // kept the other's row, so use that.
+        .catch(async (error: unknown) => {
+          const raced = await payload.find({
+            collection: "customers",
+            where: { email: { equals: user.email!.toLowerCase() } },
+            limit: 1,
+            depth: 0,
+          });
+          if (raced.docs[0]) return raced.docs[0];
+          throw error;
+        }));
   }
 
   return customer ? { user, customer } : null;
