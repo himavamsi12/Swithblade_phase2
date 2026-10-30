@@ -44,6 +44,11 @@ Tasks parked for later. Tick them off (`[x]`) when done.
       to Vercel Pro and make the `vercel.json` schedule hourly, or have a free
       external scheduler call `/api/cron/retry-orders` hourly with
       `Authorization: Bearer <CRON_SECRET>`.
+- [ ] **Turn on database backups before launch.** Supabase Free has no
+      backups, so a bad migration or accidental delete loses every order and
+      customer. Upgrade to Supabase Pro (daily backups, kept 7 days), then
+      check Dashboard → Database → Backups shows them. Until then, take a
+      manual `pg_dump` before risky changes.
 - [ ] **Policy pages and support email**: real business name, address and a
       support email you own (`support@switchblade.com` is in
       `src/config/site.ts`).
