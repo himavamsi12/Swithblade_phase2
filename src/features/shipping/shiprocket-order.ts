@@ -47,11 +47,17 @@ export type ShiprocketOrder = {
 
 const rupees = (paise: number) => Math.round(paise) / 100;
 
-/** Shiprocket wants a 10-digit Indian mobile, without +91 or a leading 0. */
+/**
+ * Shiprocket wants a 10-digit Indian mobile, without +91 or a leading 0. It
+ * also refuses dummy numbers such as 9999999999, so those are invalid here
+ * too and the checkout form asks for a real one.
+ */
 export function indianMobile(phone: string | null | undefined): string | null {
   const digits = (phone ?? "").replace(/\D/g, "");
   const local = digits.length > 10 ? digits.slice(-10) : digits;
-  return /^[6-9]\d{9}$/.test(local) ? local : null;
+  return /^[6-9]\d{9}$/.test(local) && !/^(\d)\1{9}$/.test(local)
+    ? local
+    : null;
 }
 
 /** "YYYY-MM-DD HH:mm" in India time, as Shiprocket expects. */

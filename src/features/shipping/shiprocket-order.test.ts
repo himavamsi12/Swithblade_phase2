@@ -109,6 +109,11 @@ describe("indianMobile", () => {
     expect(indianMobile("0221234567")).toBeNull();
     expect(indianMobile(null)).toBeNull();
   });
+
+  it("rejects dummy numbers Shiprocket refuses", () => {
+    expect(indianMobile("9999999999")).toBeNull();
+    expect(indianMobile("+91 7777777777")).toBeNull();
+  });
 });
 
 describe("shiprocketDate", () => {
