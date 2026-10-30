@@ -24,12 +24,26 @@ Tasks parked for later. Tick them off (`[x]`) when done.
   - Supabase → Authentication → URL Configuration → same **Site URL**, and
     add `https://swithblade-phase2.vercel.app/auth/callback` to **Redirect
     URLs**.
-- [ ] **Add `CRON_SECRET` in Vercel** (any long random string), so the daily
-      job recovers missed payments, retries shipping/emails and purges old
-      stock holds.
-- [ ] **Add the Upstash vars in Vercel** (`UPSTASH_REDIS_REST_URL`,
-      `UPSTASH_REDIS_REST_TOKEN`), so sign-in, password reset, OTP and
-      checkout are rate-limited.
+- [ ] **Add `CRON_SECRET` in Vercel** (any long random string), then
+      redeploy. Without it the daily safety-net job is refused every time, so
+      paid orders the checkout and webhook missed aren't recovered, failed
+      Shiprocket hand-offs and confirmation emails aren't retried, staff
+      aren't emailed about stuck orders, and old stock holds aren't purged.
+- [ ] **Connect Upstash Redis in Vercel** (Storage / Marketplace → Upstash
+      Redis, which adds the vars itself; no code change). Without it every
+      rate limit is off: sign-in attempts, OTP texts (each costs money, and a
+      phone number can be flooded), password-reset emails and checkout.
+- [ ] **Check the Razorpay setup.** `.env.local` uses test keys; make sure
+      Vercel (Production) has `rzp_live_…` keys before launch. In the
+      Razorpay dashboard → Webhooks, the webhook should point to
+      `https://swithblade-phase2.vercel.app/api/razorpay/webhook` with
+      **payment.authorized**, **payment.captured** and **order.paid** ticked
+      (the endpoint is on and checks signatures).
+- [ ] **Run the safety-net job more often than daily.** Vercel Hobby only
+      allows a daily cron, so a missed order can wait up to 24 hours. Upgrade
+      to Vercel Pro and make the `vercel.json` schedule hourly, or have a free
+      external scheduler call `/api/cron/retry-orders` hourly with
+      `Authorization: Bearer <CRON_SECRET>`.
 - [ ] **Policy pages and support email**: real business name, address and a
       support email you own (`support@switchblade.com` is in
       `src/config/site.ts`).
@@ -45,22 +59,14 @@ Tasks parked for later. Tick them off (`[x]`) when done.
 
 ## Clean-up
 
-- [ ] Test Tee's sample photos were uploaded locally, so they're broken on
-      the live site. Re-upload in the live admin, or set the `S3_*` vars in
-      `.env.local` and rerun `pnpm payload run
-src/payload/scripts/seed-test-product.ts`.
+- [x] Test Tee's sample photos were only in local `./media`; `pnpm media:sync`
+      uploaded them to storage, so they show on the live site.
 - [ ] Delete the extra 19th Test Tee variant if it was a test.
 
 ## Products
 
-- [ ] **2JZ Archival T-Shirt photos on the live site.** The product (published in New Arrivals,
-      ₹1,999, Red/Blue × S–2XL, 10 each) was added from `2JZ T-Shirt.docx`,
-      but its 5 photos were uploaded to local `./media`, so the live admin
-      and shop show it without photos. Set the `S3_*` vars in `.env.local` (same
-      values as Vercel), then run
-      `pnpm payload run src/payload/scripts/seed-2jz-tee.ts photos` (swaps
-      in fresh uploads). Or re-upload `public/images/products/2jz-archival-tee/*`
-      in the live admin.
+- [x] **2JZ Archival T-Shirt photos on the live site.** They were only in
+      local `./media`; `pnpm media:sync` uploaded them to storage.
 - [x] **Publish the 2JZ Archival T-Shirt** in the New Arrivals collection.
 - [ ] Optional: higher-resolution photos. The doc's are ~380×480 px, which
       look soft on large screens.
