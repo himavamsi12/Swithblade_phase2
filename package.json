@@ -24,6 +24,7 @@
     "migrate:create": "payload migrate:create",
     "seed:demo": "payload run src/payload/scripts/seed-demo.ts",
     "seed:demo:remove": "payload run src/payload/scripts/seed-demo.ts remove",
+    "media:sync": "payload run src/payload/scripts/sync-media.ts",
     "db:harden": "payload run src/payload/scripts/harden-db.ts",
     "generate:nav-icons": "node src/payload/scripts/generate-nav-icons.mjs"
   },
