@@ -147,7 +147,7 @@ export function SiteHeader({
             icon={
               <ToneImage tone={tone} asset="search" width={17} height={17} />
             }
-            className={cn(iconButton, mobileHome && "hidden md:flex")}
+            className={cn(iconButton, mobileHome && "md:flex")}
           />
           <Link
             href={siteConfig.wishlistHref}
