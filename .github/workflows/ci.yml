@@ -27,6 +27,9 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
       DATABASE_MIGRATION_URL: postgres://postgres:postgres@localhost:5432/postgres
       PAYLOAD_SECRET: ci-only-secret-not-used-anywhere-0123456789
+      # Placeholders: sign-in pages need them to build, never to call out.
+      SUPABASE_URL: https://ci-placeholder.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: ci-placeholder
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
