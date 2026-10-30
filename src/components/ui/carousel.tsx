@@ -14,6 +14,8 @@ type CarouselProps = {
   trackClassName?: string;
   /** Classes for each item; set the responsive width (`basis-*`) here. */
   itemClassName?: string;
+  /** Home-only option to hide arrow controls below the desktop breakpoint. */
+  hideMobileControls?: boolean;
 };
 
 const DEFAULT_TRACK = "gap-3";
@@ -27,6 +29,7 @@ export function Carousel({
   className,
   trackClassName = DEFAULT_TRACK,
   itemClassName = DEFAULT_ITEM,
+  hideMobileControls = false,
 }: CarouselProps) {
   const trackRef = useRef<HTMLUListElement>(null);
   const [canPrev, setCanPrev] = useState(false);
@@ -78,7 +81,12 @@ export function Carousel({
         <h2 className="text-[24px] leading-9 font-semibold uppercase">
           {title}
         </h2>
-        <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            hideMobileControls && "hidden md:flex",
+          )}
+        >
           <button
             type="button"
             aria-label="Previous"

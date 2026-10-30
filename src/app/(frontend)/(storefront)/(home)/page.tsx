@@ -13,12 +13,19 @@ export default function HomePage() {
         href="/products"
       />
 
-      <ProductShelf title="New arrivals" collection="new-arrivals" />
-      <CategoryTiles />
+      <ProductShelf
+        title="New arrivals"
+        collection="new-arrivals"
+        mobileHome
+        mobileLayout="grid"
+      />
+      <CategoryTiles mobileHome />
       <ProductShelf
         title="Recommended"
         collection="recommended"
         surface="cream"
+        mobileHome
+        mobileLayout="carousel"
       />
 
       <Curated />

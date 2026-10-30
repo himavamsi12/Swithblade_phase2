@@ -44,17 +44,21 @@ export function Curated() {
   const previous = step > 0 ? (step - 1) % slides.length : -1;
 
   useEffect(() => {
-    const id = setInterval(() => setStep((s) => s + 1), INTERVAL_MS);
+    const id = setInterval(() => {
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setStep((s) => s + 1);
+      }
+    }, INTERVAL_MS);
     return () => clearInterval(id);
   }, []);
 
   return (
     <section
       aria-labelledby="curated-heading"
-      className="mx-auto grid w-full max-w-480 items-center gap-10 pt-12 pb-20 md:grid-cols-2 md:gap-0 md:pt-20 md:pb-40"
+      className="mx-auto grid w-full max-w-480 items-center gap-10 pt-0 pb-20 md:grid-cols-2 md:gap-0 md:pt-20 md:pb-40"
     >
-      <div className="px-4 md:pr-0 md:pl-10">
-        <div className="relative aspect-[1360/1312] overflow-hidden">
+      <div className="px-0 md:pr-0 md:pl-10">
+        <div className="relative aspect-[402/800] overflow-hidden md:aspect-[1360/1312]">
           {slides.map(({ look }, i) => (
             <Image
               key={i}
@@ -67,16 +71,43 @@ export function Curated() {
                 "absolute inset-0 size-full object-cover",
                 // Changing the animation name restarts it, so a slide that
                 // goes out and comes back in replays its entrance.
-                i === active && step > 0 && "z-10 animate-curated-in",
-                i === previous && "animate-curated-out",
+                i === active &&
+                  step > 0 &&
+                  "z-10 animate-curated-in motion-reduce:animate-none",
+                i === previous &&
+                  "animate-curated-out motion-reduce:animate-none",
                 i !== active && i !== previous && "invisible",
               )}
             />
           ))}
+          <div className="absolute bottom-6 left-4 z-20 min-h-[195px] w-[145px] bg-white p-1.5 md:hidden">
+            <h2 className="text-[11px] leading-[14px] font-semibold tracking-[0.08em] uppercase">
+              Curated, not collected
+            </h2>
+            <div className="relative mt-2 aspect-[133/97] overflow-hidden">
+              {slides.map((slide, i) => (
+                <Image
+                  key={i}
+                  src={slide.fabric.src}
+                  alt={slide.fabric.alt}
+                  aria-hidden={i !== active}
+                  sizes="133px"
+                  placeholder="blur"
+                  className={cn(
+                    "absolute inset-0 size-full object-cover transition-opacity duration-900 ease-in-out motion-reduce:transition-none",
+                    i === active ? "opacity-100" : "opacity-0",
+                  )}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-[9px] leading-[11px] uppercase">
+              Fewer pieces. Higher standard. Nothing arbitrary.
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="flex justify-center px-4 md:px-0">
+      <div className="hidden justify-center px-4 md:flex md:px-0">
         <div className="flex w-full max-w-[270px] flex-col gap-4">
           <h2
             id="curated-heading"

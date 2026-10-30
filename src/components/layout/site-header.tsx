@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 import { CartDrawer } from "@/features/cart/components/cart-drawer";
 import { HeaderSearch } from "@/features/search/components/header-search";
 import { cn } from "@/lib/utils";
+import { MobileNavMenu } from "./mobile-nav-menu";
 import { NavMenu } from "./nav-menu";
 import { headerAssets, type HeaderTone } from "./site-header-assets";
 
@@ -17,6 +18,8 @@ type SiteHeaderProps = {
   /** "white" (Figma "Default") sits on dark backgrounds, "black" on light ones. */
   tone?: HeaderTone;
   className?: string;
+  /** Home-only mobile header shown in the approved mobile reference. */
+  mobileHome?: boolean;
 };
 
 /**
@@ -58,7 +61,11 @@ function ToneImage({
   );
 }
 
-export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
+export function SiteHeader({
+  tone = "white",
+  className,
+  mobileHome = false,
+}: SiteHeaderProps) {
   return (
     <header
       // Positioned stacking context: the search panel hangs off its bottom edge.
@@ -71,10 +78,16 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
         className,
       )}
     >
-      <div className="relative mx-auto flex max-w-480 flex-wrap items-center justify-between gap-y-4 px-4 py-4 md:flex-nowrap md:px-10 md:py-5">
+      <div
+        className={cn(
+          "relative mx-auto grid max-w-480 grid-cols-[1fr_auto_1fr] items-center gap-y-0 px-4 py-4 md:flex md:flex-nowrap md:justify-between md:gap-y-4 md:px-10 md:py-5",
+          mobileHome && "px-6 pt-6 pb-0",
+        )}
+      >
+        <MobileNavMenu items={siteConfig.nav} homeLayout={mobileHome} />
         <nav
           aria-label="Main"
-          className="order-3 flex w-full items-center gap-6 md:order-none md:w-auto"
+          className="order-3 hidden w-full items-center gap-6 md:order-none md:flex md:w-auto"
         >
           {siteConfig.nav.map((item) =>
             "items" in item ? (
@@ -95,7 +108,9 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
         <Link
           href="/"
           aria-label={`${siteConfig.name} home`}
-          className="order-1 flex md:absolute md:top-1/2 md:left-1/2 md:order-none md:-translate-x-1/2 md:-translate-y-1/2"
+          className={cn(
+            "col-start-2 row-start-1 flex justify-self-center md:absolute md:top-1/2 md:left-1/2 md:order-none md:-translate-x-1/2 md:-translate-y-1/2 md:justify-self-auto",
+          )}
         >
           <span className="relative flex h-[25.257px] items-center gap-[2.536px]">
             <ToneImage
@@ -103,14 +118,14 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
               asset="logoMark"
               width={16}
               height={24}
-              className="h-[24.139px] w-[15.902px] shrink-0"
+              className="h-[24.139px] w-[15.902px] shrink-0 max-[360px]:h-[21px] max-[360px]:w-[14px]"
             />
             <ToneImage
               tone={tone}
               asset="wordmark"
               width={158}
               height={12}
-              className="h-3 w-[158px] shrink-0"
+              className="h-3 w-[158px] shrink-0 max-[360px]:h-auto max-[360px]:w-[135px]"
             />
             <ToneImage
               tone={tone}
@@ -118,22 +133,26 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
               width={5}
               height={3}
               // In the flow after the wordmark, raised to its top-right corner.
-              className="mt-[2.68px] -ml-[1.5px] h-[2.61px] w-[5.183px] shrink-0 self-start"
+              className="mt-[2.68px] -ml-[1.5px] h-[2.61px] w-[5.183px] shrink-0 self-start max-[360px]:hidden"
             />
           </span>
         </Link>
 
-        <div className="order-2 flex items-center gap-5 md:order-none">
+        <div
+          className={cn(
+            "col-start-3 row-start-1 flex items-center gap-2.5 justify-self-end md:order-none md:gap-5 md:justify-self-auto",
+          )}
+        >
           <HeaderSearch
             icon={
               <ToneImage tone={tone} asset="search" width={17} height={17} />
             }
-            className={iconButton}
+            className={cn(iconButton, mobileHome && "hidden md:flex")}
           />
           <Link
             href={siteConfig.wishlistHref}
             aria-label="Wishlist"
-            className={iconButton}
+            className={cn(iconButton, "hidden md:flex")}
           >
             <ToneImage tone={tone} asset="wishlist" width={17} height={16} />
           </Link>
@@ -144,7 +163,7 @@ export function SiteHeader({ tone = "white", className }: SiteHeaderProps) {
           <Link
             href={siteConfig.accountHref}
             aria-label="Account"
-            className={iconButton}
+            className={cn(iconButton, "hidden md:flex")}
           >
             <ToneImage tone={tone} asset="account" width={16} height={17} />
           </Link>
