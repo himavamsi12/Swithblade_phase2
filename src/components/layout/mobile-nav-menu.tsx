@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Route } from "next";
 import { siteConfig } from "@/config/site";
+import { signOut } from "@/features/auth/actions";
 import { headerAssets } from "./site-header-assets";
 
 type MobileNavItem = (typeof siteConfig.nav)[number];
@@ -276,6 +278,26 @@ export function MobileNavMenu({
                   </Link>
                 </li>
               ))}
+              <li
+                className={`transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
+                  isOpen
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-2 opacity-0"
+                }`}
+                style={{
+                  transitionDelay: isOpen && !reduceMotion ? "360ms" : "0ms",
+                }}
+              >
+                <form action={signOut}>
+                  <button
+                    type="submit"
+                    className="flex min-h-10 items-center gap-3 text-[11px] tracking-[0.14em]"
+                  >
+                    <LogOut size={16} aria-hidden="true" />
+                    SIGN OUT
+                  </button>
+                </form>
+              </li>
             </ul>
           </nav>
         </div>

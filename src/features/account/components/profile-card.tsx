@@ -63,7 +63,7 @@ export function ProfileCard({ profile }: { profile: Profile }) {
             type="button"
             onClick={() => setEditing(true)}
             className={cn(
-              "shrink-0 text-body-4 font-semibold uppercase underline underline-offset-2",
+              "hidden shrink-0 text-body-4 font-semibold uppercase underline underline-offset-2 md:block",
               focusRing,
             )}
           >
@@ -75,38 +75,56 @@ export function ProfileCard({ profile }: { profile: Profile }) {
       {editing ? (
         <ProfileForm profile={profile} onDone={() => setEditing(false)} />
       ) : (
-        <dl className="mt-7 grid gap-2 sm:grid-cols-2">
-          {[
-            ["First name", profile.firstName],
-            ["Last name", profile.lastName],
-            ["Email", profile.email],
-          ].map(([label, value]) => (
-            <div key={label} className={boxClass}>
-              <dt className="sr-only">{label}</dt>
-              <dd className={cn("truncate", !value && "text-muted")}>
-                {value ||
-                  (label === "Email"
-                    ? "No email (signed in with phone)"
-                    : `Add ${label!.toLowerCase()}`)}
+        <>
+          <dl className="mt-7 grid grid-cols-2 gap-2">
+            {[
+              ["First name", profile.firstName],
+              ["Last name", profile.lastName],
+              ["Email", profile.email],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className={cn(
+                  boxClass,
+                  label === "Email" && "col-span-2 md:col-span-1",
+                )}
+              >
+                <dt className="sr-only">{label}</dt>
+                <dd className={cn("truncate", !value && "text-muted")}>
+                  {value ||
+                    (label === "Email"
+                      ? "No email (signed in with phone)"
+                      : `Add ${label!.toLowerCase()}`)}
+                </dd>
+              </div>
+            ))}
+            <div className={cn(boxClass, "col-span-2 md:col-span-1")}>
+              <dt className="sr-only">Phone</dt>
+              <dd className={cn("truncate", !profile.phone && "text-muted")}>
+                {profile.phone ? (
+                  <>
+                    <span aria-hidden className="mr-3">
+                      {parsePhone(profile.phone).country?.flag}
+                    </span>
+                    {formatPhone(profile.phone)}
+                  </>
+                ) : (
+                  "Add phone number"
+                )}
               </dd>
             </div>
-          ))}
-          <div className={boxClass}>
-            <dt className="sr-only">Phone</dt>
-            <dd className={cn("truncate", !profile.phone && "text-muted")}>
-              {profile.phone ? (
-                <>
-                  <span aria-hidden className="mr-3">
-                    {parsePhone(profile.phone).country?.flag}
-                  </span>
-                  {formatPhone(profile.phone)}
-                </>
-              ) : (
-                "Add phone number"
-              )}
-            </dd>
-          </div>
-        </dl>
+          </dl>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className={cn(
+              "mt-8 text-body-4 font-semibold uppercase underline underline-offset-2 md:hidden",
+              focusRing,
+            )}
+          >
+            Edit profile
+          </button>
+        </>
       )}
     </section>
   );
