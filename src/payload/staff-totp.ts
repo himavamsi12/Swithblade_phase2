@@ -45,6 +45,24 @@ export const staffTotp =
       totp: { issuer },
     })(incoming);
 
+    // Our own code screen in place of the plugin's (same endpoint and rules).
+    const views = config.admin?.components?.views as
+      | Record<
+          string,
+          { Component: { path: string }; meta?: { title?: string } }
+        >
+      | undefined;
+    for (const key of ["VerifyTOTP", "VerifyTOTPBackslash"]) {
+      const view = views?.[key];
+      if (view) {
+        view.Component = {
+          ...view.Component,
+          path: "/payload/admin/staff-verify#StaffVerify",
+        };
+        view.meta = { ...view.meta, title: "Verify sign-in" };
+      }
+    }
+
     for (const c of config.collections ?? []) {
       const before = original.get(`collection:${c.slug}`);
       if (before && c.access)

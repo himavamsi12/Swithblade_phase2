@@ -756,3 +756,296 @@ body {
   height: 1rem;
   accent-color: var(--theme-text);
 }
+
+/* Staff authenticator-code screen (src/payload/admin/staff-verify.tsx). */
+.sb-verify {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-height: 100vh;
+  padding: 24px 16px;
+  background:
+    radial-gradient(
+      60rem 30rem at 50% -10%,
+      rgba(2, 56, 187, 0.07),
+      transparent 70%
+    ),
+    var(--sb-bg-subtle);
+}
+
+.sb-verify__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 420px;
+  padding: 36px 32px 28px;
+  border-radius: var(--style-radius-l);
+  background: #fff;
+  box-shadow:
+    var(--sb-shadow-card),
+    0 12px 32px -12px rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+
+.sb-verify__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(2, 56, 187, 0.08);
+  color: #0238bb;
+}
+
+.sb-verify__heading h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--sb-fg);
+}
+
+.sb-verify__heading p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--sb-fg-subtle);
+}
+
+.sb-verify__heading strong {
+  font-weight: 600;
+  color: var(--sb-fg);
+}
+
+.sb-verify__email {
+  overflow-wrap: anywhere;
+}
+
+.sb-verify__form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.sb-verify__boxes {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sb-verify__box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 54px;
+  border: 1px solid var(--sb-border);
+  border-radius: var(--style-radius-m);
+  background: var(--sb-bg-subtle);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--sb-fg);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+}
+
+/* A gap between the two halves, like the code shows in most apps. */
+.sb-verify__box:nth-child(3) {
+  margin-right: 10px;
+}
+
+.sb-verify__box[data-filled] {
+  background: #fff;
+  border-color: var(--color-base-250);
+}
+
+.sb-verify__box[data-active] {
+  background: #fff;
+  border-color: #0238bb;
+  box-shadow: 0 0 0 3px rgba(2, 56, 187, 0.15);
+}
+
+.sb-verify__box[data-active]:not([data-filled])::after {
+  content: "";
+  width: 2px;
+  height: 22px;
+  border-radius: 1px;
+  background: #0238bb;
+  animation: sb-verify-caret 1s steps(1) infinite;
+}
+
+.sb-verify__boxes[data-busy] .sb-verify__box {
+  opacity: 0.6;
+}
+
+.sb-verify__boxes[data-error] .sb-verify__box {
+  border-color: #dc2626;
+}
+
+.sb-verify__boxes[data-error] {
+  animation: sb-verify-shake 300ms ease;
+}
+
+/* The real input sits over the boxes, invisible, so taps focus it. */
+.sb-verify__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  opacity: 0;
+  cursor: text;
+}
+
+.sb-verify__status {
+  min-height: 20px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--sb-fg-muted);
+}
+
+.sb-verify__status[data-error] {
+  color: #dc2626;
+}
+
+.sb-verify__submit {
+  width: 100%;
+  height: 40px;
+  border: 0;
+  border-radius: var(--style-radius-m);
+  background: var(--sb-fg);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.sb-verify__submit:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sb-verify__submit:focus-visible {
+  outline: none;
+  box-shadow: var(--accessibility-outline);
+}
+
+.sb-verify__timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--sb-fg-muted);
+}
+
+.sb-verify__timer[data-expiring] {
+  color: #b45309;
+}
+
+.sb-verify__ring {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: conic-gradient(
+    currentColor calc(var(--sb-progress) * 360deg),
+    var(--sb-border) 0
+  );
+  -webkit-mask: radial-gradient(circle, transparent 4px, #000 4.5px);
+  mask: radial-gradient(circle, transparent 4px, #000 4.5px);
+}
+
+.sb-verify__help {
+  margin: 4px 0 0;
+  padding-top: 16px;
+  width: 100%;
+  border-top: 1px solid var(--sb-border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--sb-fg-muted);
+}
+
+.sb-verify__signout {
+  font-size: 13px;
+  color: var(--sb-fg-subtle);
+  text-decoration: none;
+}
+
+.sb-verify__signout:hover {
+  color: var(--sb-fg);
+  text-decoration: underline;
+}
+
+.sb-verify__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+@keyframes sb-verify-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes sb-verify-shake {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@media (max-width: 420px) {
+  .sb-verify__card {
+    padding: 28px 20px 24px;
+  }
+
+  .sb-verify__box {
+    width: 40px;
+    height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-verify__boxes[data-error],
+  .sb-verify__box[data-active]:not([data-filled])::after {
+    animation: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .sb-verify__boxes {
+    gap: 6px;
+  }
+
+  .sb-verify__box {
+    width: 34px;
+    height: 44px;
+    font-size: 18px;
+  }
+}
