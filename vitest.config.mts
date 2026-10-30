@@ -11,6 +11,8 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
+    // Required by src/lib/env.ts; tests never reach the real site.
+    env: { NEXT_PUBLIC_SITE_URL: "https://shop.example" },
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
