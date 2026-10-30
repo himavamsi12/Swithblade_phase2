@@ -64,10 +64,22 @@ export async function sendOrderToShiprocket(orderId: number): Promise<void> {
       console.error(`Shiprocket: order ${orderId} not sent:`, shiprocket.error);
     }
 
+    // Re-read: the email and staff-alert results are written to the same
+    // field, possibly while Shiprocket was answering.
+    const fresh = await payload.findByID({
+      collection: "orders",
+      id: orderId,
+      depth: 0,
+      select: { metadata: true },
+    });
+    const freshMeta =
+      fresh.metadata && typeof fresh.metadata === "object"
+        ? (fresh.metadata as Record<string, unknown>)
+        : {};
     await payload.update({
       collection: "orders",
       id: orderId,
-      data: { metadata: { ...metadata, shiprocket } },
+      data: { metadata: { ...freshMeta, shiprocket } },
       depth: 0,
     });
   } catch (error) {

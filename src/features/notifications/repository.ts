@@ -107,6 +107,7 @@ export async function notifyOrderPlaced(orderId: number): Promise<void> {
       fresh.metadata && typeof fresh.metadata === "object"
         ? (fresh.metadata as Record<string, unknown>)
         : {};
+    const freshNotifications = (freshMeta.notifications ?? {}) as Notifications;
     await payload.update({
       collection: "orders",
       id: orderId,
@@ -114,8 +115,8 @@ export async function notifyOrderPlaced(orderId: number): Promise<void> {
         metadata: {
           ...freshMeta,
           notifications: {
-            ...((freshMeta.notifications ?? {}) as Notifications),
-            orderPlaced: { ...notifications.orderPlaced, email },
+            ...freshNotifications,
+            orderPlaced: { ...freshNotifications.orderPlaced, email },
           },
         },
       },
