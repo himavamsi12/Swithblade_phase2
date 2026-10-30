@@ -9,6 +9,7 @@ import type { CartLine } from "@/features/cart/types";
 import { PAYMENT_WINDOW_SECONDS } from "@/features/stock/hold";
 import { createCheckout, verifyPayment } from "../actions";
 import type { DeliveryAddressInput } from "../address";
+import { PendingLabel } from "@/components/ui/spinner";
 
 type AddressField = keyof DeliveryAddressInput;
 
@@ -301,11 +302,13 @@ export function CheckoutButton({
         aria-busy={pending}
         className={className}
       >
-        {pending
-          ? confirming
-            ? "Confirming your payment…"
-            : "Opening checkout…"
-          : "Proceed to Checkout"}
+        {pending ? (
+          <PendingLabel>
+            {confirming ? "Confirming your payment…" : "Opening checkout…"}
+          </PendingLabel>
+        ) : (
+          "Proceed to Checkout"
+        )}
       </button>
       {pending && confirming && (
         <p role="status" className="mt-2 text-body-3 text-muted">

@@ -17,6 +17,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "./styles";
+import { PendingLabel } from "@/components/ui/spinner";
 
 export type Profile = {
   /** Null for shoppers who signed up with their phone number. */
@@ -194,7 +195,7 @@ function ProfileForm({
       </div>
       <div className="mt-3 flex items-center gap-3">
         <button type="submit" disabled={pending} className={primaryButton}>
-          {pending ? "Saving…" : "Save"}
+          {pending ? <PendingLabel>Saving…</PendingLabel> : "Save"}
         </button>
         <button type="button" onClick={onDone} className={secondaryButton}>
           Cancel

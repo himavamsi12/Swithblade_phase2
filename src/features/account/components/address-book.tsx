@@ -20,6 +20,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "./styles";
+import { PendingLabel, Spinner } from "@/components/ui/spinner";
 
 export type SavedAddress = {
   id: number;
@@ -156,7 +157,11 @@ function AddressCard({
           aria-label={`Delete address for ${name}`}
           className={cn("text-red-600 hover:opacity-60", focusRing)}
         >
-          <Trash2 size={17} strokeWidth={1.5} aria-hidden />
+          {pending ? (
+            <Spinner size={17} />
+          ) : (
+            <Trash2 size={17} strokeWidth={1.5} aria-hidden />
+          )}
         </button>
       </div>
     </article>
@@ -306,7 +311,7 @@ function AddressForm({
 
       <div className="mt-2 flex items-center gap-3">
         <button type="submit" disabled={pending} className={primaryButton}>
-          {pending ? "Saving…" : "Save address"}
+          {pending ? <PendingLabel>Saving…</PendingLabel> : "Save address"}
         </button>
         <button type="button" onClick={onDone} className={secondaryButton}>
           Cancel

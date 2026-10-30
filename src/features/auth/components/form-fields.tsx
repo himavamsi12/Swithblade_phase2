@@ -5,6 +5,7 @@ import { useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { AuthFormState } from "../schema";
 import { fieldClass, focusRing } from "./styles";
+import { PendingLabel } from "@/components/ui/spinner";
 
 /* Shared building blocks for the login, forgot and reset password forms. */
 
@@ -112,7 +113,7 @@ export function PrimaryButton({
         className,
       )}
     >
-      {pending ? pendingLabel : children}
+      {pending ? <PendingLabel>{pendingLabel}</PendingLabel> : children}
     </button>
   );
 }

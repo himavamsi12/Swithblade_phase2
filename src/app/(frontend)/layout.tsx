@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { SmoothScroll } from "@/components/layout/smooth-scroll";
 import { siteConfig } from "@/config/site";
 import { archivo } from "@/lib/fonts";
@@ -29,6 +30,7 @@ export default function FrontendLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${archivo.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <SmoothScroll />
+        <NavigationProgress />
         {children}
       </body>
     </html>

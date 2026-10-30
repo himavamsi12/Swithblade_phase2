@@ -7,6 +7,7 @@ import { useFormStatus } from "react-dom";
 import { signOut } from "@/features/auth/actions";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
+import { PendingLabel } from "@/components/ui/spinner";
 
 // Return history is reached from each order card, so it lives under the
 // Order history tab rather than having a tab of its own.
@@ -70,7 +71,7 @@ function SignOutButton({ className }: { className: string }) {
         focusRing,
       )}
     >
-      {pending ? "Signing out…" : "Signout"}
+      {pending ? <PendingLabel>Signing out…</PendingLabel> : "Signout"}
     </button>
   );
 }
