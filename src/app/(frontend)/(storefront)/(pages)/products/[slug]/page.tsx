@@ -112,7 +112,9 @@ export default async function ProductPage({
                   </>
                 }
               >
-                <p className="pb-4 text-body-3 text-muted">{item.body}</p>
+                <p className="pb-4 text-body-3 whitespace-pre-line text-muted">
+                  {item.body}
+                </p>
               </Disclosure>
             ))}
           </div>
