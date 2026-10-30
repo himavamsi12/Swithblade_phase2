@@ -53,16 +53,14 @@ src/payload/scripts/seed-test-product.ts`.
 
 ## Products
 
-- [ ] **2JZ Archival T-Shirt photos on the live site.** The product (draft,
+- [ ] **2JZ Archival T-Shirt photos on the live site.** The product (published in New Arrivals,
       ₹1,999, Red/Blue × S–2XL, 10 each) was added from `2JZ T-Shirt.docx`,
       but its 5 photos were uploaded to local `./media`, so the live admin
-      and shop can't show them. Set the `S3_*` vars in `.env.local` (same
+      and shop show it without photos. Set the `S3_*` vars in `.env.local` (same
       values as Vercel), then run
       `pnpm payload run src/payload/scripts/seed-2jz-tee.ts photos` (swaps
       in fresh uploads). Or re-upload `public/images/products/2jz-archival-tee/*`
       in the live admin.
-- [ ] **Publish the 2JZ Archival T-Shirt** in `/admin` once checked. Set its
-      Collection (New arrivals / Recommended) if it should show on the home
-      shelves.
+- [x] **Publish the 2JZ Archival T-Shirt** in the New Arrivals collection.
 - [ ] Optional: higher-resolution photos. The doc's are ~380×480 px, which
       look soft on large screens.
