@@ -47,11 +47,7 @@ export function ColorPicker({
             onClick={() => onChange(i)}
             className={cn(
               "relative flex items-center justify-center overflow-hidden border bg-card",
-              compact
-                ? "size-9"
-                : photos
-                  ? "size-20 md:size-[108px]"
-                  : "size-11",
+              compact ? "size-9" : photos ? "size-14" : "size-11",
               i === value ? "border-black" : "border-transparent",
               focusRing,
             )}
@@ -61,7 +57,7 @@ export function ColorPicker({
                 src={color.image}
                 alt=""
                 fill
-                sizes={compact ? "36px" : "108px"}
+                sizes={compact ? "36px" : "56px"}
                 className="object-contain p-1"
               />
             ) : (
@@ -69,7 +65,7 @@ export function ColorPicker({
                 aria-hidden
                 className={cn(
                   "rounded-t-sm",
-                  compact ? "h-5 w-4" : photos ? "h-10 w-8" : "h-6 w-5",
+                  compact ? "h-5 w-4" : photos ? "h-7 w-6" : "h-6 w-5",
                 )}
                 style={{ backgroundColor: color.swatch }}
               />
