@@ -207,7 +207,9 @@ export async function Dashboard({ initPageResult }: AdminViewServerProps) {
           <Link
             key={s.label}
             href={to(s.href)}
-            className={`sb-card sb-stat${s.warn ? "sb-stat--warn" : ""}`}
+            className={["sb-card sb-stat", s.warn && "sb-stat--warn"]
+              .filter(Boolean)
+              .join(" ")}
           >
             <span className="sb-stat__label">{s.label}</span>
             <span className="sb-stat__value">{s.value}</span>
