@@ -36,10 +36,19 @@ export function razorpayConfig(): RazorpayConfig | null {
   return keyId && keySecret ? { keyId, keySecret } : null;
 }
 
+const RAZORPAY_TIMEOUT_MS = 15_000;
+
 let client: Razorpay | undefined;
 
 export function razorpayClient({ keyId, keySecret }: RazorpayConfig) {
-  client ??= new Razorpay({ key_id: keyId, key_secret: keySecret });
+  if (!client) {
+    client = new Razorpay({ key_id: keyId, key_secret: keySecret });
+    // The SDK sets no timeout, so a stalled Razorpay call would hold the
+    // shopper's checkout (and its database work) until the function dies.
+    (
+      client as unknown as { api: { rq: { defaults: { timeout: number } } } }
+    ).api.rq.defaults.timeout = RAZORPAY_TIMEOUT_MS;
+  }
   return client;
 }
 

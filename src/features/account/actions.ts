@@ -115,19 +115,23 @@ export async function deleteAddress(addressId: number): Promise<FormState> {
   const session = await getSignedInCustomer();
   if (!session) return SIGNED_OUT;
 
-  const payload = await getPayloadClient();
-  // Only delete if this address belongs to the signed-in customer.
-  const { docs } = await payload.delete({
-    collection: "addresses",
-    where: {
-      and: [
-        { id: { equals: addressId } },
-        { customer: { equals: session.customer.id } },
-      ],
-    },
-    depth: 0,
-  });
-  if (docs.length === 0) return FAILED;
+  try {
+    const payload = await getPayloadClient();
+    // Only delete if this address belongs to the signed-in customer.
+    const { docs } = await payload.delete({
+      collection: "addresses",
+      where: {
+        and: [
+          { id: { equals: addressId } },
+          { customer: { equals: session.customer.id } },
+        ],
+      },
+      depth: 0,
+    });
+    if (docs.length === 0) return FAILED;
+  } catch {
+    return FAILED;
+  }
   revalidatePath("/account");
   return { status: "success" };
 }

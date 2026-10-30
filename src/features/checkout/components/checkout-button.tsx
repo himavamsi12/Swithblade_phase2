@@ -141,6 +141,9 @@ export function CheckoutButton({
     startTransition(async () => {
       try {
         await openCheckout();
+      } catch {
+        // The request itself failed (network, a busy server, a new deploy).
+        fail("Couldn't start checkout. Please try again.");
       } finally {
         starting.current = false;
       }
@@ -203,7 +206,15 @@ export function CheckoutButton({
             orderId: response.razorpay_order_id,
             paymentId: response.razorpay_payment_id,
             signature: response.razorpay_signature,
-          });
+          }).catch(() => null);
+          // Paid, but this confirmation didn't get through: Razorpay's
+          // webhook (or the safety-net job) still records the order.
+          if (!result) {
+            cartActions.clear();
+            return fail(
+              "Payment received. We're confirming your order and will email you shortly. Please don't pay again.",
+            );
+          }
           if (result.status === "error") return fail(result.message);
           onPaid(result.orderNumber);
           cartActions.clear();

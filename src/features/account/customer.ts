@@ -32,14 +32,26 @@ export const getSignedInCustomer = cache(async () => {
   // The database trigger normally creates this row at sign-up; recover if not.
   if (!customer && !user.email && user.phone) {
     // Phone-only account: nothing to match on, so link by Supabase user id.
-    customer = await payload.create({
-      collection: "customers",
-      data: {
-        phone: storedPhone(user.phone),
-        supabase: { userId: user.id, provider: "phone" },
-      },
-      depth: 0,
-    });
+    customer = await payload
+      .create({
+        collection: "customers",
+        data: {
+          phone: storedPhone(user.phone),
+          supabase: { userId: user.id, provider: "phone" },
+        },
+        depth: 0,
+      })
+      // Two first requests at once: the unique user id kept the other's row.
+      .catch(async (error: unknown) => {
+        const raced = await payload.find({
+          collection: "customers",
+          where: { "supabase.userId": { equals: user.id } },
+          limit: 1,
+          depth: 0,
+        });
+        if (raced.docs[0]) return raced.docs[0];
+        throw error;
+      });
   }
   if (!customer && user.email) {
     const byEmail = await payload.find({
