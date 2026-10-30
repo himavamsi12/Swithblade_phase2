@@ -118,6 +118,8 @@ export function CheckoutButton({
   // Blocks a second tap before `pending` has re-rendered the button disabled.
   const starting = useRef(false);
   const [error, setError] = useState<string | null>(null);
+  // Paid; the order is being saved before the thank-you page shows.
+  const [confirming, setConfirming] = useState(false);
   // The bag (and this form) only renders in the browser, after the cart loads.
   const [address, setAddress] = useState(() => {
     const saved = loadAddress();
@@ -135,6 +137,7 @@ export function CheckoutButton({
     event.preventDefault();
     if (starting.current) return;
     starting.current = true;
+    setConfirming(false);
     setError(null);
     setFieldErrors({});
     saveAddress(address);
@@ -201,6 +204,7 @@ export function CheckoutButton({
       handler: (response: RazorpaySuccess) => {
         paid = true;
         failed = false;
+        setConfirming(true);
         startTransition(async () => {
           const result = await verifyPayment({
             orderId: response.razorpay_order_id,
@@ -297,8 +301,18 @@ export function CheckoutButton({
         aria-busy={pending}
         className={className}
       >
-        {pending ? "Opening checkout…" : "Proceed to Checkout"}
+        {pending
+          ? confirming
+            ? "Confirming your payment…"
+            : "Opening checkout…"
+          : "Proceed to Checkout"}
       </button>
+      {pending && confirming && (
+        <p role="status" className="mt-2 text-body-3 text-muted">
+          Payment received. Saving your order, please don&apos;t close this
+          page.
+        </p>
+      )}
       {error && (
         <p role="alert" className="mt-2 text-body-3 text-red-600">
           {error}

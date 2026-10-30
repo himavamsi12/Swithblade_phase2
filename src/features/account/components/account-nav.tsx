@@ -3,6 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useFormStatus } from "react-dom";
 import { signOut } from "@/features/auth/actions";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
@@ -50,17 +51,26 @@ export function AccountNav() {
         );
       })}
       <form action={signOut} className="shrink-0">
-        <button
-          type="submit"
-          className={cn(
-            item,
-            "border-b-2 border-transparent text-red-600 hover:opacity-70",
-            focusRing,
-          )}
-        >
-          Signout
-        </button>
+        <SignOutButton className={item} />
       </form>
     </nav>
+  );
+}
+
+/** Shows the sign-out is under way, since it waits on the server. */
+function SignOutButton({ className }: { className: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={cn(
+        className,
+        "border-b-2 border-transparent text-red-600 hover:opacity-70 disabled:opacity-60",
+        focusRing,
+      )}
+    >
+      {pending ? "Signing out…" : "Signout"}
+    </button>
   );
 }
