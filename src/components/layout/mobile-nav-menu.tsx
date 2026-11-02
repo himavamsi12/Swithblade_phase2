@@ -170,33 +170,40 @@ export function MobileNavMenu({
                     {categories.label}
                     <span
                       aria-hidden="true"
-                      className={`ml-4 inline-block h-2 w-2 rotate-45 border-r border-b transition-transform duration-200 motion-reduce:transition-none ${
+                      className={`ml-4 inline-block h-2 w-2 rotate-45 border-r border-b transition-transform duration-300 motion-reduce:transition-none ${
                         categoriesOpen ? "-translate-y-0.5 rotate-[225deg]" : ""
                       }`}
                     />
                   </button>
 
+                  {/* Rows 0fr → 1fr animates to the list's natural height. */}
                   <div
                     id="mobile-category-links"
-                    hidden={!categoriesOpen}
-                    className="pb-5"
+                    inert={!categoriesOpen}
+                    className={`grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+                      categoriesOpen
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0"
+                    }`}
                   >
-                    <ul className="flex flex-col border-t border-black/10 pl-3 [&>li:last-child>a]:border-b-0">
-                      {categories.items.map((category) => (
-                        <li key={category.label}>
-                          <Link
-                            href={category.href}
-                            onClick={closeMenu}
-                            aria-current={
-                              pathname === category.href ? "page" : undefined
-                            }
-                            className="block border-b border-black/10 py-3 text-xs tracking-[0.1em] uppercase"
-                          >
-                            {category.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="min-h-0 overflow-hidden">
+                      <ul className="mb-5 flex flex-col border-t border-black/10 pl-3 [&>li:last-child>a]:border-b-0">
+                        {categories.items.map((category) => (
+                          <li key={category.label}>
+                            <Link
+                              href={category.href}
+                              onClick={closeMenu}
+                              aria-current={
+                                pathname === category.href ? "page" : undefined
+                              }
+                              className="block border-b border-black/10 py-3 text-xs tracking-[0.1em] uppercase"
+                            >
+                              {category.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </li>
               )}
@@ -291,7 +298,7 @@ export function MobileNavMenu({
                 <form action={signOut}>
                   <button
                     type="submit"
-                    className="flex min-h-10 items-center gap-3 text-[11px] tracking-[0.14em]"
+                    className="flex min-h-10 items-center gap-3 text-[11px] tracking-[0.14em] text-red-600"
                   >
                     <LogOut size={16} aria-hidden="true" />
                     SIGN OUT
