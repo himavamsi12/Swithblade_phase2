@@ -35,7 +35,7 @@ export function WishlistCard({ item }: { item: WishlistItem }) {
 
   return (
     <article className="flex flex-col" aria-label={item.name}>
-      <div className="relative aspect-[297/348] overflow-hidden bg-card">
+      <div className="relative aspect-[329/318] overflow-hidden bg-card md:aspect-[297/348]">
         <Link href={href} className={cn("absolute inset-0", focusRing)}>
           {item.image && (
             <span
@@ -54,7 +54,7 @@ export function WishlistCard({ item }: { item: WishlistItem }) {
                 src={item.image}
                 alt={item.name}
                 fill
-                sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, calc(100vw - 2rem)"
                 className="object-cover"
               />
             </span>

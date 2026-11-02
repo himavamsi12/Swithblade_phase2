@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Image from "next/image";
 import {
   useRef,
@@ -38,14 +38,15 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
   const cursorRef = useRef<HTMLSpanElement>(null);
   const [hoverSide, setHoverSide] = useState<"prev" | "next" | null>(null);
 
+  const count = images.length;
+  const currentIndex = Math.max(0, Math.min(index, count - 1));
+
   // Next slides photos downwards, previous upwards.
   const slideStyle = {
-    "--lightbox-dir": outgoing !== null && outgoing > index ? -1 : 1,
+    "--lightbox-dir": outgoing !== null && outgoing > currentIndex ? -1 : 1,
   } as React.CSSProperties;
-
-  const count = images.length;
-  const hasPrev = index > 0;
-  const hasNext = index < count - 1;
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < count - 1;
   const alt = (i: number) => `${name}, photo ${i + 1} of ${count}`;
 
   const open = (i: number) => {
@@ -56,11 +57,11 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
   };
   const close = () => dialogRef.current?.close();
   const show = (i: number) => {
-    if (i === index || i < 0 || i >= count) return;
-    setOutgoing(index);
+    if (i === currentIndex || i < 0 || i >= count) return;
+    setOutgoing(currentIndex);
     setIndex(i);
   };
-  const go = (delta: number) => show(index + delta);
+  const go = (delta: number) => show(currentIndex + delta);
 
   // The "[ PREV ]" / "[ NEXT ]" label follows the mouse. Its position is
   // written straight to the DOM so moving the mouse never re-renders.
@@ -97,7 +98,129 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
 
   return (
     <>
-      <ul className="grid grid-cols-2 gap-2.5">
+      <div className="md:hidden">
+        <div
+          className="relative aspect-[0.593] overflow-hidden bg-[#f2f2f2]"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          <Image
+            src={images[currentIndex]!}
+            alt={alt(currentIndex)}
+            fill
+            sizes="(min-width: 768px) 35vw, calc(100vw - 2rem)"
+            priority
+            className="object-contain"
+          />
+
+          {count > 1 && (
+            <>
+              <div className="absolute inset-x-0 bottom-[88px] flex justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => go(-1)}
+                  disabled={!hasPrev}
+                  aria-label="Previous photo"
+                  className={cn(
+                    "flex size-14 items-center justify-center rounded-full bg-white text-black disabled:opacity-45",
+                    focusRing,
+                  )}
+                >
+                  <ChevronLeft size={22} strokeWidth={1.5} aria-hidden />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => go(1)}
+                  disabled={!hasNext}
+                  aria-label="Next photo"
+                  className={cn(
+                    "flex size-14 items-center justify-center rounded-full bg-white text-black disabled:opacity-45",
+                    focusRing,
+                  )}
+                >
+                  <ChevronRight size={22} strokeWidth={1.5} aria-hidden />
+                </button>
+              </div>
+              <ul
+                className="absolute inset-x-0 bottom-[42px] flex items-center justify-center gap-2"
+                aria-label="Product image pagination"
+              >
+                {images.map((src, i) => (
+                  <li key={`${src}-${i}`}>
+                    <button
+                      type="button"
+                      onClick={() => show(i)}
+                      aria-label={`Show photo ${i + 1}`}
+                      aria-current={i === currentIndex}
+                      className={cn(
+                        "block h-2 rounded-full bg-white transition-[width,opacity]",
+                        i === currentIndex
+                          ? "w-7 opacity-100"
+                          : "size-2 opacity-50",
+                        focusRing,
+                      )}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <p className="sr-only" aria-live="polite">
+                Photo {currentIndex + 1} of {count}
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          {images.slice(0, 4).map((src, i) => (
+            <button
+              key={`${src}-${i}`}
+              type="button"
+              onClick={() => show(i)}
+              aria-label={`Show photo ${i + 1}`}
+              aria-current={i === currentIndex}
+              className={cn(
+                "relative aspect-[4/5] min-w-0 flex-1 overflow-hidden bg-card",
+                focusRing,
+              )}
+            >
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes="20vw"
+                className={cn(
+                  "object-cover",
+                  i !== currentIndex && "opacity-70",
+                )}
+              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-0",
+                  i === currentIndex
+                    ? "border-2 border-black"
+                    : "border border-stroke",
+                )}
+              />
+            </button>
+          ))}
+          {count > 4 && (
+            <button
+              type="button"
+              onClick={() => show(4)}
+              aria-label={`Show ${count - 4} more photos`}
+              className={cn(
+                "shrink-0 text-base font-medium uppercase",
+                focusRing,
+              )}
+            >
+              +{count - 4} MORE
+            </button>
+          )}
+        </div>
+      </div>
+
+      <ul className="hidden grid-cols-2 gap-2.5 md:grid">
         {images.map((src, i) => (
           <li key={src} className="bg-card">
             <button
@@ -136,7 +259,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
             {/* Photo change: the new photo slides into view while the old one
                 slides out, downwards for next and upwards for previous. */}
             <div
-              key={`in-${index}`}
+              key={`in-${currentIndex}`}
               style={slideStyle}
               className={cn(
                 "absolute inset-0",
@@ -144,8 +267,8 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
               )}
             >
               <Image
-                src={images[index]!}
-                alt={alt(index)}
+                src={images[currentIndex]!}
+                alt={alt(currentIndex)}
                 fill
                 sizes="100vw"
                 quality={90}
@@ -154,7 +277,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
             </div>
             {outgoing !== null && (
               <div
-                key={`out-${outgoing}-${index}`}
+                key={`out-${outgoing}-${currentIndex}`}
                 aria-hidden
                 style={slideStyle}
                 className="absolute inset-0 animate-lightbox-out"
@@ -171,7 +294,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
               </div>
             )}
             {/* Warm the neighbours so the next slide never starts blank. */}
-            {[index - 1, index + 1]
+            {[currentIndex - 1, currentIndex + 1]
               .filter((i) => i >= 0 && i < count)
               .map((i) => (
                 <Image
@@ -218,7 +341,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
             </span>
 
             <p className="sr-only" aria-live="polite">
-              Photo {index + 1} of {count}
+              Photo {currentIndex + 1} of {count}
             </p>
 
             <button
@@ -268,10 +391,10 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                       type="button"
                       onClick={() => show(i)}
                       aria-label={`Show photo ${i + 1}`}
-                      aria-current={i === index}
+                      aria-current={i === currentIndex}
                       className={cn(
                         "relative block h-[52px] w-[42px] overflow-hidden bg-card md:h-[70px] md:w-14",
-                        i !== index && "opacity-70 hover:opacity-100",
+                        i !== currentIndex && "opacity-70 hover:opacity-100",
                         focusRing,
                       )}
                     >
@@ -287,7 +410,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                         aria-hidden
                         className={cn(
                           "absolute inset-0",
-                          i === index
+                          i === currentIndex
                             ? "border-2 border-black"
                             : "border border-stroke",
                         )}

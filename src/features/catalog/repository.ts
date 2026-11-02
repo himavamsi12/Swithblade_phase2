@@ -133,6 +133,33 @@ export async function listProductsByCategory(
   };
 }
 
+/** All products for client-side facets, loaded in bounded Payload pages. */
+export async function listAllProductsByCategory(
+  category: string,
+): Promise<{ items: Product[]; total: number }> {
+  const where = { "categories.handle": { equals: category } };
+  const pageSize = 1000;
+  const firstPage = await select({ where, limit: pageSize, page: 1 });
+
+  if (firstPage.total === 0) {
+    const items = placeholderCategory(category);
+    return { items, total: items.length };
+  }
+
+  const pageCount = Math.ceil(firstPage.total / pageSize);
+  const remaining = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_, index) =>
+      select({ where, limit: pageSize, page: index + 2 }),
+    ),
+  );
+  const items = [
+    ...firstPage.products,
+    ...remaining.flatMap((page) => page.products),
+  ];
+
+  return { items, total: firstPage.total };
+}
+
 /** Longest search term we pass to the database. */
 export const SEARCH_MAX_LENGTH = 80;
 

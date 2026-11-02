@@ -20,7 +20,7 @@ export function WishlistView() {
 
       {!ready ? (
         <div
-          className="mt-8 grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4"
+          className="mt-8 grid grid-cols-1 gap-y-12 md:grid-cols-3 md:gap-x-8 md:gap-y-10 lg:grid-cols-4"
           aria-hidden
         >
           {[0, 1].map((i) => (
@@ -34,9 +34,9 @@ export function WishlistView() {
           className="pt-16 md:pt-28"
         />
       ) : (
-        <ul className="mt-8 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4">
+        <ul className="mt-8 grid grid-cols-1 gap-y-12 md:grid-cols-3 md:gap-x-8 lg:grid-cols-4">
           {items.map((item) => (
-            <li key={item.productId}>
+            <li key={item.productId} className="min-w-0">
               <WishlistCard item={item} />
             </li>
           ))}

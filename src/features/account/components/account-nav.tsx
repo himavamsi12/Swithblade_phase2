@@ -4,6 +4,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useFormStatus } from "react-dom";
+import { siteConfig } from "@/config/site";
 import { signOut } from "@/features/auth/actions";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
@@ -51,7 +52,18 @@ export function AccountNav() {
           </Link>
         );
       })}
-      <form action={signOut} className="shrink-0">
+      <Link
+        href={siteConfig.wishlistHref}
+        aria-current={pathname === siteConfig.wishlistHref ? "page" : undefined}
+        className={cn(
+          item,
+          "shrink-0 border-b-2 border-transparent whitespace-nowrap text-muted hover:text-black md:hidden",
+          focusRing,
+        )}
+      >
+        Wishlist
+      </Link>
+      <form action={signOut} className="hidden shrink-0 md:block">
         <SignOutButton className={item} />
       </form>
     </nav>

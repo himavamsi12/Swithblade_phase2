@@ -15,12 +15,15 @@ type ProductCardProps = {
    * "listing": name and price on one line with the colour count below, for grids.
    */
   variant?: "shelf" | "listing";
+  /** Home-only compact card treatment in the mobile New Arrivals grid. */
+  mobileGrid?: boolean;
 };
 
 export function ProductCard({
   product,
   surface = "card",
   variant = "shelf",
+  mobileGrid = false,
 }: ProductCardProps) {
   const listing = variant === "listing";
   const price = (
@@ -39,11 +42,20 @@ export function ProductCard({
     !listing && product.inStock && (product.sizes.length === 0 || defaultSize);
 
   return (
-    <article className="group relative flex flex-col gap-4">
+    <article
+      className={cn(
+        "group relative flex flex-col gap-4",
+        mobileGrid && "gap-3",
+      )}
+    >
       <div
         className={cn(
           "relative overflow-hidden",
-          listing ? "aspect-[322/348]" : "aspect-[262.4/324]",
+          listing
+            ? "aspect-[322/348]"
+            : mobileGrid
+              ? "aspect-[175.31/250] md:aspect-[262.4/324]"
+              : "aspect-[262.4/324]",
           surface === "cream" ? "bg-cream" : "bg-card",
         )}
       >
@@ -99,7 +111,11 @@ export function ProductCard({
             }}
             // Above the card-wide link; shown on hover or keyboard focus, and
             // always on touch screens, which have no hover.
-            className="absolute right-3 bottom-3 z-10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:right-3.5 md:bottom-3.5 pointer-coarse:opacity-100"
+            className={cn(
+              "absolute right-3 bottom-3 z-10 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:right-3.5 md:bottom-3.5 pointer-coarse:opacity-100",
+              mobileGrid &&
+                "right-2 bottom-2 size-7 md:right-3.5 md:bottom-3.5 md:size-[52px]",
+            )}
           />
         )}
       </div>
