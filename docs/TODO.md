@@ -55,6 +55,108 @@ Tasks parked for later. Tick them off (`[x]`) when done.
 - [ ] **Delete the "Test Tee" test product** (and its variants and photos)
       in `/admin`.
 
+## Failure cases and security audit follow-ups
+
+From `docs/reference/Switchblade_ backend failure cases.pdf` and the source
+security audit (2 Nov 2026, unverified leads; evidence in
+`~/security-audit-skill/swithblade-phase2/run-1/`). `CRON_SECRET`, Upstash and
+the hourly safety net above are prerequisites for several of these.
+
+### Payments (most important)
+
+- [ ] **Capture inside the order lock.** `recordPayment` captures before the
+      advisory lock, so a second payment on the same order can be captured
+      and never recorded (no refund, no alert). Capture after the duplicate
+      re-check; a losing different payment should be refunded or flagged.
+- [ ] **Check the paid amount.** `recordPayment` never compares
+      `payment.amount` / currency with the Razorpay order; any shortfall is
+      saved as `discountTotal` and the order ships. Reject and alert staff
+      instead.
+- [ ] **Late payment after the hold expires.** The 12-minute window is only
+      a browser option; the server records old orders at the old price and
+      flags them oversold. Check the order's age / hold on the server, then
+      re-reserve if stock is left, else refund automatically and tell the
+      customer.
+- [ ] **Refunds in code.** No refund code exists; extra or oversold payments
+      are refunded by hand. Add an idempotent refund (keyed by order +
+      amount) with retries and a staff alert.
+
+### Checkout and stock
+
+- [ ] **Cap held quantity.** One checkout can hold 500 units of a product
+      (50 bag lines × 10 merged), and a guest gets a new holder per request,
+      so anyone can lock a product for 15 minutes, repeatedly. Cap the merged
+      quantity per product and the active holds per IP / shopper.
+- [ ] **Per-customer limit for drops** (max per SKU per order and per
+      customer).
+- [ ] **Turn off Payload guest carts.** `allowGuestCarts` defaults to true,
+      so anyone can create carts through `/api/carts`. Set
+      `carts: { allowGuestCarts: false, … }` in `src/payload.config.ts`.
+- [ ] **Rate-limit `/api/razorpay/shipping-info`** (public, up to 20
+      Shiprocket calls per request), or return 404 while Magic Checkout is
+      off.
+- [ ] **Shiprocket slow or down:** 5 s timeout and fall back to a cached or
+      standard answer instead of blocking checkout (now 8 s, then an error).
+- [ ] **Kill switch fails open** when the database read fails; decide
+      whether checkout should close instead.
+- [ ] **GST**: IGST vs CGST + SGST by shipping state, stored on the order.
+- [ ] Drop day: early "sold out" counter and a waiting room for big drops.
+
+### Accounts and sign-in
+
+- [ ] **Guest checkout writes into other accounts.** A guest who types an
+      existing customer's email gets the order, phone and address added to
+      that account. Only link orders to the signed-in customer; link guest
+      orders after the email is verified.
+- [ ] **Email linking on sign-up.** The `auth.users` trigger and the app's
+      email fallback link a customer row by email without checking it's
+      confirmed. Confirm Supabase "Confirm email" is on, and gate linking on
+      `email_confirmed_at`. Also check email/phone change and account
+      deletion (the trigger re-links by email).
+- [ ] **Redirect after login:** `safeNextPath` lets `/%09/evil.example`
+      through (tab/newline), which redirects off-site. Parse with `new URL`
+      and require the same origin; add tests.
+- [ ] **`/auth/confirm` login CSRF:** it signs any browser into the account
+      whose `token_hash` is in the link. Remove it (the app's emails use
+      `/auth/callback`) or restrict the `type` and bind it to the browser.
+- [ ] **Saved checkout address survives sign-out** (`sb:delivery-address` in
+      localStorage) and pre-fills for the next person. Clear it on sign-out
+      and prefer the signed-in account's email.
+- [ ] OTP: offer email login after two failed SMS codes; add Cloudflare
+      Turnstile against OTP bots.
+- [ ] Account deletion flow: block while orders are open, anonymise after.
+- [ ] Optional: sign out other sessions after a password change.
+
+### Bag and catalog
+
+- [ ] Re-check stock when the bag opens and cap quantity to what's in
+      stock, with a message on that line (now only at checkout).
+- [ ] Cap the guest + account bag merge at available stock.
+- [ ] Ask to confirm price drops over 50% in Payload, and keep an audit
+      log of price and stock edits.
+- [ ] Archive products instead of deleting them (staff can hard-delete
+      now).
+- [ ] MRP and required fields (size chart, images) before publishing.
+- [ ] 301 redirects for old product URLs.
+
+### Operations
+
+- [ ] **Stock ledger:** admins overwrite the stock number, which can wipe
+      out sales made at the same time. Use "+5 received" style adjustments.
+- [ ] Shipments: reconcile tracking status, "AWB but no pickup after 24 h",
+      RTO, lost parcels (all manual now; `deliveredAt` is typed by staff).
+- [ ] Returns and exchanges beyond the email request (pickup, QC, refund,
+      exchange chains).
+- [ ] Check SPF, DKIM and DMARC for the sending domain in DNS.
+- [ ] WhatsApp / SMS order messages (none yet; email only).
+- [ ] Daily money check: Razorpay settlements vs orders.
+- [ ] Playwright checkout test on previews; load test before a sale;
+      Vercel Firewall rules for bots and scraping.
+- [ ] Small hardening: `permissions: contents: read` in CI and pin actions
+      to SHAs; pin `images.remotePatterns` to this project's Supabase host;
+      validate `trackingUrl` (https) and swatch colours; reject colours a
+      product doesn't offer; validate `deleteAddress`'s id.
+
 ## Testing (Razorpay test mode)
 
 - [ ] One payment: order in `/admin`, stock down, hold shows "Sold".
