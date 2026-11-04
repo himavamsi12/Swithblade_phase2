@@ -144,13 +144,13 @@ export function SiteHeader({
             "col-start-3 row-start-1 flex items-center gap-2.5 justify-self-end md:order-none md:gap-5 md:justify-self-auto",
           )}
         >
+          <HeaderCurrency className={iconButton} />
           <HeaderSearch
             icon={
               <ToneImage tone={tone} asset="search" width={17} height={17} />
             }
             className={cn(iconButton, mobileHome && "md:flex")}
           />
-          <HeaderCurrency className={iconButton} />
           <Link
             href={siteConfig.wishlistHref}
             aria-label="Wishlist"
