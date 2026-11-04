@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import footerWordmark from "@/assets/icons/footer-wordmark.svg";
@@ -38,12 +39,25 @@ export function SiteFooter({ mobileHome = false }: { mobileHome?: boolean }) {
                 <ul className="flex flex-col gap-3 pb-4">
                   {section.links.map((link) => (
                     <li key={link.label}>
-                      <Link
-                        href={link.href}
-                        className="text-body-2 transition-opacity hover:opacity-70"
-                      >
-                        {link.label}
-                      </Link>
+                      {/^(https?:|mailto:)/.test(link.href) ? (
+                        <a
+                          href={link.href}
+                          {...(link.href.startsWith("http") && {
+                            target: "_blank",
+                            rel: "noopener noreferrer",
+                          })}
+                          className="text-body-2 transition-opacity hover:opacity-70"
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={link.href as Route}
+                          className="text-body-2 transition-opacity hover:opacity-70"
+                        >
+                          {link.label}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

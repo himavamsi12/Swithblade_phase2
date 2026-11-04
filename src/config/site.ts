@@ -1,6 +1,17 @@
 import type { Route } from "next";
 import { env } from "@/lib/env";
 
+/** The header's Categories menu, also listed in the footer's Shop section. */
+const categories = [
+  { label: "New arrivals", href: "/products" as Route },
+  { label: "Blazers", href: "/products" as Route },
+  { label: "Sweatshirts", href: "/products" as Route },
+  { label: "Tank tops", href: "/products" as Route },
+  { label: "Accessories", href: "/products" as Route },
+];
+
+const supportEmail = "support@switchblade.in";
+
 export const siteConfig = {
   name: "Swithblade",
   description: "Swithblade — precision blades and gear, shipped to your door.",
@@ -10,30 +21,25 @@ export const siteConfig = {
     // Opens a dropdown instead of linking anywhere.
     // TODO: only the Sweatshirts listing exists so far; point each at its own
     // category page once those routes do.
-    {
-      label: "Categories",
-      items: [
-        { label: "New arrivals", href: "/products" as Route },
-        { label: "Blazers", href: "/products" as Route },
-        { label: "Sweatshirts", href: "/products" as Route },
-        { label: "Tank tops", href: "/products" as Route },
-        { label: "Accessories", href: "/products" as Route },
-      ],
-    },
+    { label: "Categories", items: categories },
     { label: "Promises", href: "/promises" as const satisfies Route },
     { label: "Collaboration", href: "/collaboration" as const satisfies Route },
   ],
-  // Footer accordion. Empty sections are TBD from the client.
+  // Footer accordion. Links starting with "http" or "mailto:" leave the site.
   footerSections: [
     {
       title: "Shop",
+      links: [...categories, { label: "Cart", href: "/cart" as Route }],
+    },
+    {
+      title: "Discover",
       links: [
-        { label: "All products", href: "/products" as Route },
-        { label: "Cart", href: "/cart" as Route },
+        // The Phase 1 brand site.
+        { label: "Switchblade Story", href: "https://switchblade.in" },
+        { label: "Collaboration", href: "/collaboration" as Route },
+        { label: "Promises", href: "/promises" as Route },
       ],
     },
-    { title: "Discover", links: [] },
-    { title: "Connect with us", links: [] },
     {
       title: "Support",
       links: [
@@ -49,5 +55,5 @@ export const siteConfig = {
   searchSuggestions: ["T-shirts", "Sweatshirts", "Polos"],
   wishlistHref: "/wishlist" as const satisfies Route,
   accountHref: "/account" as const satisfies Route,
-  supportEmail: "support@switchblade.com",
+  supportEmail,
 } as const;

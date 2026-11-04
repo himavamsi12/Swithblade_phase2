@@ -1,14 +1,29 @@
 "use client";
 
-import { Check } from "lucide-react";
+import {
+  Check,
+  DollarSign,
+  Euro,
+  IndianRupee,
+  PoundSterling,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { currencies, currencyActions, useCurrencyPreference } from "../store";
 
+/** Line icons drawn like the header's other icons (1px stroke, 17px). */
+const icons: Partial<Record<string, LucideIcon>> = {
+  INR: IndianRupee,
+  USD: DollarSign,
+  EUR: Euro,
+  GBP: PoundSterling,
+};
+
 /**
  * Header currency switcher: the saved currency's symbol (₹ until one is
  * chosen), opening a small menu of display currencies beneath it. The symbol
- * is text in `currentColor`, so it follows the header's tone like the icons.
+ * is in `currentColor`, so it follows the header's tone like the icons.
  */
 export function HeaderCurrency({ className }: { className?: string }) {
   const code = useCurrencyPreference().currency ?? "INR";
@@ -46,11 +61,19 @@ export function HeaderCurrency({ className }: { className?: string }) {
         aria-controls={menuId}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "h-[17px] min-w-[17px] text-[18px] leading-none",
+          "h-[17px] min-w-[17px] text-[13px] leading-none font-light",
           className,
         )}
       >
-        {current.symbol}
+        {(() => {
+          const Icon = icons[current.code];
+          // No line icon for some currencies (e.g. AED): show the symbol.
+          return Icon ? (
+            <Icon size={17} strokeWidth={1} absoluteStrokeWidth aria-hidden />
+          ) : (
+            current.symbol
+          );
+        })()}
       </button>
 
       {/* Stays mounted so it can fade both ways; `inert` while closed. */}
