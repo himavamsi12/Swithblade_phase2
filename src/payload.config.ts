@@ -86,6 +86,8 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     theme: "light",
+    // Gravatar is blocked by the CSP's img-src (and would leak staff emails).
+    avatar: "default",
     importMap: { baseDir: dirname },
     meta: {
       titleSuffix: " · Switchblade Admin",

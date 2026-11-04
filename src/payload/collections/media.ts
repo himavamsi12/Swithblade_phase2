@@ -24,7 +24,12 @@ export const Media: CollectionConfig = {
       { name: "card", width: 700 },
       { name: "large", width: 1600 },
     ],
-    adminThumbnail: "thumbnail",
+    // Relative URL: the default stores an absolute one built from the host the
+    // file was uploaded on (localhost, for synced media), which breaks elsewhere.
+    adminThumbnail: ({ doc }) => {
+      const sizes = doc.sizes as { thumbnail?: { url?: string } } | undefined;
+      return sizes?.thumbnail?.url ?? (doc.url as string);
+    },
   },
   fields: [{ name: "alt", type: "text", required: true }],
 };
