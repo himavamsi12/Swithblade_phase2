@@ -256,7 +256,7 @@ function ReturnSteps({
                     }));
                   }}
                   className={cn(
-                    "h-11 w-full appearance-none border border-stroke bg-white pr-10 pl-3 text-body-3 aria-invalid:border-red-600",
+                    "h-11 w-full appearance-none border border-stroke bg-white pr-10 pl-3 text-body-3 aria-invalid:border-red-600 max-md:text-[16px]",
                     !reasonId && "text-muted",
                     focusRing,
                   )}
@@ -303,7 +303,7 @@ function ReturnSteps({
                   : "Tell us what went wrong..."
               }
               className={cn(
-                "w-full resize-none border border-stroke px-3 py-2.5 text-body-3 placeholder:text-muted aria-invalid:border-red-600",
+                "w-full resize-none border border-stroke px-3 py-2.5 text-body-3 placeholder:text-muted aria-invalid:border-red-600 max-md:text-[16px]",
                 focusRing,
               )}
             />
@@ -577,7 +577,7 @@ function ProductChoice({
           value={quantity}
           onChange={(e) => onChange(Number(e.target.value))}
           className={cn(
-            "h-9 border border-stroke bg-white px-2 text-body-3",
+            "h-9 border border-stroke bg-white px-2 text-body-3 max-md:text-[16px]",
             focusRing,
           )}
         >
@@ -686,7 +686,7 @@ function PhotoPicker({
                     )
                   }
                   className={cn(
-                    "h-10 w-full border border-stroke px-3 text-body-3 placeholder:text-muted aria-invalid:border-red-600",
+                    "h-10 w-full border border-stroke px-3 text-body-3 placeholder:text-muted aria-invalid:border-red-600 max-md:text-[16px]",
                     focusRing,
                   )}
                 />

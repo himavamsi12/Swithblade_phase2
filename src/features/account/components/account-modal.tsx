@@ -63,21 +63,25 @@ export const AccountModal = forwardRef<
   );
 });
 
-/** Footer buttons: an outlined one and a filled one, side by side. */
+/**
+ * Footer buttons: an outlined one and a filled one, side by side. It sticks to
+ * the bottom of the dialog, so the buttons stay in reach on a phone while the
+ * step above scrolls.
+ */
 export function ModalFooter({ children }: { children: ReactNode }) {
   return (
-    <footer className="grid grid-cols-[1fr_1.6fr] gap-3 border-t border-stroke px-6 py-5 sm:px-7">
+    <footer className="sticky bottom-0 grid grid-cols-[1fr_1.6fr] gap-3 border-t border-stroke bg-white px-6 py-4 sm:px-7 sm:py-5">
       {children}
     </footer>
   );
 }
 
 export const outlineButton = cn(
-  "h-11 border border-black bg-white text-body-4 font-semibold tracking-[0.04em] uppercase transition-colors hover:bg-black hover:text-white",
+  "min-h-11 border border-black bg-white px-3 py-2 text-body-4 leading-tight font-semibold tracking-[0.04em] uppercase transition-colors hover:bg-black hover:text-white",
   focusRing,
 );
 
 export const fillButton = cn(
-  "h-11 bg-primary text-body-4 font-semibold tracking-[0.04em] text-white uppercase transition-opacity hover:opacity-90 disabled:opacity-50",
+  "min-h-11 bg-primary px-3 py-2 text-body-4 leading-tight font-semibold tracking-[0.04em] text-white uppercase transition-opacity hover:opacity-90 disabled:opacity-50",
   focusRing,
 );

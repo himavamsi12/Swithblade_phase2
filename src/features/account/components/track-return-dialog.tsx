@@ -63,7 +63,7 @@ export const TrackReturnDialog = forwardRef<
           showNumber={order.returns.length > 1}
         />
       ))}
-      <footer className="border-t border-stroke px-6 py-5 sm:px-7">
+      <footer className="sticky bottom-0 border-t border-stroke bg-white px-6 py-4 sm:px-7 sm:py-5">
         <button
           type="button"
           onClick={(e) => e.currentTarget.closest("dialog")?.close()}
