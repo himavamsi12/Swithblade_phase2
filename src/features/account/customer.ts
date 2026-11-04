@@ -5,6 +5,7 @@ import { cache } from "react";
 import { orderNumber } from "@/features/notifications/order-confirmation-email";
 import { getCurrentUser } from "@/lib/supabase-server";
 import { canRequestReturn } from "./return-request";
+import type { TrackingDates } from "./tracking";
 
 /*
  * Server-side access to the signed-in shopper's own Payload records. Payload's
@@ -113,6 +114,11 @@ export type OrderView = {
   currency: string | null;
   status: OrderStatusKey;
   trackingUrl: string | null;
+  /** For the Track order drawer. */
+  tracking: TrackingDates & {
+    carrier: string | null;
+    trackingNumber: string | null;
+  };
   /** Delivered and still inside the return window. */
   returnable: boolean;
   items: {
@@ -125,6 +131,15 @@ export type OrderView = {
     productSlug: string | null;
   }[];
 };
+
+/** When Shiprocket last reported the parcel out for delivery, if ever. */
+function outForDeliveryAt(metadata: unknown): string | null {
+  const tracking = (metadata as { shiprocket?: { tracking?: unknown } } | null)
+    ?.shiprocket?.tracking as { outForDeliveryAt?: unknown } | undefined;
+  return typeof tracking?.outForDeliveryAt === "string"
+    ? tracking.outForDeliveryAt
+    : null;
+}
 
 export type OrderStatusKey =
   "processing" | "packed" | "shipped" | "delivered" | "returned" | "cancelled";
@@ -173,6 +188,7 @@ export async function listCustomerOrders(
       lineItems: true,
       items: true,
       fulfillments: true,
+      metadata: true,
     },
   });
 
@@ -200,13 +216,16 @@ export async function listCustomerOrders(
         productSlug: product?.handle ?? null,
       };
     });
-    const tracking = (o.fulfillments ?? []).find((f) => f.trackingUrl);
-    const deliveredAt =
-      (o.fulfillments ?? [])
-        .map((f) => f.deliveredAt)
+    const fulfillments = o.fulfillments ?? [];
+    const tracking = fulfillments.find((f) => f.trackingUrl);
+    const latest = (dates: (string | null | undefined)[]) =>
+      dates
         .filter((d): d is string => Boolean(d))
         .sort()
         .at(-1) ?? null;
+    const deliveredAt = latest(fulfillments.map((f) => f.deliveredAt));
+    const shippedAt = latest(fulfillments.map((f) => f.shippedAt));
+    const courier = fulfillments.find((f) => f.trackingNumber || f.carrier);
     const status = statusOf(o);
 
     return {
@@ -218,6 +237,14 @@ export async function listCustomerOrders(
       currency: o.currency ?? null,
       status,
       trackingUrl: tracking?.trackingUrl ?? null,
+      tracking: {
+        placedAt: o.createdAt,
+        shippedAt,
+        outForDeliveryAt: outForDeliveryAt(o.metadata),
+        deliveredAt,
+        carrier: courier?.carrier ?? null,
+        trackingNumber: courier?.trackingNumber ?? null,
+      },
       returnable: canRequestReturn(status, deliveredAt, now),
       items: snapshot.length > 0 ? snapshot : fromRelations,
     };

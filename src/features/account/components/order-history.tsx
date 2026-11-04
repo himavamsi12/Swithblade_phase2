@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Collapse } from "@/components/ui/disclosure";
 import { siteConfig } from "@/config/site";
 import { formatPrice } from "@/lib/format";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import type { OrderStatusKey, OrderView } from "../customer";
 import { returnRequestHref } from "../return-request";
 import { focusRing } from "./styles";
+import { TrackOrderDrawer } from "./track-order-drawer";
 
 const statusStyles: Record<
   OrderStatusKey,
@@ -55,6 +56,8 @@ function OrderCard({
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const [tracking, setTracking] = useState(false);
+  const trackDialog = useRef<HTMLDialogElement>(null);
   const panelId = useId();
   const status = statusStyles[order.status];
 
@@ -168,50 +171,48 @@ function OrderCard({
             </li>
           ))}
         </ul>
-        <div className="flex items-center justify-between gap-4 border-t border-stroke bg-[#fafafa] px-5 py-3">
-          {order.trackingUrl ? (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-stroke bg-[#fafafa] px-5 py-3">
+          <button
+            type="button"
+            onClick={() => {
+              setTracking(true);
+              trackDialog.current?.showModal();
+            }}
+            className={cn(
+              "text-body-4 font-semibold uppercase underline underline-offset-2",
+              focusRing,
+            )}
+          >
+            Track order
+          </button>
+          {order.returnable && (
             <a
-              href={order.trackingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={returnRequestHref(siteConfig.supportEmail, order)}
               className={cn(
                 "text-body-4 font-semibold uppercase underline underline-offset-2",
                 focusRing,
               )}
             >
-              Track order
+              Request return
             </a>
-          ) : order.status === "processing" || order.status === "packed" ? (
-            <span className="text-body-4 text-muted uppercase">
-              Tracking available once shipped
-            </span>
-          ) : (
-            <span />
           )}
-          <div className="flex items-center gap-5">
-            {order.returnable && (
-              <a
-                href={returnRequestHref(siteConfig.supportEmail, order)}
-                className={cn(
-                  "text-body-4 font-semibold uppercase underline underline-offset-2",
-                  focusRing,
-                )}
-              >
-                Request return
-              </a>
+          <Link
+            href="/account/returns"
+            className={cn(
+              "text-body-4 text-dark-grey uppercase underline underline-offset-2 hover:text-black",
+              focusRing,
             )}
-            <Link
-              href="/account/returns"
-              className={cn(
-                "text-body-4 text-dark-grey uppercase underline underline-offset-2 hover:text-black",
-                focusRing,
-              )}
-            >
-              Return history
-            </Link>
-          </div>
+          >
+            Return history
+          </Link>
         </div>
       </Collapse>
+      <TrackOrderDrawer
+        ref={trackDialog}
+        order={order}
+        open={tracking}
+        onClose={() => setTracking(false)}
+      />
     </article>
   );
 }

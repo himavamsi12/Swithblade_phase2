@@ -1,4 +1,5 @@
 import "server-only";
+import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { cacheDelete, cacheGet, cacheSet } from "@/lib/redis";
 import type { ShiprocketOrder } from "./shiprocket-order";
@@ -14,6 +15,11 @@ const schema = z.object({
   SHIPROCKET_PASSWORD: z.string().min(1).optional(),
   /** Pickup address nickname from Settings → Pickup Addresses. */
   SHIPROCKET_PICKUP_LOCATION: z.string().min(1).optional(),
+  /**
+   * The security token set on the tracking webhook (Settings → API →
+   * Webhooks); Shiprocket sends it as `x-api-key`. Unset: updates refused.
+   */
+  SHIPROCKET_WEBHOOK_TOKEN: z.string().min(16).optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -26,7 +32,16 @@ const {
   SHIPROCKET_EMAIL: email,
   SHIPROCKET_PASSWORD: password,
   SHIPROCKET_PICKUP_LOCATION: pickupLocation,
+  SHIPROCKET_WEBHOOK_TOKEN: webhookToken,
 } = parsed.data;
+
+/** Whether a tracking webhook call carries our token. */
+export function isValidTrackingToken(value: string | null): boolean {
+  if (!webhookToken || !value) return false;
+  const a = Buffer.from(value);
+  const b = Buffer.from(webhookToken);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 const BASE = "https://apiv2.shiprocket.in/v1/external";
 /** Tokens last 10 days; refresh a day early. */
