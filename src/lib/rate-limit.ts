@@ -17,6 +17,8 @@ const LIMITS = {
   otpVerify: [10, "10 m"],
   /** Razorpay orders: each one is an API call and a serviceability check. */
   checkout: [15, "10 m"],
+  /** Coupon checks on the bag: slows guessing codes. */
+  coupon: [20, "10 m"],
   /** Saved-bag writes: one per bag edit, so generous. */
   bagSave: [120, "10 m"],
 } as const satisfies Record<string, readonly [number, Duration]>;

@@ -100,12 +100,18 @@ function loadScript(src: string): Promise<void> {
  */
 export function CheckoutButton({
   lines,
+  couponCode,
+  onCouponRejected,
   accountEmail,
   onPaid,
   onFailed,
   className,
 }: {
   lines: CartLine[];
+  /** The coupon applied in the order summary, checked again on the server. */
+  couponCode: string | null;
+  /** The coupon no longer applies (paused, used up, bag changed). */
+  onCouponRejected: () => void;
   /** The signed-in shopper's email, used when none is saved in this browser. */
   accountEmail: string | null;
   /** Runs once the payment is verified, before the bag is emptied. */
@@ -165,9 +171,11 @@ export function CheckoutButton({
         currency,
       })),
       address,
+      couponCode,
     );
     if (session.status === "error") {
       if (session.repriced) cartActions.reprice(session.repriced);
+      if (session.couponRejected) onCouponRejected();
       if (session.fieldErrors) setFieldErrors(session.fieldErrors);
       return fail(session.message);
     }

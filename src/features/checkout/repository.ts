@@ -8,6 +8,7 @@ import {
 import { z } from "zod";
 import { getPayloadClient } from "@/features/account/customer";
 import { getProductBySlug } from "@/features/catalog/repository";
+import { promotionExists } from "@/features/promotions/repository";
 import { orderNumber } from "@/features/notifications/order-confirmation-email";
 import { takeStock } from "@/features/stock/repository";
 import { lockKey } from "@/payload/transaction";
@@ -362,6 +363,17 @@ async function recordPayment(
   );
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
   const amount = Number(payment.amount);
+  // The coupon applied at checkout, unless staff deleted it since: linking a
+  // missing promotion would fail the save of an order that's already paid.
+  const promotionId = Number(
+    (rzpOrder.notes as Record<string, unknown> | undefined)?.promotion,
+  );
+  const promotions =
+    Number.isInteger(promotionId) &&
+    promotionId > 0 &&
+    (await promotionExists(promotionId).catch(() => false))
+      ? [promotionId]
+      : [];
 
   const req = await createLocalReq({}, payload);
   await initTransaction(req);
@@ -403,6 +415,8 @@ async function recordPayment(
         amount,
         currency: currency as Currency,
         totals: { subtotal, discountTotal: Math.max(0, subtotal - amount) },
+        // Counted against the coupon's and campaign's limits (orders hook).
+        promotions,
         // Magic Checkout collects it; otherwise the bag page put it in notes.
         shippingAddress: shipping,
         lineItems: lines.map((l) => {

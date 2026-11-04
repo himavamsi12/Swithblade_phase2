@@ -170,6 +170,8 @@ vi.mock("@/features/catalog/repository", () => ({
   getProductBySlug: m.getProductBySlug,
 }));
 vi.mock("@/features/stock/repository", () => ({ takeStock: m.takeStock }));
+const promotionExists = vi.hoisted(() => vi.fn());
+vi.mock("@/features/promotions/repository", () => ({ promotionExists }));
 vi.mock("@/payload/transaction", () => ({ lockKey: m.lockKey }));
 vi.mock("./razorpay", () => ({ razorpayClient: () => m.razorpay }));
 
@@ -283,6 +285,29 @@ describe("recordRazorpayPayment", () => {
       expect.anything(),
     );
     expect(m.commitTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("links the coupon used and records the discount", async () => {
+    promotionExists.mockResolvedValue(true);
+    state.rzpOrder.notes.promotion = "7";
+    state.payment.amount = 179910;
+    await recordRazorpayPayment(config, "order_1", "pay_1");
+
+    expect(promotionExists).toHaveBeenCalledWith(7);
+    expect(state.db.orders![0]).toMatchObject({
+      amount: 179910,
+      promotions: [7],
+      totals: { subtotal: 199900, discountTotal: 19990 },
+    });
+  });
+
+  it("still saves the paid order if its coupon was deleted", async () => {
+    promotionExists.mockResolvedValue(false);
+    state.rzpOrder.notes.promotion = "7";
+    const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+
+    expect(result.status).toBe("recorded");
+    expect(state.db.orders![0]!.promotions).toEqual([]);
   });
 
   it("keeps the photo of the colour bought", async () => {
