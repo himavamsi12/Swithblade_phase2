@@ -49,9 +49,9 @@ Tasks parked for later. Tick them off (`[x]`) when done.
       customer. Upgrade to Supabase Pro (daily backups, kept 7 days), then
       check Dashboard → Database → Backups shows them. Until then, take a
       manual `pg_dump` before risky changes.
-- [ ] **Policy pages and support email**: real business name, address and a
-      support email you own (`support@switchblade.com` is in
-      `src/config/site.ts`).
+- [ ] **Policy pages**: real business name and address. The support email
+      is now `support@switchblade.in` (`src/config/site.ts`); check its inbox
+      receives mail.
 - [ ] **Delete the "Test Tee" test product** (and its variants and photos)
       in `/admin`.
 
