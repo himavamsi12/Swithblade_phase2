@@ -56,6 +56,9 @@ const nextConfig: NextConfig = {
     // The storefront and the Payload admin have separate root layouts, so
     // unmatched URLs need app/global-not-found.tsx.
     globalNotFound: true,
+    // Return requests carry up to 5 photos, resized in the browser first.
+    // Stays under Vercel's 4.5 MB request limit.
+    serverActions: { bodySizeLimit: "4mb" },
   },
   images: {
     formats: ["image/avif", "image/webp"],

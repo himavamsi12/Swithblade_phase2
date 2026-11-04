@@ -6,6 +6,7 @@ import { OrderHistory } from "@/features/account/components/order-history";
 import {
   getSignedInCustomer,
   listCustomerOrders,
+  listReturnReasons,
 } from "@/features/account/customer";
 
 export const metadata: Metadata = {
@@ -17,7 +18,10 @@ export default async function OrderHistoryPage() {
   const session = await getSignedInCustomer();
   if (!session) redirect("/account");
 
-  const orders = await listCustomerOrders(session.customer.id);
+  const [orders, reasons] = await Promise.all([
+    listCustomerOrders(session.customer.id),
+    listReturnReasons(),
+  ]);
 
   return (
     <AccountShell firstName={session.customer.firstName ?? null}>
@@ -35,7 +39,7 @@ export default async function OrderHistoryPage() {
           </Link>
         </div>
       ) : (
-        <OrderHistory orders={orders} />
+        <OrderHistory orders={orders} reasons={reasons} />
       )}
     </AccountShell>
   );

@@ -18,6 +18,8 @@ import * as migration_20261029_060415_disable_draft_autosave from './20261029_06
 import * as migration_20261030_063235_product_color_images from './20261030_063235_product_color_images';
 import * as migration_20261030_064542_yes_no_product_flags from './20261030_064542_yes_no_product_flags';
 import * as migration_20261030_071840_staff_totp from './20261030_071840_staff_totp';
+import * as migration_20261104_104417_return_requests from './20261104_104417_return_requests';
+import * as migration_20261104_105439_return_photo_captions from './20261104_105439_return_photo_captions';
 
 export const migrations = [
   {
@@ -118,6 +120,16 @@ export const migrations = [
   {
     up: migration_20261030_071840_staff_totp.up,
     down: migration_20261030_071840_staff_totp.down,
-    name: '20261030_071840_staff_totp'
+    name: '20261030_071840_staff_totp',
+  },
+  {
+    up: migration_20261104_104417_return_requests.up,
+    down: migration_20261104_104417_return_requests.down,
+    name: '20261104_104417_return_requests',
+  },
+  {
+    up: migration_20261104_105439_return_photo_captions.up,
+    down: migration_20261104_105439_return_photo_captions.down,
+    name: '20261104_105439_return_photo_captions'
   },
 ];

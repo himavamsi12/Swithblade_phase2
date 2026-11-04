@@ -98,6 +98,7 @@ export interface Config {
     'stock-locations': StockLocation;
     'shipping-options': ShippingOption;
     'shipping-profiles': ShippingProfile;
+    'return-photos': ReturnPhoto;
     'stock-holds': StockHold;
     variantOptions: VariantOption;
     'totp-attempts': TotpAttempt;
@@ -164,6 +165,7 @@ export interface Config {
     'stock-locations': StockLocationsSelect<false> | StockLocationsSelect<true>;
     'shipping-options': ShippingOptionsSelect<false> | ShippingOptionsSelect<true>;
     'shipping-profiles': ShippingProfilesSelect<false> | ShippingProfilesSelect<true>;
+    'return-photos': ReturnPhotosSelect<false> | ReturnPhotosSelect<true>;
     'stock-holds': StockHoldsSelect<false> | StockHoldsSelect<true>;
     variantOptions: VariantOptionsSelect<false> | VariantOptionsSelect<true>;
     'totp-attempts': TotpAttemptsSelect<false> | TotpAttemptsSelect<true>;
@@ -1220,11 +1222,20 @@ export interface Return {
   id: number;
   order: number | Order;
   customer?: (number | null) | Customer;
-  status: 'requested' | 'received' | 'partially_received' | 'canceled';
+  /**
+   * Approved creates the Shiprocket return order. The shopper sees each step under Track return.
+   */
+  status: 'requested' | 'approved' | 'rejected' | 'received' | 'partially_received' | 'refunded' | 'canceled';
+  customerNote?: string | null;
+  photos?: (number | ReturnPhoto)[] | null;
   items: {
     product: number | Product;
     variant?: (number | null) | Variant;
     quantity: number;
+    /**
+     * The order line returned, set by the storefront.
+     */
+    lineId?: string | null;
     reason?: (number | null) | ReturnReason;
     note?: string | null;
     receivedQuantity?: number | null;
@@ -1234,7 +1245,9 @@ export interface Return {
   shippingOption?: (number | null) | ShippingOption;
   refundAmount?: number | null;
   currency?: ('INR' | 'USD' | 'EUR' | 'GBP') | null;
+  approvedAt?: string | null;
   receivedAt?: string | null;
+  refundedAt?: string | null;
   internalNote?: string | null;
   /**
    * Custom key/value data for integrations.
@@ -1250,6 +1263,41 @@ export interface Return {
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "return-photos".
+ */
+export interface ReturnPhoto {
+  id: number;
+  /**
+   * What the shopper says this shows, e.g. Front.
+   */
+  caption?: string | null;
+  customer?: (number | null) | Customer;
+  prefix?: string | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1583,6 +1631,10 @@ export interface PayloadLockedDocument {
         value: number | ShippingProfile;
       } | null)
     | ({
+        relationTo: 'return-photos';
+        value: number | ReturnPhoto;
+      } | null)
+    | ({
         relationTo: 'stock-holds';
         value: number | StockHold;
       } | null)
@@ -1727,12 +1779,15 @@ export interface ReturnsSelect<T extends boolean = true> {
   order?: T;
   customer?: T;
   status?: T;
+  customerNote?: T;
+  photos?: T;
   items?:
     | T
     | {
         product?: T;
         variant?: T;
         quantity?: T;
+        lineId?: T;
         reason?: T;
         note?: T;
         receivedQuantity?: T;
@@ -1742,7 +1797,9 @@ export interface ReturnsSelect<T extends boolean = true> {
   shippingOption?: T;
   refundAmount?: T;
   currency?: T;
+  approvedAt?: T;
   receivedAt?: T;
+  refundedAt?: T;
   internalNote?: T;
   metadata?: T;
   updatedAt?: T;
@@ -2336,6 +2393,41 @@ export interface ShippingProfilesSelect<T extends boolean = true> {
   metadata?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "return-photos_select".
+ */
+export interface ReturnPhotosSelect<T extends boolean = true> {
+  caption?: T;
+  customer?: T;
+  prefix?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

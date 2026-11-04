@@ -27,6 +27,7 @@ import { Promotions } from "./payload/collections/promotions";
 import { Regions } from "./payload/collections/regions";
 import { ReturnReasons } from "./payload/collections/return-reasons";
 import { Returns } from "./payload/collections/returns";
+import { ReturnPhotos } from "./payload/collections/return-photos";
 import { StockHolds } from "./payload/collections/stock-holds";
 import { SalesChannels } from "./payload/collections/sales-channels";
 import { ShippingOptions } from "./payload/collections/shipping-options";
@@ -106,6 +107,7 @@ export default buildConfig({
   },
   collections: [
     Returns,
+    ReturnPhotos,
     Media,
     ProductCategories,
     ProductCollections,
@@ -137,7 +139,7 @@ export default buildConfig({
       // Same schema with or without storage configured, so one set of
       // migrations fits every environment.
       alwaysInsertFields: true,
-      collections: { media: true },
+      collections: { media: true, "return-photos": { prefix: "returns" } },
       bucket: s3Storage?.bucket ?? "",
       config: {
         endpoint: s3Storage?.endpoint,

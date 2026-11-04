@@ -10,8 +10,13 @@ import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { OrderStatusKey, OrderView } from "../customer";
 import { returnRequestHref } from "../return-request";
+import {
+  ReturnOrderDialog,
+  type ReturnReasonOption,
+} from "./return-order-dialog";
 import { focusRing } from "./styles";
 import { TrackOrderDrawer } from "./track-order-drawer";
+import { TrackReturnDialog } from "./track-return-dialog";
 
 const statusStyles: Record<
   OrderStatusKey,
@@ -36,12 +41,18 @@ const money = (amount: number | null, currency: string | null) =>
   amount != null && currency ? formatPrice(amount, currency) : "—";
 
 /** One collapsible card per order; the newest starts open. */
-export function OrderHistory({ orders }: { orders: OrderView[] }) {
+export function OrderHistory({
+  orders,
+  reasons,
+}: {
+  orders: OrderView[];
+  reasons: ReturnReasonOption[];
+}) {
   return (
     <ul className="flex flex-col gap-4">
       {orders.map((order, i) => (
         <li key={order.id}>
-          <OrderCard order={order} defaultOpen={i === 0} />
+          <OrderCard order={order} reasons={reasons} defaultOpen={i === 0} />
         </li>
       ))}
     </ul>
@@ -50,14 +61,24 @@ export function OrderHistory({ orders }: { orders: OrderView[] }) {
 
 function OrderCard({
   order,
+  reasons,
   defaultOpen,
 }: {
   order: OrderView;
+  reasons: ReturnReasonOption[];
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [tracking, setTracking] = useState(false);
+  const [returning, setReturning] = useState(false);
+  const [trackingReturn, setTrackingReturn] = useState(false);
   const trackDialog = useRef<HTMLDialogElement>(null);
+  const returnDialog = useRef<HTMLDialogElement>(null);
+  const trackReturnDialog = useRef<HTMLDialogElement>(null);
+  // Old orders without item snapshots can't be matched to products.
+  const canReturnHere = order.items.some((i) => i.productSlug);
+  const itemsLeft = order.items.some((i) => i.returnableQuantity > 0);
+  const hasReturns = order.returns.length > 0;
   const panelId = useId();
   const status = statusStyles[order.status];
 
@@ -185,26 +206,49 @@ function OrderCard({
           >
             Track order
           </button>
-          {order.returnable && (
-            <a
-              href={returnRequestHref(siteConfig.supportEmail, order)}
+          {hasReturns && (
+            <button
+              type="button"
+              onClick={() => {
+                setTrackingReturn(true);
+                trackReturnDialog.current?.showModal();
+              }}
               className={cn(
-                "text-body-4 font-semibold uppercase underline underline-offset-2",
+                "text-body-4 font-semibold text-[#1e7a3c] uppercase underline underline-offset-2",
                 focusRing,
               )}
             >
-              Request return
-            </a>
+              Track return
+            </button>
           )}
-          <Link
-            href="/account/returns"
-            className={cn(
-              "text-body-4 text-dark-grey uppercase underline underline-offset-2 hover:text-black",
-              focusRing,
-            )}
-          >
-            Return history
-          </Link>
+          {order.returnable &&
+            (canReturnHere ? (
+              itemsLeft && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReturning(true);
+                    returnDialog.current?.showModal();
+                  }}
+                  className={cn(
+                    "text-body-4 font-semibold text-primary uppercase underline underline-offset-2",
+                    focusRing,
+                  )}
+                >
+                  {hasReturns ? "Return another item" : "Return order"}
+                </button>
+              )
+            ) : (
+              <a
+                href={returnRequestHref(siteConfig.supportEmail, order)}
+                className={cn(
+                  "text-body-4 font-semibold text-primary uppercase underline underline-offset-2",
+                  focusRing,
+                )}
+              >
+                Return order
+              </a>
+            ))}
         </div>
       </Collapse>
       <TrackOrderDrawer
@@ -213,6 +257,21 @@ function OrderCard({
         open={tracking}
         onClose={() => setTracking(false)}
       />
+      <ReturnOrderDialog
+        ref={returnDialog}
+        order={order}
+        reasons={reasons}
+        open={returning}
+        onClose={() => setReturning(false)}
+      />
+      {hasReturns && (
+        <TrackReturnDialog
+          ref={trackReturnDialog}
+          order={order}
+          open={trackingReturn}
+          onClose={() => setTrackingReturn(false)}
+        />
+      )}
     </article>
   );
 }

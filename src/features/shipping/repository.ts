@@ -4,11 +4,17 @@ import {
   createLocalReq,
   initTransaction,
   killTransaction,
+  type PayloadRequest,
 } from "payload";
 import { getPayloadClient } from "@/features/account/customer";
 import { lockKey } from "@/payload/transaction";
-import { createOrder, shiprocketEnabled } from "./shiprocket";
+import {
+  createOrder,
+  createReturnOrder,
+  shiprocketEnabled,
+} from "./shiprocket";
 import { toShiprocketOrder } from "./shiprocket-order";
+import { returnIdOf, toShiprocketReturn } from "./shiprocket-return";
 import {
   trackingChange,
   type FulfillmentStatus,
@@ -99,6 +105,85 @@ export async function sendOrderToShiprocket(orderId: number): Promise<void> {
   }
 }
 
+/** Set on the update that notes the result, so the returns hook skips it. */
+export const SHIPROCKET_RETURN_CONTEXT = "shiprocketReturn";
+
+/**
+ * Creates the Shiprocket return order for an approved return, once, and
+ * notes the result in the return's `metadata.shiprocket`. Runs inside the
+ * admin save (`req`), so it sees a return that was just created. Never
+ * throws: a Shiprocket outage must not stop staff saving a return. Returns
+ * the return's new metadata, or null if nothing was sent.
+ */
+export async function sendReturnToShiprocket(
+  returnId: number,
+  req: PayloadRequest,
+): Promise<Record<string, unknown> | null> {
+  if (!shiprocketEnabled()) return null;
+  try {
+    const { payload } = req;
+    const ret = await payload.findByID({
+      collection: "returns",
+      id: returnId,
+      depth: 2,
+      req,
+    });
+    const metadata =
+      ret.metadata && typeof ret.metadata === "object"
+        ? (ret.metadata as Record<string, unknown>)
+        : {};
+    if (ret.status !== "approved") return null;
+    if ((metadata.shiprocket as ShiprocketMeta | undefined)?.orderId) {
+      return null;
+    }
+    const order =
+      typeof ret.order === "object"
+        ? ret.order
+        : await payload.findByID({
+            collection: "orders",
+            id: ret.order,
+            depth: 0,
+            req,
+          });
+
+    let shiprocket: ShiprocketMeta;
+    const mapped = toShiprocketReturn(ret, order);
+    if (!mapped.ok) {
+      shiprocket = { error: mapped.reason, at: new Date().toISOString() };
+    } else {
+      try {
+        const created = await createReturnOrder(mapped.order);
+        shiprocket = { ...created, at: new Date().toISOString() };
+      } catch (error) {
+        shiprocket = {
+          error: error instanceof Error ? error.message : String(error),
+          at: new Date().toISOString(),
+        };
+      }
+    }
+    if (shiprocket.error) {
+      console.error(
+        `Shiprocket: return ${returnId} not sent:`,
+        shiprocket.error,
+      );
+    }
+
+    const next = { ...metadata, shiprocket };
+    await payload.update({
+      collection: "returns",
+      id: returnId,
+      data: { metadata: next },
+      depth: 0,
+      req,
+      context: { [SHIPROCKET_RETURN_CONTEXT]: true },
+    });
+    return next;
+  } catch (error) {
+    console.error(`Shiprocket: return ${returnId} failed`, error);
+    return null;
+  }
+}
+
 export type TrackingResult = "updated" | "unknown-order";
 
 /**
@@ -110,6 +195,8 @@ export type TrackingResult = "updated" | "unknown-order";
 export async function applyTrackingEvent(
   event: TrackingEvent,
 ): Promise<TrackingResult> {
+  const returnId = returnIdOf(event.order_id);
+  if (returnId !== null) return applyReturnTrackingEvent(returnId, event);
   const displayId = Number(event.order_id);
   if (!Number.isInteger(displayId) || displayId <= 0) return "unknown-order";
 
@@ -200,6 +287,69 @@ export async function applyTrackingEvent(
       },
       depth: 0,
       req,
+    });
+    await commitTransaction(req);
+    return "updated";
+  } catch (error) {
+    await killTransaction(req);
+    throw error;
+  }
+}
+
+/**
+ * Notes a return pickup's courier status, AWB and courier on the return.
+ * Staff still mark it received after checking the parcel, so nothing else
+ * changes. Events for the same return take turns.
+ */
+async function applyReturnTrackingEvent(
+  returnId: number,
+  event: TrackingEvent,
+): Promise<TrackingResult> {
+  const payload = await getPayloadClient();
+  const req = await createLocalReq({}, payload);
+  await initTransaction(req);
+  try {
+    await lockKey(req, `return-tracking:${returnId}`);
+    const ret = await payload
+      .findByID({
+        collection: "returns",
+        id: returnId,
+        depth: 0,
+        select: { metadata: true },
+        req,
+      })
+      .catch(() => null);
+    if (!ret) {
+      await killTransaction(req);
+      return "unknown-order";
+    }
+    const change = trackingChange(event, "not_fulfilled", new Date());
+    const metadata =
+      ret.metadata && typeof ret.metadata === "object"
+        ? (ret.metadata as Record<string, unknown>)
+        : {};
+    const shiprocket = (metadata.shiprocket ?? {}) as Record<string, unknown>;
+    const previous = (shiprocket.tracking ?? {}) as Record<string, unknown>;
+    await payload.update({
+      collection: "returns",
+      id: returnId,
+      data: {
+        metadata: {
+          ...metadata,
+          shiprocket: {
+            ...shiprocket,
+            tracking: {
+              status: change.courierStatus,
+              at: change.at,
+              awb: change.trackingNumber ?? previous.awb ?? null,
+              courier: change.carrier ?? previous.courier ?? null,
+            },
+          },
+        },
+      },
+      depth: 0,
+      req,
+      context: { [SHIPROCKET_RETURN_CONTEXT]: true },
     });
     await commitTransaction(req);
     return "updated";

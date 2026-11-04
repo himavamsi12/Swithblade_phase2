@@ -56,6 +56,31 @@ export const addressSchema = z.object({
   title: z.enum(addressTypes).default("Home"),
 });
 
+/** Pictures a shopper attaches to a return request (front and back at least). */
+export const MIN_RETURN_PHOTOS = 2;
+export const MAX_RETURN_PHOTOS = 5;
+export const PHOTO_CAPTION_MAX = 80;
+
+export const returnRequestSchema = z.object({
+  orderId: z.coerce.number().int().positive(),
+  reasonId: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .transform((v) => v ?? null),
+  note: optionalText(500),
+  lines: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(64),
+        quantity: z.number().int().min(1).max(99),
+      }),
+    )
+    .min(1, "Choose at least one item to return.")
+    .max(50),
+});
+
 /** "Swetha Seenivasan" → first "Swetha", last "Seenivasan". */
 export function splitName(fullName: string) {
   const [first, ...rest] = fullName.trim().split(/\s+/);

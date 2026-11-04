@@ -3,12 +3,14 @@ import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { cacheDelete, cacheGet, cacheSet } from "@/lib/redis";
 import type { ShiprocketOrder } from "./shiprocket-order";
+import type { ShiprocketReturn } from "./shiprocket-return";
 
 /*
  * Shiprocket API client. Uses a dedicated API user (Settings → API), not the
  * account login. Shipping is disabled, not broken, while the keys are unset.
  * Nothing here assigns a courier or books a pickup: those cost money and are
- * done from the Shiprocket panel.
+ * done from the Shiprocket panel. Return orders are created here the same way
+ * and wait in the panel for a courier.
  */
 const schema = z.object({
   SHIPROCKET_EMAIL: z.string().min(1).optional(),
@@ -105,16 +107,28 @@ const pickupSchema = z.object({
       z.object({
         pickup_location: z.string(),
         pin_code: z.union([z.string(), z.number()]),
+        name: z.string().nullish(),
+        email: z.string().nullish(),
+        phone: z.union([z.string(), z.number()]).nullish(),
+        address: z.string().nullish(),
+        address_2: z.string().nullish(),
+        city: z.string().nullish(),
+        state: z.string().nullish(),
+        country: z.string().nullish(),
       }),
     ),
   }),
 });
 
-let pickupPincode: Promise<string> | undefined;
+type PickupAddress = z.infer<
+  typeof pickupSchema
+>["data"]["shipping_address"][number];
 
-/** The pincode parcels leave from, looked up once per instance. */
-function getPickupPincode(): Promise<string> {
-  pickupPincode ??= (async () => {
+let pickupAddress: Promise<PickupAddress> | undefined;
+
+/** The address parcels leave from (and returns go to), looked up once per instance. */
+function getPickupAddress(): Promise<PickupAddress> {
+  pickupAddress ??= (async () => {
     const res = await request("/settings/company/pickup");
     const json = pickupSchema.parse(await res.json());
     const match = json.data.shipping_address.find(
@@ -123,13 +137,16 @@ function getPickupPincode(): Promise<string> {
     if (!match) {
       throw new Error(`Shiprocket pickup "${pickupLocation}" not found`);
     }
-    return String(match.pin_code);
+    return match;
   })().catch((error: unknown) => {
-    pickupPincode = undefined;
+    pickupAddress = undefined;
     throw error;
   });
-  return pickupPincode;
+  return pickupAddress;
 }
+
+const getPickupPincode = async () =>
+  String((await getPickupAddress()).pin_code);
 
 const serviceable = new Map<string, { value: boolean; expiresAt: number }>();
 const SERVICEABLE_TTL_MS = 60 * 60 * 1000;
@@ -180,19 +197,57 @@ const createdSchema = z.object({
   shipment_id: z.union([z.string(), z.number()]).nullish(),
 });
 
+type Created = { orderId: string; shipmentId: string | null };
+
 /** Creates the order in Shiprocket's panel, ready for a courier. */
 export async function createOrder(
   order: Omit<ShiprocketOrder, "pickup_location">,
-): Promise<{ orderId: string; shipmentId: string | null }> {
+): Promise<Created> {
   const res = await request("/orders/create/adhoc", {
     method: "POST",
     body: JSON.stringify({ ...order, pickup_location: pickupLocation }),
   });
+  return parseCreated(res, "order");
+}
+
+/**
+ * Creates a return order in Shiprocket's panel, ready for a courier to
+ * collect from the shopper and deliver to our pickup address.
+ */
+export async function createReturnOrder(
+  order: ShiprocketReturn,
+): Promise<Created> {
+  const to = await getPickupAddress();
+  if (!to.address || !to.city || !to.state || !to.phone) {
+    throw new Error(
+      `Shiprocket pickup "${pickupLocation}" has no full address`,
+    );
+  }
+  const res = await request("/orders/create/return", {
+    method: "POST",
+    body: JSON.stringify({
+      ...order,
+      shipping_customer_name: to.name || pickupLocation,
+      shipping_last_name: "",
+      shipping_address: to.address,
+      shipping_address_2: to.address_2 ?? "",
+      shipping_city: to.city,
+      shipping_state: to.state,
+      shipping_country: to.country || "India",
+      shipping_pincode: String(to.pin_code),
+      shipping_email: to.email ?? "",
+      shipping_phone: String(to.phone),
+    }),
+  });
+  return parseCreated(res, "return order");
+}
+
+async function parseCreated(res: Response, what: string): Promise<Created> {
   const json: unknown = await res.json().catch(() => null);
   const created = createdSchema.safeParse(json);
   if (!res.ok || !created.success) {
     throw new Error(
-      `Shiprocket order create failed (${res.status}): ${JSON.stringify(json)}`,
+      `Shiprocket ${what} create failed (${res.status}): ${JSON.stringify(json)}`,
     );
   }
   return {

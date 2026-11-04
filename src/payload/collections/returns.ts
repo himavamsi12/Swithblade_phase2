@@ -4,7 +4,11 @@ import { currencyOptions } from "../currencies";
 import { group } from "../groups";
 import { metadataField } from "../fields/metadata";
 
-/** Customer returns and their refunds (Medusa: Orders → Returns). */
+/**
+ * Customer returns and their refunds (Medusa: Orders → Returns). Shoppers
+ * request them from their order history with photos; staff review and set
+ * Approved, which creates the return order in Shiprocket for the pickup.
+ */
 export const Returns: CollectionConfig = {
   slug: "returns",
   admin: {
@@ -38,12 +42,32 @@ export const Returns: CollectionConfig = {
       required: true,
       defaultValue: "requested",
       options: [
-        { label: "Requested", value: "requested" },
+        { label: "Requested (to review)", value: "requested" },
+        { label: "Approved (book pickup)", value: "approved" },
+        { label: "Rejected", value: "rejected" },
         { label: "Received", value: "received" },
         { label: "Partially received", value: "partially_received" },
+        { label: "Refunded", value: "refunded" },
         { label: "Canceled", value: "canceled" },
       ],
-      admin: { position: "sidebar" },
+      admin: {
+        position: "sidebar",
+        description:
+          "Approved creates the Shiprocket return order. The shopper sees each step under Track return.",
+      },
+    },
+    {
+      name: "customerNote",
+      label: "Shopper's note",
+      type: "textarea",
+      admin: { readOnly: true },
+    },
+    {
+      name: "photos",
+      type: "relationship",
+      relationTo: "return-photos",
+      hasMany: true,
+      admin: { readOnly: true },
     },
     {
       name: "items",
@@ -62,6 +86,15 @@ export const Returns: CollectionConfig = {
             },
             { name: "variant", type: "relationship", relationTo: "variants" },
             { name: "quantity", type: "number", required: true, min: 1 },
+            {
+              name: "lineId",
+              label: "Order line",
+              type: "text",
+              admin: {
+                readOnly: true,
+                description: "The order line returned, set by the storefront.",
+              },
+            },
           ],
         },
         {
@@ -113,7 +146,9 @@ export const Returns: CollectionConfig = {
         { name: "currency", type: "select", options: currencyOptions },
       ],
     },
+    { name: "approvedAt", type: "date", admin: { position: "sidebar" } },
     { name: "receivedAt", type: "date", admin: { position: "sidebar" } },
+    { name: "refundedAt", type: "date", admin: { position: "sidebar" } },
     { name: "internalNote", label: "Internal note", type: "textarea" },
     metadataField,
   ],
@@ -128,9 +163,42 @@ export const Returns: CollectionConfig = {
             depth: 0,
             req,
           });
-          return { ...data, customer: order.customer ?? null };
+          data = { ...data, customer: order.customer ?? null };
         }
         return data;
+      },
+      // Dates the shopper's Track return timeline shows, set once.
+      ({ data, originalDoc }) => {
+        const now = new Date().toISOString();
+        const stamp = (field: string, statuses: string[]) => {
+          if (
+            statuses.includes(data.status) &&
+            !data[field] &&
+            !originalDoc?.[field]
+          ) {
+            data[field] = now;
+          }
+        };
+        stamp("approvedAt", [
+          "approved",
+          "received",
+          "partially_received",
+          "refunded",
+        ]);
+        stamp("receivedAt", ["received", "partially_received", "refunded"]);
+        stamp("refundedAt", ["refunded"]);
+        return data;
+      },
+    ],
+    afterChange: [
+      // An approved return gets its Shiprocket return order, once. Loaded
+      // lazily: the shipping code is server-only and imports this config.
+      async ({ doc, req, context }) => {
+        const { SHIPROCKET_RETURN_CONTEXT, sendReturnToShiprocket } =
+          await import("@/features/shipping/repository");
+        if (context[SHIPROCKET_RETURN_CONTEXT]) return doc;
+        const metadata = await sendReturnToShiprocket(doc.id, req);
+        return metadata ? { ...doc, metadata } : doc;
       },
     ],
   },
