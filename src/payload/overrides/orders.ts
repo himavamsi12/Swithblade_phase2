@@ -35,7 +35,11 @@ const assignDisplayId: CollectionBeforeChangeHook = async ({
   return { ...data, displayId, title: `#${displayId}` };
 };
 
-/** Counts promotion usage when an order is placed. */
+/**
+ * Counts promotion usage when an order is placed, and adds it to the
+ * campaign's budget: one use, or the discount given for a spend budget.
+ * Orders using the same coupon take turns, so no count is lost.
+ */
 const countPromotionUsage: CollectionAfterChangeHook = async ({
   doc,
   operation,
@@ -45,7 +49,9 @@ const countPromotionUsage: CollectionAfterChangeHook = async ({
   const ids = (
     (doc.promotions ?? []) as Array<number | string | { id: number | string }>
   ).map((p) => (typeof p === "object" ? p.id : p));
+  const discount = Number(doc.totals?.discountTotal ?? 0);
   for (const id of ids) {
+    await lockKey(req, `promotion:${id}`);
     const promotion = await req.payload.findByID({
       collection: "promotions",
       id,
@@ -56,6 +62,31 @@ const countPromotionUsage: CollectionAfterChangeHook = async ({
       collection: "promotions",
       id,
       data: { usedCount: (promotion.usedCount ?? 0) + 1 },
+      req,
+    });
+    const campaignId =
+      typeof promotion.campaign === "object"
+        ? promotion.campaign?.id
+        : promotion.campaign;
+    if (!campaignId) continue;
+    await lockKey(req, `campaign:${campaignId}`);
+    const campaign = await req.payload.findByID({
+      collection: "campaigns",
+      id: campaignId,
+      depth: 0,
+      req,
+    });
+    const { type, used } = campaign.budget ?? {};
+    if (type !== "usage" && type !== "spend") continue;
+    await req.payload.update({
+      collection: "campaigns",
+      id: campaignId,
+      data: {
+        budget: {
+          ...campaign.budget,
+          used: (used ?? 0) + (type === "usage" ? 1 : discount),
+        },
+      },
       req,
     });
   }

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getSignedInCustomer } from "@/features/account/customer";
 import { MAX_QUANTITY } from "@/features/cart/cart";
 import { getProductBySlug } from "@/features/catalog/repository";
+import { checkCoupon } from "@/features/promotions/coupon";
 import {
   attachHolds,
   holdStock,
@@ -61,6 +62,73 @@ const itemsSchema = z
   )
   .max(50);
 
+const couponSchema = z.string().trim().min(1).max(64);
+
+type CheckoutItems = z.infer<typeof itemsSchema>;
+
+/** Fresh, not cached: a price or stock change applies to the next checkout. */
+async function loadProducts(items: CheckoutItems) {
+  const slugs = [...new Set(items.map((i) => i.slug))];
+  return new Map(
+    await Promise.all(
+      slugs.map(
+        async (slug) =>
+          [slug, await getProductBySlug(slug, { fresh: true })] as const,
+      ),
+    ),
+  );
+}
+
+const groupIds = (
+  customer: { groups?: (number | { id: number })[] | null } | undefined,
+) => (customer?.groups ?? []).map((g) => (typeof g === "object" ? g.id : g));
+
+export type CouponPreview =
+  | { status: "ok"; code: string; discount: number; total: number }
+  | { status: "error"; message: string; repriced?: CurrentPrice[] };
+
+/**
+ * Checks a coupon against the bag for the order summary. Only a preview:
+ * checkout checks the code again before charging.
+ */
+export async function previewCoupon(
+  input: unknown,
+  codeInput: unknown,
+): Promise<CouponPreview> {
+  const code = couponSchema.safeParse(codeInput);
+  if (!code.success)
+    return { status: "error", message: "Enter a coupon code." };
+  // Slows guessing codes.
+  if (!(await rateLimit("coupon", `ip:${await clientIp()}`))) {
+    return {
+      status: "error",
+      message: "Too many coupon attempts. Please wait a few minutes.",
+    };
+  }
+  const items = itemsSchema.safeParse(input);
+  if (!items.success) {
+    return { status: "error", message: "Your bag couldn't be read." };
+  }
+  const cart = priceCart(items.data, await loadProducts(items.data));
+  if (!cart.ok) {
+    return { status: "error", message: cart.message, repriced: cart.repriced };
+  }
+  const session = await getSignedInCustomer();
+  const coupon = await checkCoupon(
+    code.data,
+    cart.lines,
+    cart.currency,
+    groupIds(session?.customer),
+  );
+  if (!coupon.ok) return { status: "error", message: coupon.message };
+  return {
+    status: "ok",
+    code: coupon.code,
+    discount: coupon.discount,
+    total: cart.total - coupon.discount,
+  };
+}
+
 export type CheckoutSession =
   | {
       status: "ok";
@@ -77,6 +145,8 @@ export type CheckoutSession =
       repriced?: CurrentPrice[];
       /** Per-field messages for the delivery address form. */
       fieldErrors?: Partial<Record<keyof DeliveryAddressInput, string>>;
+      /** The coupon no longer applies; the bag should drop it. */
+      couponRejected?: boolean;
     };
 
 const absolute = (path: string) =>
@@ -105,6 +175,7 @@ function lineItem(line: PricedLine): Orders.LineItems {
 export async function createCheckout(
   input: unknown,
   addressInput: unknown,
+  couponInput: unknown = null,
 ): Promise<CheckoutSession> {
   const config = razorpayConfig();
   if (!config) {
@@ -167,20 +238,34 @@ export async function createCheckout(
     }
   }
 
-  const slugs = [...new Set(items.data.map((i) => i.slug))];
-  const products = new Map(
-    await Promise.all(
-      // Fresh, not cached: a price or stock change applies to the next checkout.
-      slugs.map(
-        async (slug) =>
-          [slug, await getProductBySlug(slug, { fresh: true })] as const,
-      ),
-    ),
-  );
-  const cart = priceCart(items.data, products);
+  const cart = priceCart(items.data, await loadProducts(items.data));
   if (!cart.ok) {
     return { status: "error", message: cart.message, repriced: cart.repriced };
   }
+  // Signed-in shoppers get the order on their account; guests check out by email.
+  const session = await getSignedInCustomer();
+
+  // Checked again here, so a coupon paused or used up since the preview
+  // isn't honoured.
+  let discount = 0;
+  let promotionId: number | null = null;
+  if (couponInput !== null && couponInput !== "") {
+    const code = couponSchema.safeParse(couponInput);
+    const coupon = code.success
+      ? await checkCoupon(
+          code.data,
+          cart.lines,
+          cart.currency,
+          groupIds(session?.customer),
+        )
+      : { ok: false as const, message: "Enter a coupon code." };
+    if (!coupon.ok) {
+      return { status: "error", message: coupon.message, couponRejected: true };
+    }
+    discount = coupon.discount;
+    promotionId = coupon.promotionId;
+  }
+  const amount = cart.total - discount;
 
   const cartNotes = encodeCartNotes(cart.lines);
   if (!cartNotes) {
@@ -189,9 +274,6 @@ export async function createCheckout(
       message: "Your bag is too large to check out at once.",
     };
   }
-  // Signed-in shoppers get the order on their account; guests check out by email.
-  const session = await getSignedInCustomer();
-
   // Reserve the items while the shopper pays, so nobody else can buy them.
   const hold = await holdStock(
     cart.lines.map((l) => ({
@@ -214,10 +296,12 @@ export async function createCheckout(
   }
   if (!hold.ok) return { status: "error", message: hold.message };
 
-  const magic = USE_MAGIC_CHECKOUT && cart.currency === MAGIC_CURRENCY;
+  // Magic Checkout prices its own line items, so it can't take a bag coupon.
+  const magic =
+    USE_MAGIC_CHECKOUT && cart.currency === MAGIC_CURRENCY && discount === 0;
   try {
     const order = await razorpayClient(config).orders.create({
-      amount: cart.total,
+      amount,
       currency: cart.currency,
       receipt: `sb_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`,
       notes: {
@@ -226,6 +310,8 @@ export async function createCheckout(
         // So guests get a confirmation even if Razorpay doesn't ask for one.
         email: address.data.email,
         ...(session && { customer: String(session.customer.id) }),
+        // Read back when the payment is recorded, to link the coupon.
+        ...(promotionId !== null && { promotion: String(promotionId) }),
       },
       ...(magic
         ? {

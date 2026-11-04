@@ -39,6 +39,8 @@ vi.mock("@/features/account/customer", () => ({
 }));
 const getProductBySlug = vi.fn(async (): Promise<Product | null> => product);
 vi.mock("@/features/catalog/repository", () => ({ getProductBySlug }));
+const checkCoupon = vi.fn();
+vi.mock("@/features/promotions/coupon", () => ({ checkCoupon }));
 const holdStock = vi.fn();
 const attachHolds = vi.fn(async () => {});
 const releaseHolds = vi.fn(async () => {});
@@ -75,7 +77,8 @@ vi.mock("./after-payment", () => ({ afterOrderRecorded: vi.fn() }));
 const recordRazorpayPayment = vi.fn();
 vi.mock("./repository", () => ({ recordRazorpayPayment }));
 
-const { createCheckout, verifyPayment } = await import("./actions");
+const { createCheckout, previewCoupon, verifyPayment } =
+  await import("./actions");
 
 const bag = [
   {
@@ -116,6 +119,50 @@ beforeEach(() => {
   });
 });
 
+describe("previewCoupon", () => {
+  it("shows the discount and new total for the bag", async () => {
+    checkCoupon.mockResolvedValue({
+      ok: true,
+      promotionId: 7,
+      code: "SAVE10",
+      discount: 39980,
+    });
+    expect(await previewCoupon(bag, "save10")).toEqual({
+      status: "ok",
+      code: "SAVE10",
+      discount: 39980,
+      total: 359820,
+    });
+  });
+
+  it("passes on why a code doesn't apply", async () => {
+    checkCoupon.mockResolvedValue({
+      ok: false,
+      message: "This coupon code isn't valid.",
+    });
+    expect(await previewCoupon(bag, "NOPE")).toEqual({
+      status: "error",
+      message: "This coupon code isn't valid.",
+    });
+  });
+
+  it("is rate limited, so codes can't be guessed", async () => {
+    allowed = false;
+    expect(await previewCoupon(bag, "SAVE10")).toMatchObject({
+      status: "error",
+      message: "Too many coupon attempts. Please wait a few minutes.",
+    });
+    expect(checkCoupon).not.toHaveBeenCalled();
+  });
+
+  it("asks for a code when the box is empty", async () => {
+    expect(await previewCoupon(bag, "  ")).toEqual({
+      status: "error",
+      message: "Enter a coupon code.",
+    });
+  });
+});
+
 describe("createCheckout", () => {
   it("prices the bag on the server, holds stock and opens a Razorpay order", async () => {
     const result = await createCheckout(bag, address);
@@ -151,6 +198,50 @@ describe("createCheckout", () => {
       expect.stringMatching(/^guest:[0-9a-f-]{36}$/),
     );
     expect(attachHolds).toHaveBeenCalledWith("hold_1", "order_1");
+  });
+
+  it("charges the bag less the coupon, checked again on the server", async () => {
+    checkCoupon.mockResolvedValue({
+      ok: true,
+      promotionId: 7,
+      code: "SAVE10",
+      discount: 39980,
+    });
+    session = { customer: { id: 42, groups: [4] } } as never;
+    const result = await createCheckout(bag, address, " save10 ");
+
+    expect(checkCoupon).toHaveBeenCalledWith(
+      "save10",
+      [expect.objectContaining({ unitPrice: 199900, quantity: 2 })],
+      "INR",
+      [4],
+    );
+    const order = ordersCreate.mock.calls[0]![0];
+    expect(order.amount).toBe(359820);
+    expect(order.notes.promotion).toBe("7");
+    expect(result).toMatchObject({ status: "ok" });
+  });
+
+  it("refuses to open checkout when the coupon no longer applies", async () => {
+    checkCoupon.mockResolvedValue({
+      ok: false,
+      message: "This coupon has been fully used.",
+    });
+    const result = await createCheckout(bag, address, "SAVE10");
+
+    expect(result).toEqual({
+      status: "error",
+      message: "This coupon has been fully used.",
+      couponRejected: true,
+    });
+    expect(holdStock).not.toHaveBeenCalled();
+    expect(ordersCreate).not.toHaveBeenCalled();
+  });
+
+  it("charges the full price without a coupon", async () => {
+    await createCheckout(bag, address, null);
+    expect(checkCoupon).not.toHaveBeenCalled();
+    expect(ordersCreate.mock.calls[0]![0].notes.promotion).toBeUndefined();
   });
 
   it("charges the catalog price, not a price sent by the browser", async () => {

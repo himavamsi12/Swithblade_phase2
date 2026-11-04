@@ -11,6 +11,10 @@ import visa from "@/assets/icons/payments/visa.svg";
 import { EmptyState } from "@/components/ui/empty-state";
 import { siteConfig } from "@/config/site";
 import { CheckoutButton } from "@/features/checkout/components/checkout-button";
+import {
+  CouponField,
+  type AppliedCoupon,
+} from "@/features/checkout/components/coupon-field";
 import { ChargeNote } from "@/features/currency/components/charge-note";
 import { Price } from "@/features/currency/components/price";
 import { cn } from "@/lib/utils";
@@ -265,6 +269,9 @@ function OrderSummary({
 }) {
   const totals = subtotals(lines);
   const row = "flex items-center justify-between text-body-3";
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+  // A coupon needs one currency to apply to.
+  const discount = totals.length === 1 ? (coupon?.discount ?? 0) : 0;
 
   return (
     <section
@@ -285,6 +292,14 @@ function OrderSummary({
             </dd>
           </div>
         ))}
+        {coupon && discount > 0 && (
+          <div className={row}>
+            <dt className="text-muted">Discount ({coupon.code})</dt>
+            <dd className="text-green-700">
+              −<Price amount={discount} currency={totals[0]!.currency} />
+            </dd>
+          </div>
+        )}
         <div className={row}>
           <dt className="text-muted">Shipping</dt>
           <dd>Free</dd>
@@ -297,7 +312,7 @@ function OrderSummary({
               Total{totals.length > 1 ? ` (${currency})` : ""}
             </dt>
             <dd>
-              <Price amount={amount} currency={currency} />
+              <Price amount={amount - discount} currency={currency} />
             </dd>
           </div>
         ))}
@@ -309,8 +324,18 @@ function OrderSummary({
           className="mt-2 text-body-4 text-muted"
         />
       ))}
+      {totals.length === 1 && (
+        <CouponField
+          lines={lines}
+          applied={coupon}
+          onChange={setCoupon}
+          focusRing={focusRing}
+        />
+      )}
       <CheckoutButton
         lines={lines}
+        couponCode={discount > 0 ? coupon!.code : null}
+        onCouponRejected={() => setCoupon(null)}
         accountEmail={accountEmail}
         onPaid={onPaid}
         onFailed={onFailed}
