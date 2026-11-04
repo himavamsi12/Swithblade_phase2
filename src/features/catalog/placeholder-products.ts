@@ -141,10 +141,29 @@ const sweatshirts: ListingProduct[] = Array.from({ length: 200 }, (_, i) => ({
     i % 4 === 3 ? { left: 14.5, top: 14.5, width: 71, height: 71 } : undefined,
 }));
 
+// Promise pieces for the Promises page until real ones are ticked in the
+// admin. Starred, so their pages show the Switchblade Promises label too.
+const promises: ListingProduct[] = [1, 2, 3, 4].map((n) => ({
+  id: `prod_promise_${n}`,
+  slug: `pink-checkered-blouse-promise-${n}`,
+  name: "Pink Checkered Blouse",
+  description: placeholderDescription,
+  price: 499000,
+  currency: "INR",
+  image: `/images/products/new-arrivals/arrival-${n}.png`,
+  inStock: true,
+  colorCount: 2,
+  collections: [],
+  highlighted: true,
+  imageFrame:
+    n === 4 ? { left: 14.5, top: 14.5, width: 71, height: 71 } : undefined,
+}));
+
 const placeholderProducts: Product[] = [
   ...newArrivals,
   ...recommended,
   ...sweatshirts,
+  ...promises,
 ].map((p) => ({
   ...p,
   gallery: detailGallery,
@@ -203,4 +222,15 @@ const related: Product[] = Array.from({ length: 12 }, (_, i) => ({
 
 export function placeholderRelated(limit: number): Product[] {
   return related.slice(0, limit);
+}
+
+export function placeholderPromises(limit: number): Product[] {
+  const starred = placeholderProducts.filter((p) =>
+    p.slug.includes("-promise-"),
+  );
+  // Repeated to fill a shelf, as the design shows.
+  return Array.from(
+    { length: limit },
+    (_, i) => starred[i % starred.length]!,
+  ).map((p, i) => ({ ...p, id: `${p.id}_${i}` }));
 }

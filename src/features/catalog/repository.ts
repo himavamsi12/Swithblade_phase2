@@ -8,6 +8,7 @@ import { toStorefrontProduct } from "./payload-product";
 import {
   placeholderCategory,
   placeholderProductBySlug,
+  placeholderPromises,
   placeholderRelated,
   placeholderSearch,
   placeholderShelf,
@@ -244,7 +245,5 @@ export async function listPromiseProducts(limit = 8): Promise<Product[]> {
     limit,
   });
   // TEMPORARY: design placeholders until real products are promise pieces.
-  return products.length > 0
-    ? products
-    : placeholderRelated(limit).map((p) => ({ ...p, highlighted: true }));
+  return products.length > 0 ? products : placeholderPromises(limit);
 }
