@@ -12,7 +12,7 @@ Tasks parked for later. Tick them off (`[x]`) when done.
   - Host `smtp.resend.com`, port `465`, username `resend`, password: a
     Resend API key (create one in Resend → API Keys; don't commit it).
   - Sender email on a domain verified in Resend → Domains (e.g.
-    `no-reply@yourdomain.com`), sender name `Swithblade`.
+    `no-reply@yourdomain.com`), sender name `Switchblade`.
   - Test: request a password reset for your own email, open the link, set a
     new password, sign in with it.
 - [ ] **Fix `NEXT_PUBLIC_SITE_URL`.** Vercel (Production) still has the

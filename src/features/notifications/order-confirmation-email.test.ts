@@ -3,7 +3,7 @@ import type { Order } from "@/payload-types";
 
 vi.mock("@/config/site", () => ({
   siteConfig: {
-    name: "Swithblade",
+    name: "Switchblade",
     url: "https://shop.example",
     accountHref: "/account",
   },
@@ -42,7 +42,7 @@ describe("orderConfirmationEmail", () => {
   const email = orderConfirmationEmail(order);
 
   it("names the order in the subject", () => {
-    expect(email.subject).toBe("Your Swithblade order SB-1001 is confirmed");
+    expect(email.subject).toBe("Your Switchblade order SB-1001 is confirmed");
   });
 
   it("lists items and totals in the text version", () => {

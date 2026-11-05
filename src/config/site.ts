@@ -13,8 +13,8 @@ const categories = [
 const supportEmail = "support@switchblade.in";
 
 export const siteConfig = {
-  name: "Swithblade",
-  description: "Swithblade — precision blades and gear, shipped to your door.",
+  name: "Switchblade",
+  description: "Switchblade — precision blades and gear, shipped to your door.",
   url: env.NEXT_PUBLIC_SITE_URL,
   currency: "INR",
   nav: [

@@ -7,7 +7,7 @@ import { z } from "zod";
  */
 const schema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
-  /** A sender on a domain verified in Resend, e.g. "Swithblade <orders@…>". */
+  /** A sender on a domain verified in Resend, e.g. "Switchblade <orders@…>". */
   EMAIL_FROM: z.string().min(1).optional(),
   /** Where replies go, e.g. a support inbox. */
   EMAIL_REPLY_TO: z.email().optional(),

@@ -1,4 +1,4 @@
-# Swithblade
+# Switchblade
 
 E-commerce storefront built with Next.js 16 (App Router), React 19, TypeScript and
 Tailwind CSS 4, with a Medusa-style commerce admin on Payload 3 (Postgres/Supabase)
