@@ -12,8 +12,8 @@ export function SiteFooter({ mobileHome = false }: { mobileHome?: boolean }) {
       <div
         className={
           mobileHome
-            ? "mx-auto flex w-full max-w-480 flex-col items-center pt-[163px] pb-4 md:pt-[109px] md:pb-[59px]"
-            : "mx-auto flex w-full max-w-480 flex-col items-center pt-16 pb-10 md:pt-[109px] md:pb-[59px]"
+            ? "mx-auto flex w-full max-w-480 flex-col items-center pt-8 pb-4 md:pt-[109px] md:pb-[59px]"
+            : "mx-auto flex w-full max-w-480 flex-col items-center pt-8 pb-10 md:pt-[109px] md:pb-[59px]"
         }
       >
         <div className="w-full px-4 md:px-11">
@@ -23,7 +23,7 @@ export function SiteFooter({ mobileHome = false }: { mobileHome?: boolean }) {
               summaryClassName="py-[18px] focus-visible:outline-current"
               summary={
                 <>
-                  <span className="text-body-4 font-semibold tracking-[2px] uppercase">
+                  <span className="text-[14px] font-semibold tracking-[2px] uppercase">
                     {section.title}
                   </span>
                   <span

@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
 import { useId, useState } from "react";
 import { Disclosure } from "@/components/ui/disclosure";
 import { cn } from "@/lib/utils";
@@ -44,8 +44,18 @@ export function FaqView() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search FAQs"
-          className="w-full bg-transparent text-body-2 outline-none placeholder:text-muted"
+          className="w-full bg-transparent text-body-2 outline-none placeholder:text-muted [&::-webkit-search-cancel-button]:hidden"
         />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="shrink-0 transition-opacity hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+          >
+            <X size={18} strokeWidth={1.5} aria-hidden />
+          </button>
+        )}
       </label>
 
       {term ? (

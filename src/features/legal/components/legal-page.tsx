@@ -13,10 +13,10 @@ export function LegalPage({
 }) {
   return (
     <div className="mx-auto w-full max-w-480 px-4 pb-24 md:px-12 md:pb-40">
-      <h1 className="border-b border-stroke pt-8 pb-4 text-center text-h3 uppercase md:pt-10">
+      <h1 className="border-b border-stroke pt-8 pb-4 text-center text-h4 font-semibold uppercase md:pt-10">
         {title}
       </h1>
-      <div className="mx-auto mt-8 flex max-w-[600px] flex-col gap-6 text-body-3 md:mt-10">
+      <div className="mx-auto mt-8 flex max-w-[600px] flex-col gap-6 text-body-2 md:mt-10">
         {children}
       </div>
     </div>
@@ -32,7 +32,7 @@ export function LegalSection({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-semibold">{title}</h2>
+      <h2 className="text-h6">{title}</h2>
       {children}
     </section>
   );

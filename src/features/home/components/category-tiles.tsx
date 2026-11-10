@@ -3,7 +3,6 @@ import Link from "next/link";
 import look1 from "@/assets/new arrivals/1.png";
 import look2 from "@/assets/new arrivals/2.png";
 import look3 from "@/assets/new arrivals/3.png";
-import { cn } from "@/lib/utils";
 
 type Tile = {
   image: StaticImageData;
@@ -71,12 +70,7 @@ export function CategoryTiles({
                     : "h-auto w-full transition-transform duration-500 group-hover:scale-[1.02]"
                 }
               />
-              <span
-                className={cn(
-                  "absolute bottom-4 left-4 bg-primary px-3 py-1 text-body-2 text-white md:bottom-5 md:left-5",
-                  mobileHome && "hidden sm:block",
-                )}
-              >
+              <span className="absolute bottom-4 left-4 bg-primary px-3 py-1 text-[16px] leading-normal text-white md:bottom-5 md:left-5">
                 {tile.label}
               </span>
             </Link>

@@ -49,7 +49,15 @@ export const siteConfig = {
         { label: "Privacy policy", href: "/privacy-policy" as Route },
       ],
     },
-    { title: "Socials", links: [] },
+    {
+      title: "Socials",
+      links: [
+        {
+          label: "Instagram",
+          href: "https://www.instagram.com/switchbladeworld/",
+        },
+      ],
+    },
   ],
   // Quick links shown in the header search panel before anything is typed.
   searchSuggestions: ["T-shirts", "Sweatshirts", "Polos"],

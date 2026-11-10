@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
 import { useId, useState } from "react";
@@ -53,8 +53,18 @@ export function PartnerSidebar({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search for partners"
-          className="h-10 w-full bg-card pr-3 pl-9 text-body-3 text-black placeholder:text-muted focus:outline-2 focus:-outline-offset-2 focus:outline-black"
+          className="h-10 w-full bg-card pr-9 pl-9 text-body-3 text-black placeholder:text-muted focus:outline-2 focus:-outline-offset-2 focus:outline-black [&::-webkit-search-cancel-button]:hidden"
         />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            aria-label="Clear search"
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-black transition-opacity hover:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+          >
+            <X size={14} strokeWidth={1.5} aria-hidden />
+          </button>
+        )}
       </div>
 
       {matches.length === 0 ? (

@@ -34,14 +34,26 @@ const INTERVAL_MS = 4000;
 
 /**
  * Editorial split: large lookbook photo on the left, short manifesto on the
- * right. Every few seconds the next look slides up over the photo while the
- * fabric swatch cross-fades to match.
+ * right. Every few seconds the next look slides up over the photo, and its
+ * fabric swatch slides up with it.
  */
 export function Curated() {
   // `step` only ever counts up, so the outgoing slide is always `step - 1`.
   const [step, setStep] = useState(0);
   const active = step % slides.length;
   const previous = step > 0 ? (step - 1) % slides.length : -1;
+
+  // The look and its fabric slide up together. Changing the animation name
+  // restarts it, so a slide that goes out and comes back replays its entrance.
+  const slideClass = (i: number) =>
+    cn(
+      "absolute inset-0 size-full object-cover",
+      i === active &&
+        step > 0 &&
+        "z-10 animate-curated-in motion-reduce:animate-none",
+      i === previous && "animate-curated-out motion-reduce:animate-none",
+      i !== active && i !== previous && "invisible",
+    );
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -67,17 +79,7 @@ export function Curated() {
               aria-hidden={i !== active}
               sizes="(min-width: 768px) 50vw, 100vw"
               placeholder="blur"
-              className={cn(
-                "absolute inset-0 size-full object-cover",
-                // Changing the animation name restarts it, so a slide that
-                // goes out and comes back in replays its entrance.
-                i === active &&
-                  step > 0 &&
-                  "z-10 animate-curated-in motion-reduce:animate-none",
-                i === previous &&
-                  "animate-curated-out motion-reduce:animate-none",
-                i !== active && i !== previous && "invisible",
-              )}
+              className={slideClass(i)}
             />
           ))}
           <div className="absolute bottom-6 left-4 z-20 min-h-[195px] w-[145px] bg-white p-1.5 md:hidden">
@@ -93,10 +95,7 @@ export function Curated() {
                   aria-hidden={i !== active}
                   sizes="133px"
                   placeholder="blur"
-                  className={cn(
-                    "absolute inset-0 size-full object-cover transition-opacity duration-900 ease-in-out motion-reduce:transition-none",
-                    i === active ? "opacity-100" : "opacity-0",
-                  )}
+                  className={slideClass(i)}
                 />
               ))}
             </div>
@@ -115,7 +114,7 @@ export function Curated() {
           >
             Curated, not collected
           </h2>
-          <div className="relative aspect-[270/378]">
+          <div className="relative aspect-[270/378] overflow-hidden">
             {slides.map(({ fabric }, i) => (
               <Image
                 key={i}
@@ -124,10 +123,7 @@ export function Curated() {
                 aria-hidden={i !== active}
                 sizes="270px"
                 placeholder="blur"
-                className={cn(
-                  "absolute inset-0 size-full object-cover transition-opacity duration-900 ease-in-out motion-reduce:transition-none",
-                  i === active ? "opacity-100" : "opacity-0",
-                )}
+                className={slideClass(i)}
               />
             ))}
           </div>

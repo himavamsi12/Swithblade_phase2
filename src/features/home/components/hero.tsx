@@ -32,7 +32,7 @@ export function Hero({ image, title, ctaLabel, href }: HeroProps) {
         <h1 className="text-h2 leading-[normal] text-white">{title}</h1>
         <Link
           href={href}
-          className="bg-primary px-3.5 py-2 text-body-1 leading-[normal] text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="bg-primary px-3.5 py-2 text-[16px] leading-[normal] text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           {ctaLabel}
         </Link>

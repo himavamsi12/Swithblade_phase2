@@ -63,9 +63,9 @@ export default async function PromisesPage() {
               <Image
                 src={step.icon}
                 alt=""
-                className="mx-auto mt-5 size-[150px]"
+                className="mx-auto mt-4 size-24 md:mt-5 md:size-[150px]"
               />
-              <h2 className="mt-12 text-h5 leading-tight font-semibold uppercase">
+              <h2 className="mt-6 text-h5 leading-tight font-semibold uppercase md:mt-12">
                 {step.title}
               </h2>
               <p className="mt-3 text-body-2 text-black/80">{step.text}</p>
