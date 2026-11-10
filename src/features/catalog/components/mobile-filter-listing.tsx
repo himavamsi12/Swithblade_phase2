@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
-import { formatPriceCompact } from "@/lib/format";
+import { Price } from "@/features/currency/components/price";
 import { ProductCard } from "./product-card";
 import type { Product } from "../types";
 
@@ -478,15 +478,20 @@ export function MobileFilterListing({
                 <h3 className="flex min-h-[76px] items-center text-sm font-medium">
                   PRICE
                 </h3>
-                <div className="relative mx-1 h-7">
-                  <div className="absolute top-3 left-0 h-[3px] w-full bg-black/15" />
-                  <div
-                    className="absolute top-3 h-[3px] bg-[#0038b7]"
-                    style={{
-                      left: `${((draft.minPrice - priceMin) / Math.max(1, priceMax - priceMin)) * 100}%`,
-                      right: `${100 - ((draft.maxPrice - priceMin) / Math.max(1, priceMax - priceMin)) * 100}%`,
-                    }}
-                  />
+                {/* The inputs are exactly as tall as their square handles, so the
+                    handles sit centred on the line. The line runs between the
+                    handles' centres (8px in from each end). */}
+                <div className="relative mx-1 h-4">
+                  <div className="absolute inset-x-2 top-1/2 h-0.5 -translate-y-1/2 bg-black/15" />
+                  <div className="absolute inset-x-2 top-1/2 h-0.5 -translate-y-1/2">
+                    <div
+                      className="absolute inset-y-0 bg-[#0038b7]"
+                      style={{
+                        left: `${((draft.minPrice - priceMin) / Math.max(1, priceMax - priceMin)) * 100}%`,
+                        right: `${100 - ((draft.maxPrice - priceMin) / Math.max(1, priceMax - priceMin)) * 100}%`,
+                      }}
+                    />
+                  </div>
                   <input
                     aria-label="Minimum price"
                     type="range"
@@ -497,7 +502,7 @@ export function MobileFilterListing({
                     onChange={(event) =>
                       changeRange("minPrice", Number(event.target.value))
                     }
-                    className="pointer-events-none absolute inset-0 h-7 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#0038b7] [&::-moz-range-thumb]:bg-white [&::-webkit-slider-runnable-track]:h-7 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0038b7] [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-none"
+                    className="pointer-events-none absolute inset-0 m-0 h-4 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-none [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#0038b7] [&::-moz-range-thumb]:bg-white [&::-moz-range-track]:h-4 [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-4 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:box-border [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-none [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0038b7] [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-none"
                   />
                   <input
                     aria-label="Maximum price"
@@ -509,15 +514,15 @@ export function MobileFilterListing({
                     onChange={(event) =>
                       changeRange("maxPrice", Number(event.target.value))
                     }
-                    className="pointer-events-none absolute inset-0 h-7 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#0038b7] [&::-moz-range-thumb]:bg-white [&::-webkit-slider-runnable-track]:h-7 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0038b7] [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-none"
+                    className="pointer-events-none absolute inset-0 m-0 h-4 w-full appearance-none bg-transparent [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:box-border [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-none [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#0038b7] [&::-moz-range-thumb]:bg-white [&::-moz-range-track]:h-4 [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-4 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:box-border [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-none [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0038b7] [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-none"
                   />
                 </div>
                 <div className="mt-3 flex justify-between text-sm">
                   <span>
-                    {formatPriceCompact(draft.minPrice / 10, "USD", "en-US")}
+                    <Price amount={draft.minPrice} currency="INR" compact />
                   </span>
                   <span>
-                    {formatPriceCompact(draft.maxPrice / 10, "USD", "en-US")}
+                    <Price amount={draft.maxPrice} currency="INR" compact />
                   </span>
                 </div>
               </section>

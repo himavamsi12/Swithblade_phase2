@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { cartActions } from "@/features/cart/store";
+import { cartActions, openCart } from "@/features/cart/store";
 import { cn } from "@/lib/utils";
 import type { Product, ProductSize } from "../types";
-import { ColorPicker, firstAvailableSize, SizePicker } from "./option-pickers";
+import { ColorPicker, SizePicker } from "./option-pickers";
 import { useProductColor } from "./product-color";
 import { SizeGuideDialog } from "./size-guide-dialog";
 
@@ -36,7 +36,14 @@ export function ProductPurchase({
     index: colorIndex,
     setIndex: setColorIndex,
   } = useProductColor();
-  const [size, setSize] = useState(() => firstAvailableSize(sizes));
+  // No size until the shopper picks one (or the size guide picks it).
+  const [size, setSize] = useState<string | null>(null);
+  // Set when they try to buy before picking a size.
+  const [askSize, setAskSize] = useState(false);
+  const chooseSize = (label: string) => {
+    setSize(label);
+    setAskSize(false);
+  };
   const router = useRouter();
   const [justAdded, setJustAdded] = useState(false);
 
@@ -48,7 +55,15 @@ export function ProductPurchase({
   }, [justAdded]);
 
   const needsSize = sizes.length > 0 && !size;
-  const canBuy = product.inStock && !needsSize;
+  const canBuy = product.inStock;
+  /** Runs `buy` once a size is chosen; until then asks for one. */
+  const withSize = (buy: () => void) => () => {
+    if (needsSize) {
+      setAskSize(true);
+      return;
+    }
+    buy();
+  };
 
   const addToBag = () => {
     cartActions.add({
@@ -71,12 +86,12 @@ export function ProductPurchase({
         onChange={setColorIndex}
       />
 
-      <SizePicker sizes={sizes} value={size} onChange={setSize}>
+      <SizePicker sizes={sizes} value={size} onChange={chooseSize}>
         <SizeGuideDialog
           modelImage={modelImage}
           productName={product.name}
           sizes={sizes}
-          onSelectSize={setSize}
+          onSelectSize={chooseSize}
         />
       </SizePicker>
 
@@ -84,10 +99,11 @@ export function ProductPurchase({
         <button
           type="button"
           disabled={!canBuy}
-          onClick={() => {
+          onClick={withSize(() => {
             addToBag();
             setJustAdded(true);
-          }}
+            openCart();
+          })}
           className={cn(
             "h-10 bg-primary text-body-2 text-white transition-opacity hover:opacity-90 disabled:bg-stroke disabled:text-muted disabled:hover:opacity-100",
             focusRing,
@@ -95,17 +111,19 @@ export function ProductPurchase({
         >
           {!product.inStock
             ? "Out of stock"
-            : justAdded
-              ? "Added to Bag ✓"
-              : "Add to Bag"}
+            : askSize
+              ? "Select a size"
+              : justAdded
+                ? "Added to Bag ✓"
+                : "Add to Bag"}
         </button>
         <button
           type="button"
           disabled={!canBuy}
-          onClick={() => {
+          onClick={withSize(() => {
             addToBag();
             router.push("/cart");
-          }}
+          })}
           className={cn(
             "h-10 border border-primary bg-white text-body-2 text-primary transition-colors hover:bg-card disabled:border-stroke disabled:text-muted disabled:hover:bg-white",
             focusRing,
@@ -115,7 +133,11 @@ export function ProductPurchase({
         </button>
       </div>
       <p className="sr-only" aria-live="polite">
-        {justAdded ? `${product.name} added to your bag.` : ""}
+        {askSize
+          ? "Select a size first."
+          : justAdded
+            ? `${product.name} added to your bag.`
+            : ""}
       </p>
     </div>
   );

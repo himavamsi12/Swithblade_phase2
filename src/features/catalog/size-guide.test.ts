@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   averageProportions,
   cmToIn,
+  matchSize,
   proportionLabel,
   recommendSize,
 } from "./size-guide";
@@ -59,5 +60,19 @@ describe("proportionLabel", () => {
 describe("cmToIn", () => {
   it("converts to one decimal", () => {
     expect(cmToIn(91)).toBe(35.8);
+  });
+});
+
+describe("matchSize", () => {
+  const sizes = [{ label: "Small" }, { label: "m" }, { label: "XXL" }];
+
+  it("matches however the product spells the size", () => {
+    expect(matchSize(sizes, "S")).toEqual({ label: "Small" });
+    expect(matchSize(sizes, "M")).toEqual({ label: "m" });
+    expect(matchSize(sizes, "2XL")).toEqual({ label: "XXL" });
+  });
+
+  it("is null when the product doesn't come in that size", () => {
+    expect(matchSize(sizes, "XS")).toBeNull();
   });
 });

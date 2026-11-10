@@ -115,7 +115,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
 
           {count > 1 && (
             <>
-              <div className="absolute inset-x-0 bottom-[88px] flex justify-center gap-2">
+              <div className="absolute inset-x-0 bottom-[60px] flex justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => go(-1)}
@@ -142,7 +142,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                 </button>
               </div>
               <ul
-                className="absolute inset-x-0 bottom-[42px] flex items-center justify-center gap-2"
+                className="absolute inset-x-0 bottom-[24px] flex items-center justify-center gap-2"
                 aria-label="Product image pagination"
               >
                 {images.map((src, i) => (

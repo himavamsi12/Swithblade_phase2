@@ -5,13 +5,16 @@ import { cn } from "@/lib/utils";
 import { useWishlist, wishlistActions } from "../store";
 import type { WishlistItem } from "../wishlist";
 
-/** Heart toggle on the product page: filled when the product is saved. */
+/** Heart toggle on the product page and cards: filled when the product is saved. */
 export function WishlistButton({
   item,
   className,
+  iconClassName = "size-[22px] md:size-5",
 }: {
   item: WishlistItem;
   className?: string;
+  /** The heart's size: 22px on phones, 20px from tablet up by default. */
+  iconClassName?: string;
 }) {
   const { has, ready } = useWishlist();
   const saved = ready && has(item.productId);
@@ -28,7 +31,11 @@ export function WishlistButton({
           className,
         )}
       >
-        <Heart size={16} aria-hidden className={cn(saved && "fill-black")} />
+        <Heart
+          aria-hidden
+          strokeWidth={1.5}
+          className={cn(iconClassName, saved && "fill-black")}
+        />
       </button>
       <span className="sr-only" aria-live="polite">
         {ready ? (saved ? `${item.name} saved to your wishlist.` : "") : ""}

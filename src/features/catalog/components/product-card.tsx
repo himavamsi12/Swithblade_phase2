@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Price } from "@/features/currency/components/price";
+import { WishlistButton } from "@/features/wishlist/components/wishlist-button";
 import { cn } from "@/lib/utils";
 import type { Product } from "../types";
 import { QuickAddButton } from "./quick-add-button";
@@ -94,6 +95,24 @@ export function ProductCard({
             className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
           />
         )}
+        <WishlistButton
+          item={{
+            productId: product.id,
+            slug: product.slug,
+            name: product.name,
+            image: product.image,
+            imageFrame: product.imageFrame,
+            price: product.price,
+            currency: product.currency,
+            inStock: product.inStock,
+            colors: product.colors,
+            sizes: product.sizes,
+          }}
+          iconClassName="size-5"
+          // Above the card-wide link; shown on hover or keyboard focus, and
+          // always on touch screens, which have no hover.
+          className="absolute top-2 right-2 z-10 flex size-9 items-center justify-center opacity-0 group-hover:opacity-100 focus-visible:opacity-100 md:top-3 md:right-3 pointer-coarse:opacity-100"
+        />
         {product.highlighted && (
           <StarBadge className="absolute top-4 left-4 h-[44px] w-[29px]" />
         )}

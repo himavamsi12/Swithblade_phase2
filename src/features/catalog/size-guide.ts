@@ -182,3 +182,32 @@ export function recommendSize({
 }
 
 export const cmToIn = (cm: number) => Math.round((cm / 2.54) * 10) / 10;
+
+/** Spelled-out size names, mapped to the chart's short labels. */
+const sizeAliases: Record<string, string> = {
+  EXTRASMALL: "XS",
+  SMALL: "S",
+  MEDIUM: "M",
+  LARGE: "L",
+  EXTRALARGE: "XL",
+  XXL: "2XL",
+  XXXL: "3XL",
+};
+
+const sizeKey = (label: string) => {
+  const key = label.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return sizeAliases[key] ?? key;
+};
+
+/**
+ * The product's own size matching a chart size, so "Shop S" selects the
+ * product's "S" even when the product spells it "Small" or "s". Null if the
+ * product doesn't come in that size.
+ */
+export function matchSize<T extends { label: string }>(
+  sizes: T[],
+  chartSize: string,
+): T | null {
+  const key = sizeKey(chartSize);
+  return sizes.find((s) => sizeKey(s.label) === key) ?? null;
+}

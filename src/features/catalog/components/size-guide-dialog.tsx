@@ -9,6 +9,7 @@ import {
   type BodyPart,
   cmToIn,
   HEIGHT_RANGE,
+  matchSize,
   modelMeasurements,
   PROPORTION_MAX,
   PROPORTION_MIN,
@@ -45,7 +46,7 @@ const focusRing =
 const eyebrow =
   "text-body-4 tracking-[0.12em] text-muted uppercase md:text-body-3";
 const input =
-  "h-[46px] w-full border border-stroke bg-white px-4 text-body-1 text-black placeholder:text-dark-grey/50 focus:border-black focus:outline-none md:h-14 md:px-5 md:text-[18px]";
+  "h-[46px] w-full border border-stroke bg-white px-4 text-body-1 text-black placeholder:text-dark-grey/50 focus:border-black focus:outline-none md:h-12 md:px-4 md:text-body-1";
 const choice = (selected: boolean) =>
   cn(
     "border text-body-3 tracking-[0.12em] uppercase transition-colors md:text-body-2",
@@ -98,9 +99,11 @@ export function SizeGuideDialog({
           proportions,
         })
       : null;
-  const recommendedAvailable =
-    recommendation &&
-    sizes.find((s) => s.label === recommendation.size)?.available !== false;
+  // The product's own spelling of the recommended size, if it comes in it.
+  const recommended = recommendation
+    ? matchSize(sizes, recommendation.size)
+    : null;
+  const recommendedAvailable = Boolean(recommended?.available);
 
   const open = () => dialogRef.current?.showModal();
   const close = () => dialogRef.current?.close();
@@ -141,14 +144,14 @@ export function SizeGuideDialog({
         ref={dialogRef}
         aria-labelledby={`${id}-title`}
         onClick={(e) => e.target === e.currentTarget && close()}
-        className="m-auto h-dvh max-h-none w-full max-w-none bg-white p-0 text-black backdrop:bg-black/40 open:flex md:h-[min(860px,calc(100dvh-48px))] md:w-[min(1240px,calc(100vw-48px))]"
+        className="m-auto h-dvh max-h-none w-full max-w-none bg-white p-0 text-black backdrop:bg-black/40 open:flex md:h-[min(680px,calc(100dvh-48px))] md:w-[min(1000px,calc(100vw-48px))]"
       >
         <h2 id={`${id}-title`} className="sr-only">
           Size guide for {productName}
         </h2>
 
         {/* Model photo and measurements */}
-        <aside className="hidden w-[36%] shrink-0 flex-col bg-card md:flex">
+        <aside className="hidden w-[32%] shrink-0 flex-col bg-card md:flex">
           <div className="relative flex-1">
             {modelImage && (
               <Image
@@ -185,7 +188,7 @@ export function SizeGuideDialog({
 
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Tabs */}
-          <div className="flex items-center justify-between border-b border-stroke pr-4 pl-4 md:pr-14 md:pl-14">
+          <div className="flex items-center justify-between border-b border-stroke pr-4 pl-4 md:pr-10 md:pl-10">
             <div
               role="tablist"
               aria-label="Size guide"
@@ -203,7 +206,7 @@ export function SizeGuideDialog({
                   onClick={() => setTab(t.id)}
                   onKeyDown={onTabKeyDown}
                   className={cn(
-                    "-mb-px h-[58px] shrink-0 border-b-2 text-body-4 tracking-[0.06em] whitespace-nowrap uppercase md:h-[68px] md:text-body-2 md:tracking-[0.14em]",
+                    "-mb-px h-[58px] shrink-0 border-b-2 text-body-4 tracking-[0.06em] whitespace-nowrap uppercase md:h-[60px] md:text-body-2 md:tracking-[0.14em]",
                     tab === t.id
                       ? "border-black font-semibold text-black md:font-semibold"
                       : "border-transparent text-muted hover:text-black",
@@ -235,7 +238,7 @@ export function SizeGuideDialog({
               aria-labelledby={`${id}-tab-find`}
               className="flex min-h-0 flex-1 flex-col"
             >
-              <div className="flex-1 overflow-y-auto px-5 pt-8 pb-6 md:px-14 md:pt-[34px]">
+              <div className="flex-1 overflow-y-auto px-5 pt-8 pb-6 md:px-10 md:pt-7">
                 <p className={eyebrow}>
                   Step <span className="font-semibold text-black">{step}</span>{" "}
                   / 3
@@ -243,10 +246,10 @@ export function SizeGuideDialog({
 
                 {step === 1 && (
                   <>
-                    <h3 className="mt-7 text-h4 font-normal md:mt-12 md:text-[32px]">
+                    <h3 className="mt-6 text-h4 font-normal md:mt-8">
                       Tell us your height &amp; weight.
                     </h3>
-                    <div className="mt-6 grid gap-6 md:mt-10 md:grid-cols-2 md:gap-x-4 md:gap-y-8">
+                    <div className="mt-6 grid gap-5 md:mt-6 md:grid-cols-2 md:gap-x-4 md:gap-y-5">
                       <label className="flex flex-col gap-3">
                         <span className={eyebrow}>Height (cm)</span>
                         <input
@@ -298,7 +301,7 @@ export function SizeGuideDialog({
                               aria-pressed={gender === g}
                               onClick={() => setGender(g)}
                               className={cn(
-                                "h-10 md:h-14",
+                                "h-10 md:h-11",
                                 choice(gender === g),
                               )}
                             >
@@ -313,16 +316,16 @@ export function SizeGuideDialog({
 
                 {step === 2 && (
                   <>
-                    <p className={cn(eyebrow, "mt-7 md:mt-10")}>
+                    <p className={cn(eyebrow, "mt-6 md:mt-7")}>
                       Your proportions
                     </p>
-                    <h3 className="mt-2 text-h4 font-normal md:text-[32px]">
+                    <h3 className="mt-2 text-h4 font-normal">
                       How do you carry your frame?
                     </h3>
                     <p className="mt-2 text-body-2 text-muted md:text-body-1">
                       Compare yourself to others of similar height and weight.
                     </p>
-                    <div className="mt-8 flex flex-col gap-7 md:mt-10 md:gap-9">
+                    <div className="mt-7 flex flex-col gap-6 md:mt-7 md:gap-6">
                       {bodyParts.map((part) => (
                         <ProportionSlider
                           key={part}
@@ -339,22 +342,24 @@ export function SizeGuideDialog({
 
                 {step === 3 && recommendation && (
                   <div aria-live="polite">
-                    <p className={cn(eyebrow, "mt-7 md:mt-10")}>Your result</p>
-                    <h3 className="mt-2 text-h4 font-normal md:text-[32px]">
+                    <p className={cn(eyebrow, "mt-6 md:mt-7")}>Your result</p>
+                    <h3 className="mt-2 text-h4 font-normal">
                       Your recommended size.
                     </h3>
                     <p
-                      className="mt-6 flex size-20 items-center justify-center border-2 border-black text-[32px] font-semibold md:mt-8 md:size-28 md:text-[44px]"
+                      className="mt-6 flex size-20 items-center justify-center border-2 border-black text-[32px] font-semibold md:mt-6 md:size-24 md:text-[36px]"
                       aria-label={`Size ${recommendation.size}`}
                     >
                       {recommendation.size}
                     </p>
-                    <p className="mt-6 text-body-2 text-muted md:mt-8 md:text-body-1">
+                    <p className="mt-5 text-body-2 text-muted md:mt-6 md:text-body-1">
                       {recommendedAvailable
                         ? "There is a good chance that this size will fit you perfectly"
-                        : `Size ${recommendation.size} is sold out in this style right now.`}
+                        : recommended
+                          ? `Size ${recommendation.size} is sold out in this style right now.`
+                          : `This style doesn't come in size ${recommendation.size}.`}
                     </p>
-                    <div className="mt-6 bg-card px-4 py-4 md:mt-8 md:px-6 md:py-5">
+                    <div className="mt-5 bg-card px-4 py-4 md:mt-6 md:px-5 md:py-4">
                       <p className="text-body-4 tracking-[0.12em] text-black uppercase md:text-body-3">
                         Note
                       </p>
@@ -371,7 +376,7 @@ export function SizeGuideDialog({
 
               <div
                 className={cn(
-                  "flex items-center gap-4 border-t border-stroke px-5 py-5 md:px-14",
+                  "flex items-center gap-4 border-t border-stroke px-5 py-4 md:px-10",
                   step > 1 && "justify-between",
                 )}
               >
@@ -416,7 +421,7 @@ export function SizeGuideDialog({
                       type="button"
                       disabled={!recommendedAvailable}
                       onClick={() => {
-                        onSelectSize(recommendation.size);
+                        if (recommended) onSelectSize(recommended.label);
                         close();
                       }}
                       className={cn(primaryButton, focusRing)}
@@ -435,7 +440,7 @@ export function SizeGuideDialog({
               id={`${id}-panel-chart`}
               role="tabpanel"
               aria-labelledby={`${id}-tab-chart`}
-              className="flex-1 overflow-y-auto px-5 pt-8 pb-8 md:px-14"
+              className="flex-1 overflow-y-auto px-5 pt-8 pb-8 md:px-10"
             >
               <div className="flex items-center justify-between gap-4">
                 <p className={eyebrow}>Body measurements</p>
@@ -499,9 +504,9 @@ export function SizeGuideDialog({
               id={`${id}-panel-measure`}
               role="tabpanel"
               aria-labelledby={`${id}-tab-measure`}
-              className="flex-1 overflow-y-auto px-5 pt-8 pb-8 md:px-14"
+              className="flex-1 overflow-y-auto px-5 pt-8 pb-8 md:px-10"
             >
-              <h3 className="text-h4 font-normal md:text-[32px]">
+              <h3 className="text-h4 font-normal">
                 Measure over light clothing.
               </h3>
               <p className="mt-2 text-body-2 text-muted">
