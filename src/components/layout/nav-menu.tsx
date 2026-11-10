@@ -13,11 +13,9 @@ type NavMenuProps = {
 };
 
 /**
- * A header nav entry that opens a list of links below it on click, on a white
- * panel so the page behind (e.g. a product photo) doesn't show through.
- * While open it carries `data-header-panel-open`, like search and the bag,
- * so a white header turns black on white. Closes on Escape, an outside
- * click, or following a link.
+ * A header nav entry that opens a list of links below it on click, on a
+ * see-through dark panel with white text, so the links stay readable over
+ * photos on any page. Closes on Escape, an outside click, or following a link.
  */
 export function NavMenu({ label, items, className }: NavMenuProps) {
   const [open, setOpen] = useState(false);
@@ -44,11 +42,7 @@ export function NavMenu({ label, items, className }: NavMenuProps) {
   }, [open]);
 
   return (
-    <div
-      ref={rootRef}
-      className="relative"
-      data-header-panel-open={open || undefined}
-    >
+    <div ref={rootRef} className="relative">
       <button
         ref={buttonRef}
         type="button"
@@ -64,7 +58,7 @@ export function NavMenu({ label, items, className }: NavMenuProps) {
         id={listId}
         // `invisible` (not `hidden`) so the list can fade out before it goes.
         className={cn(
-          "absolute top-full -left-4 z-10 flex min-w-56 flex-col gap-3 bg-white px-4 pt-[25px] pb-6 text-black shadow-[0_12px_24px_rgb(0_0_0/0.06)] transition-[opacity,visibility] duration-300 motion-reduce:transition-none",
+          "absolute top-full -left-4 z-10 mt-3 flex min-w-56 flex-col gap-3 bg-black/55 px-4 pt-5 pb-6 text-white backdrop-blur-sm transition-[opacity,visibility] duration-300 motion-reduce:transition-none",
           !open && "invisible opacity-0",
         )}
       >

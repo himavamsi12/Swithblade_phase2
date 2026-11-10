@@ -77,8 +77,7 @@ export function HeaderSearch({ icon, className }: HeaderSearchProps) {
         {icon}
       </button>
 
-      {/* Dims the page below the header; the header isn't sticky, so it's
-          always at the top of the screen when the panel is open. */}
+      {/* Dims the page below the header, which stays at the top of the screen. */}
       <div
         aria-hidden
         onClick={close}

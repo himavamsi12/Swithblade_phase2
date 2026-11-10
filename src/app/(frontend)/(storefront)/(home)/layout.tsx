@@ -1,7 +1,7 @@
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 
-/** Home: the white header overlays the full-bleed hero. */
+/** Home: the white header overlays the full-bleed hero and stays at the top. */
 export default function HomeLayout({ children }: LayoutProps<"/">) {
   return (
     <>
@@ -9,7 +9,7 @@ export default function HomeLayout({ children }: LayoutProps<"/">) {
         <SiteHeader
           tone="white"
           mobileHome
-          className="absolute inset-x-0 top-0 z-10"
+          className="fixed inset-x-0 top-0 z-40"
         />
         <main>{children}</main>
       </div>

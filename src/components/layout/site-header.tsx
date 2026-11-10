@@ -5,6 +5,7 @@ import { CartDrawer } from "@/features/cart/components/cart-drawer";
 import { HeaderCurrency } from "@/features/currency/components/header-currency";
 import { HeaderSearch } from "@/features/search/components/header-search";
 import { cn } from "@/lib/utils";
+import { HeaderScrolled } from "./header-scrolled";
 import { MobileNavMenu } from "./mobile-nav-menu";
 import { NavMenu } from "./nav-menu";
 import { headerAssets, type HeaderTone } from "./site-header-assets";
@@ -79,10 +80,11 @@ export function SiteHeader({
         className,
       )}
     >
+      {tone === "white" && <HeaderScrolled />}
       <div
         className={cn(
           "relative mx-auto grid max-w-480 grid-cols-[1fr_auto_1fr] items-center gap-y-0 px-4 py-4 md:flex md:flex-nowrap md:justify-between md:gap-y-4 md:px-10 md:py-5",
-          mobileHome && "px-6 pt-6 pb-0",
+          mobileHome && "px-6 pt-6 pb-4",
         )}
       >
         <MobileNavMenu items={siteConfig.nav} homeLayout={mobileHome} />

@@ -45,7 +45,7 @@ export default async function ProductPage({
         <div className="grid gap-8 pt-6 md:pt-12 lg:grid-cols-[7fr_3fr]">
           <ColorGallery images={product.gallery} name={product.name} />
 
-          <div className="lg:sticky lg:top-6 lg:self-start lg:pt-11 lg:pl-11">
+          <div className="lg:sticky lg:top-24 lg:self-start lg:pt-11 lg:pl-11">
             <div className="flex items-start justify-between gap-4">
               <div className="flex flex-col gap-1">
                 <h1 className="text-body-1 uppercase">{product.name}</h1>

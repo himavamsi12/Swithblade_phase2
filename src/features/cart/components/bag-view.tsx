@@ -75,7 +75,7 @@ export function BagView({
               <BagLine key={lineKey(line)} line={line} />
             ))}
           </ul>
-          <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
+          <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
             <OrderSummary
               lines={lines}
               accountEmail={accountEmail}
