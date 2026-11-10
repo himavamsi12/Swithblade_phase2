@@ -381,7 +381,6 @@ export async function listReturnReasons() {
 
 export type ReturnPhoto = {
   file: { data: Buffer; mimetype: string; name: string; size: number };
-  caption: string;
 };
 
 export type ReturnRequest = {
@@ -540,10 +539,10 @@ export async function createCustomerReturn(
     }
 
     const photos = [];
-    for (const { file, caption } of request.photos) {
+    for (const { file } of request.photos) {
       const photo = await payload.create({
         collection: "return-photos",
-        data: { customer: customerId, caption },
+        data: { customer: customerId },
         file,
         depth: 0,
         req,

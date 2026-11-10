@@ -16,12 +16,7 @@ import { cn } from "@/lib/utils";
 import { requestReturn } from "../actions";
 import type { OrderView } from "../customer";
 import { resizePhoto } from "../resize-photo";
-import {
-  idle,
-  MAX_RETURN_PHOTOS,
-  MIN_RETURN_PHOTOS,
-  PHOTO_CAPTION_MAX,
-} from "../schema";
+import { idle, MAX_RETURN_PHOTOS, MIN_RETURN_PHOTOS } from "../schema";
 import {
   AccountModal,
   fillButton,
@@ -81,7 +76,7 @@ export const ReturnOrderDialog = forwardRef<
   );
 });
 
-type Photo = { file: File; url: string; caption: string };
+type Photo = { file: File; url: string };
 type Step = 0 | 1 | 2;
 
 function ReturnSteps({
@@ -140,9 +135,7 @@ function ReturnSteps({
       photos:
         photos.length < MIN_RETURN_PHOTOS
           ? `Please add at least ${MIN_RETURN_PHOTOS} pictures (front and back).`
-          : photos.some((p) => !p.caption.trim())
-            ? "Please add a caption to each picture."
-            : undefined,
+          : undefined,
     };
     setErrors(next);
     if (!next.reason && !next.note && !next.photos) go(2);
@@ -154,10 +147,7 @@ function ReturnSteps({
     form.set("note", note);
     for (const item of chosen)
       form.set(`qty:${item.key}`, String(picked[item.key]));
-    for (const photo of photos) {
-      form.append("photos", photo.file);
-      form.append("captions", photo.caption.trim());
-    }
+    for (const photo of photos) form.append("photos", photo.file);
     startTransition(() => action(form));
   };
 
@@ -317,10 +307,7 @@ function ReturnSteps({
             error={errors.photos}
             onChange={(next) => {
               setPhotos(next);
-              if (
-                next.length >= MIN_RETURN_PHOTOS &&
-                next.every((p) => p.caption.trim())
-              ) {
+              if (next.length >= MIN_RETURN_PHOTOS) {
                 setErrors((x) => ({ ...x, photos: undefined }));
               }
             }}
@@ -385,12 +372,7 @@ function ReturnSteps({
             <dt className="text-body-4 text-muted uppercase">Pictures</dt>
             <dd className="flex flex-wrap gap-2">
               {photos.map((p) => (
-                <figure key={p.url} className="flex w-16 flex-col gap-1">
-                  <PhotoPreview url={p.url} size="lg" />
-                  <figcaption className="text-[10px] leading-tight break-words text-muted">
-                    {p.caption}
-                  </figcaption>
-                </figure>
+                <PhotoPreview key={p.url} url={p.url} size="lg" />
               ))}
             </dd>
           </dl>
@@ -604,9 +586,6 @@ function ProductChoice({
   );
 }
 
-/** Suggested captions for the first pictures: front, then back. */
-const CAPTION_HINTS = ["Front", "Back"];
-
 function PhotoPicker({
   photos,
   error,
@@ -632,7 +611,6 @@ function PhotoPicker({
         added.push({
           file: small,
           url: URL.createObjectURL(small),
-          caption: "",
         });
       } catch {
         setReadError(`Couldn't read ${file.name}. Try a JPG, PNG or WEBP.`);
@@ -658,39 +636,18 @@ function PhotoPicker({
         </p>
       </div>
       <p className="mt-1 text-body-4 text-dark-grey">
-        Upload at least {MIN_RETURN_PHOTOS} photos (front and back) with
-        captions. You can upload up to {MAX_RETURN_PHOTOS} images.
+        Upload at least {MIN_RETURN_PHOTOS} photos (front and back). You can
+        upload up to {MAX_RETURN_PHOTOS} images.
       </p>
 
       {photos.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mt-3 flex flex-wrap gap-2">
           {photos.map((p, i) => (
             <li
               key={p.url}
-              className="flex items-center gap-3 border border-stroke p-2"
+              className="flex items-start gap-1 border border-stroke p-2"
             >
               <PhotoPreview url={p.url} size="lg" />
-              <label className="min-w-0 flex-1">
-                <span className="sr-only">Caption for picture {i + 1}</span>
-                <input
-                  type="text"
-                  value={p.caption}
-                  maxLength={PHOTO_CAPTION_MAX}
-                  aria-invalid={Boolean(error) && !p.caption.trim()}
-                  placeholder={`Caption, e.g. ${CAPTION_HINTS[i] ?? "Damage close-up"}`}
-                  onChange={(e) =>
-                    onChange(
-                      photos.map((x) =>
-                        x === p ? { ...x, caption: e.target.value } : x,
-                      ),
-                    )
-                  }
-                  className={cn(
-                    "h-10 w-full border border-stroke px-3 text-body-3 placeholder:text-muted aria-invalid:border-red-600 max-md:text-[16px]",
-                    focusRing,
-                  )}
-                />
-              </label>
               <button
                 type="button"
                 onClick={() => {

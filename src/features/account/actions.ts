@@ -13,7 +13,6 @@ import {
   profileSchema,
   MAX_RETURN_PHOTOS,
   MIN_RETURN_PHOTOS,
-  PHOTO_CAPTION_MAX,
   returnRequestSchema,
   splitName,
   type FormState,
@@ -177,7 +176,7 @@ const EXTENSION: Record<string, string> = {
 /**
  * Requests a return for one of the shopper's orders, for staff to review.
  * Items arrive as `qty:<line id>` fields (a line left out isn't returned),
- * photos as `photos` files with a `captions` entry each, in the same order.
+ * photos as `photos` files.
  */
 export async function requestReturn(
   _prev: FormState,
@@ -204,9 +203,6 @@ export async function requestReturn(
   const files = formData
     .getAll("photos")
     .filter((f): f is File => f instanceof File && f.size > 0);
-  const captions = formData
-    .getAll("captions")
-    .map((c) => (typeof c === "string" ? c.trim() : ""));
   const total = files.reduce((sum, f) => sum + f.size, 0);
   if (files.length < MIN_RETURN_PHOTOS) {
     return {
@@ -214,15 +210,6 @@ export async function requestReturn(
       fieldErrors: {
         photos: `Please add at least ${MIN_RETURN_PHOTOS} pictures (front and back).`,
       },
-    };
-  }
-  if (
-    captions.length !== files.length ||
-    captions.some((c) => !c || c.length > PHOTO_CAPTION_MAX)
-  ) {
-    return {
-      status: "error",
-      fieldErrors: { photos: "Please add a caption to each picture." },
     };
   }
   if (
@@ -249,10 +236,7 @@ export async function requestReturn(
     }
     // Our own name, never the shopper's: it becomes the stored file name.
     const name = `return-${session.customer.id}-${Date.now()}-${i + 1}.${EXTENSION[mimetype]}`;
-    photos.push({
-      file: { data, mimetype, name, size: data.length },
-      caption: captions[i]!,
-    });
+    photos.push({ file: { data, mimetype, name, size: data.length } });
   }
 
   let result;

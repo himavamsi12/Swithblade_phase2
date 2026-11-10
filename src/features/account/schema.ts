@@ -59,7 +59,6 @@ export const addressSchema = z.object({
 /** Pictures a shopper attaches to a return request (front and back at least). */
 export const MIN_RETURN_PHOTOS = 2;
 export const MAX_RETURN_PHOTOS = 5;
-export const PHOTO_CAPTION_MAX = 80;
 
 export const returnRequestSchema = z.object({
   orderId: z.coerce.number().int().positive(),
