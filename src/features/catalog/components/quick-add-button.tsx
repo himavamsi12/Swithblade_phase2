@@ -2,7 +2,7 @@
 
 import { Check, ShoppingCartPlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { cartActions } from "@/features/cart/store";
+import { cartActions, openCart } from "@/features/cart/store";
 import type { CartItemInput } from "@/features/cart/types";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +37,7 @@ export function QuickAddButton({
         onClick={() => {
           cartActions.add(item);
           setAdded(true);
+          openCart();
         }}
         aria-label={`Add ${item.name}${details ? ` (${details})` : ""} to bag`}
         className={cn(

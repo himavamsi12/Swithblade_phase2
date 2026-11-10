@@ -2,13 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, X } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Minus, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChargeNote } from "@/features/currency/components/charge-note";
 import { Price } from "@/features/currency/components/price";
 import { cn } from "@/lib/utils";
 import { MAX_QUANTITY, subtotals } from "../cart";
-import { cartActions, lineKey, syncBag, useCart } from "../store";
+import {
+  cartActions,
+  lineKey,
+  OPEN_CART_EVENT,
+  syncBag,
+  useCart,
+} from "../store";
 import type { CartLine } from "../types";
 
 const focusRing =
@@ -21,34 +29,34 @@ type CartDrawerProps = {
 };
 
 /**
- * The header's bag button and the cart drawer it opens on the right, under
- * the header. While open, the drawer carries `data-header-panel-open` so the
- * header turns black on white (as for search), the bag icon becomes a close
- * button, and the page behind stops scrolling.
+ * The header's bag button and the full-height cart drawer it opens on the
+ * right, over a dark overlay. Adding to the bag anywhere opens it too (see
+ * `openCart`). On the cart page itself the button is just a link there.
  *
- * The drawer stays mounted so it can slide both ways; it's `inert` and
- * `invisible` while closed.
+ * The drawer stays mounted (in a portal, above everything) so it can slide
+ * both ways; it's `inert` and `invisible` while closed.
  */
 export function CartDrawer({ icon, className }: CartDrawerProps) {
   const [open, setOpen] = useState(false);
-  // Where the drawer starts: the header's bottom edge, or the top of the
-  // screen once the header has scrolled away. Measured on open; the page
-  // can't scroll while the drawer is open.
-  const [top, setTop] = useState(0);
   const button = useRef<HTMLButtonElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const panelId = useId();
   const headingId = useId();
-  const { lines, ready } = useCart();
+  const { lines, count, ready } = useCart();
+  const onCartPage = usePathname() === "/cart";
 
-  const openDrawer = () => {
-    const header = button.current?.closest("header");
-    setTop(Math.max(0, header?.getBoundingClientRect().bottom ?? 0));
-    setOpen(true);
-    // Show what was added on the shopper's other devices.
-    void syncBag();
-  };
   const close = () => setOpen(false);
+
+  // Opened from elsewhere, e.g. right after adding to the bag.
+  useEffect(() => {
+    if (onCartPage) return;
+    const onOpen = () => {
+      setOpen(true);
+      void syncBag();
+    };
+    window.addEventListener(OPEN_CART_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_CART_EVENT, onOpen);
+  }, [onCartPage]);
 
   useEffect(() => {
     if (!open) return;
@@ -69,56 +77,68 @@ export function CartDrawer({ icon, className }: CartDrawerProps) {
 
   const totals = subtotals(lines);
 
-  return (
-    <>
-      <button
-        ref={button}
-        type="button"
-        aria-label={open ? "Close cart" : "Cart"}
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={open ? close : openDrawer}
-        className={className}
-      >
-        {open ? <X size={18} strokeWidth={1.25} aria-hidden /> : icon}
-      </button>
+  if (onCartPage) {
+    return (
+      <Link href="/cart" aria-label="Cart" className={className}>
+        {icon}
+      </Link>
+    );
+  }
 
-      {/* Catches clicks on the page beside the drawer. */}
+  const drawer = (
+    <>
       <div
         aria-hidden
         onClick={close}
-        style={{ top }}
-        className={cn("fixed inset-x-0 bottom-0", !open && "hidden")}
+        className={cn(
+          "fixed inset-0 z-[90] bg-black/50 transition-[opacity,visibility] duration-300 motion-reduce:transition-none",
+          open ? "visible opacity-100" : "invisible opacity-0",
+        )}
       />
       <div
         id={panelId}
         role="dialog"
+        aria-modal="true"
         aria-labelledby={headingId}
-        data-header-panel-open={open || undefined}
         data-cart-open={open || undefined}
         inert={!open}
-        style={{ top }}
         // Following a link inside the drawer closes it.
         onClick={(e) => {
           if ((e.target as Element).closest("a")) close();
         }}
         className={cn(
-          "fixed right-0 bottom-0 flex w-full flex-col bg-white text-black motion-reduce:transition-none md:w-[400px]",
+          "fixed inset-y-0 right-0 z-[91] flex w-full flex-col bg-white text-black motion-reduce:transition-none md:w-[400px]",
           open
             ? "visible translate-x-0 transition-[translate] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
             : "invisible translate-x-full transition-[translate,visibility] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
         )}
       >
-        <h2
-          id={headingId}
-          ref={heading}
-          tabIndex={-1}
-          className="px-4 pt-5 text-h4 font-semibold uppercase outline-none md:px-6"
-        >
-          Cart
-        </h2>
+        <div className="flex items-center justify-between gap-4 px-4 pt-5 md:px-6">
+          <h2
+            id={headingId}
+            ref={heading}
+            tabIndex={-1}
+            className="text-[22px] leading-tight font-semibold uppercase outline-none"
+          >
+            Cart{count > 0 ? ` (${count})` : ""}
+          </h2>
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              button.current?.focus();
+            }}
+            aria-label="Close cart"
+            className={cn(
+              "flex size-8 shrink-0 items-center justify-center transition-opacity hover:opacity-60",
+              focusRing,
+            )}
+          >
+            <X size={20} strokeWidth={1.5} aria-hidden />
+          </button>
+        </div>
 
-        {!ready ? null : lines.length === 0 ? (
+        {lines.length === 0 ? (
           <p className="mt-6 px-4 text-center text-body-3 md:px-6">
             Your cart is empty.
           </p>
@@ -172,6 +192,27 @@ export function CartDrawer({ icon, className }: CartDrawerProps) {
           </>
         )}
       </div>
+    </>
+  );
+
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        aria-label="Cart"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => {
+          setOpen(true);
+          // Show what was added on the shopper's other devices.
+          void syncBag();
+        }}
+        className={className}
+      >
+        {icon}
+      </button>
+      {ready && createPortal(drawer, document.body)}
     </>
   );
 }
@@ -254,11 +295,11 @@ function DrawerLine({ line }: { line: CartLine }) {
             onClick={() => cartActions.remove(key)}
             aria-label={`Remove ${line.name} from cart`}
             className={cn(
-              "text-body-4 text-muted underline underline-offset-2 transition-opacity hover:opacity-70",
+              "flex size-8 items-center justify-center text-dark-grey transition-colors hover:text-red-600",
               focusRing,
             )}
           >
-            Remove
+            <Trash2 size={16} strokeWidth={1.5} aria-hidden />
           </button>
         </div>
       </div>

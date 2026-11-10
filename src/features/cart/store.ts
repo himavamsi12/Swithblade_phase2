@@ -85,6 +85,14 @@ export const cartActions = {
   clear: () => commit(() => EMPTY),
 };
 
+/** Window event the header's cart drawer listens for to open itself. */
+export const OPEN_CART_EVENT = "switchblade:open-cart";
+
+/** Opens the cart drawer, e.g. to show what was just added. */
+export function openCart() {
+  window.dispatchEvent(new Event(OPEN_CART_EVENT));
+}
+
 /**
  * Brings this browser's bag in line with the account. Signing in merges the
  * guest bag into the saved one; signing out empties the bag here (it stays on

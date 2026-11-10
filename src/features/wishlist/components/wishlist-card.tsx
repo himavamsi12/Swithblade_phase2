@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { cartActions } from "@/features/cart/store";
+import { cartActions, openCart } from "@/features/cart/store";
 import {
   ColorPicker,
   firstAvailableSize,
@@ -116,6 +116,7 @@ export function WishlistCard({ item }: { item: WishlistItem }) {
             size,
           });
           setJustAdded(true);
+          openCart();
         }}
         className={cn(
           "mt-4 h-10 w-full bg-primary text-body-2 text-white transition-opacity hover:opacity-90 disabled:bg-stroke disabled:text-muted disabled:hover:opacity-100",
