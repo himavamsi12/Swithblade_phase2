@@ -111,6 +111,27 @@ export const returnStatusLabel: Record<ReturnStatus, string> = {
   canceled: "Cancelled",
 };
 
+/**
+ * The return badge for an order card, next to the order's own status:
+ * "Return processing" while any return is open, else "Refunded" if the
+ * newest return was refunded. Nothing for rejected or cancelled returns.
+ */
+export function orderReturnBadge(
+  returns: { status: ReturnStatus }[],
+): "processing" | "refunded" | null {
+  if (
+    returns.some((r) =>
+      ["requested", "approved", "received", "partially_received"].includes(
+        r.status,
+      ),
+    )
+  ) {
+    return "processing";
+  }
+  // Returns come newest first.
+  return returns[0]?.status === "refunded" ? "refunded" : null;
+}
+
 export type ReturnStep = {
   key: "submitted" | "review" | "approved" | "refunded";
   label: string;

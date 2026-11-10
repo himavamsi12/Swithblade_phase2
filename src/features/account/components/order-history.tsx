@@ -9,7 +9,7 @@ import { siteConfig } from "@/config/site";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { OrderStatusKey, OrderView } from "../customer";
-import { returnRequestHref } from "../return-request";
+import { orderReturnBadge, returnRequestHref } from "../return-request";
 import {
   ReturnOrderDialog,
   type ReturnReasonOption,
@@ -28,6 +28,14 @@ const statusStyles: Record<
   delivered: { label: "Delivered", className: "bg-[#ecf7ef] text-[#1e7a3c]" },
   returned: { label: "Returned", className: "bg-card text-dark-grey" },
   cancelled: { label: "Cancelled", className: "bg-[#fdeeee] text-red-600" },
+};
+
+const returnBadgeStyles = {
+  processing: {
+    label: "Return processing",
+    className: "bg-[#fff5e6] text-[#9a5b00]",
+  },
+  refunded: { label: "Refunded", className: "bg-card text-dark-grey" },
 };
 
 const date = (iso: string) =>
@@ -81,6 +89,8 @@ function OrderCard({
   const hasReturns = order.returns.length > 0;
   const panelId = useId();
   const status = statusStyles[order.status];
+  const returnKind = orderReturnBadge(order.returns);
+  const returnBadge = returnKind ? returnBadgeStyles[returnKind] : null;
 
   // Collapsed cards show a compact summary; the open card spells out dates.
   const facts: [string, string][] = [
@@ -120,13 +130,21 @@ function OrderCard({
             </div>
           ))}
         </dl>
-        <span
-          className={cn(
-            "shrink-0 px-2.5 py-1 text-body-4 font-semibold tracking-[0.04em] uppercase",
-            status.className,
+        <span className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
+          {[status, returnBadge].map(
+            (badge) =>
+              badge && (
+                <span
+                  key={badge.label}
+                  className={cn(
+                    "px-2.5 py-1 text-body-4 font-semibold tracking-[0.04em] whitespace-nowrap uppercase",
+                    badge.className,
+                  )}
+                >
+                  {badge.label}
+                </span>
+              ),
           )}
-        >
-          {status.label}
         </span>
         <ChevronDown
           size={16}

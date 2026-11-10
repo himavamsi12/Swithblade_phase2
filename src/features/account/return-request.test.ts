@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   canRequestReturn,
   orderReasons,
+  orderReturnBadge,
   returnedByLine,
   returnRequestHref,
   returnSteps,
@@ -149,5 +150,31 @@ describe("orderReasons", () => {
       "late",
       "other",
     ]);
+  });
+});
+
+describe("orderReturnBadge", () => {
+  const of = (...statuses: ReturnStatus[]) =>
+    orderReturnBadge(statuses.map((status) => ({ status })));
+
+  it("shows nothing without returns", () => {
+    expect(of()).toBeNull();
+  });
+
+  it("shows processing while any return is open", () => {
+    expect(of("requested")).toBe("processing");
+    expect(of("approved")).toBe("processing");
+    expect(of("partially_received")).toBe("processing");
+    expect(of("refunded", "received")).toBe("processing");
+  });
+
+  it("shows refunded when the newest return was refunded", () => {
+    expect(of("refunded")).toBe("refunded");
+    expect(of("rejected", "refunded")).toBeNull();
+  });
+
+  it("shows nothing for rejected or cancelled returns", () => {
+    expect(of("rejected")).toBeNull();
+    expect(of("canceled")).toBeNull();
   });
 });
