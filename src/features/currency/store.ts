@@ -60,7 +60,8 @@ const subscribeRates = (listener: () => void) => {
   return () => rateListeners.delete(listener);
 };
 
-function useRates(enabled: boolean) {
+/** INR-based rates, loaded once `enabled` is first true; null until then. */
+export function useExchangeRates(enabled: boolean) {
   useEffect(() => {
     if (enabled) loadRates();
   }, [enabled]);
@@ -78,7 +79,7 @@ function useRates(enabled: boolean) {
 export function useDisplayCurrency() {
   const { currency } = store.useValue();
   const target = currency ?? "INR";
-  const loaded = useRates(target !== "INR");
+  const loaded = useExchangeRates(target !== "INR");
 
   const toDisplay = (amount: number, from: string) => {
     const converted =
