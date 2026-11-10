@@ -145,8 +145,10 @@ the hourly safety net above are prerequisites for several of these.
       out sales made at the same time. Use "+5 received" style adjustments.
 - [ ] Shipments: reconcile tracking status, "AWB but no pickup after 24 h",
       RTO, lost parcels (all manual now; `deliveredAt` is typed by staff).
-- [ ] Returns: shoppers request them with photos; staff set Approved, which
-      creates the Shiprocket return order (courier still assigned in the panel). Still manual: courier
+- [ ] Returns: shoppers request them with photos, which creates the Shiprocket
+      return order straight away; staff approve it in Shiprocket's panel by
+      assigning a courier (books the pickup). Rejecting a return here does not
+      cancel it in Shiprocket yet. Still manual: courier
       assignment, QC at pickup, restocking, refund, exchange orders.
 - [ ] Check SPF, DKIM and DMARC for the sending domain in DNS.
 - [ ] WhatsApp / SMS order messages (none yet; email only).

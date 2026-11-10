@@ -191,7 +191,7 @@ export const Returns: CollectionConfig = {
       },
     ],
     afterChange: [
-      // An approved return gets its Shiprocket return order, once. Loaded
+      // A requested or approved return gets its Shiprocket return order, once. Loaded
       // lazily: the shipping code is server-only and imports this config.
       async ({ doc, req, context }) => {
         const { SHIPROCKET_RETURN_CONTEXT, sendReturnToShiprocket } =

@@ -78,11 +78,20 @@ describe("sendReturnToShiprocket", () => {
     expect(createReturnOrder).not.toHaveBeenCalled();
   });
 
-  it("waits until staff approve the return", async () => {
+  it("sends the return as soon as the shopper requests it", async () => {
     stored.status = "requested";
-    expect(await sendReturnToShiprocket(3, req)).toBeNull();
-    expect(createReturnOrder).not.toHaveBeenCalled();
+    await sendReturnToShiprocket(3, req);
+    expect(createReturnOrder).toHaveBeenCalledWith({ order_id: "1007-R3" });
   });
+
+  it.each(["rejected", "canceled", "received", "refunded"])(
+    "never sends a %s return",
+    async (status) => {
+      stored.status = status;
+      expect(await sendReturnToShiprocket(3, req)).toBeNull();
+      expect(createReturnOrder).not.toHaveBeenCalled();
+    },
+  );
 
   it("notes Shiprocket's error so saving again retries", async () => {
     createReturnOrder.mockRejectedValueOnce(

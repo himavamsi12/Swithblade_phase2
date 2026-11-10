@@ -109,11 +109,13 @@ export async function sendOrderToShiprocket(orderId: number): Promise<void> {
 export const SHIPROCKET_RETURN_CONTEXT = "shiprocketReturn";
 
 /**
- * Creates the Shiprocket return order for an approved return, once, and
- * notes the result in the return's `metadata.shiprocket`. Runs inside the
- * admin save (`req`), so it sees a return that was just created. Never
- * throws: a Shiprocket outage must not stop staff saving a return. Returns
- * the return's new metadata, or null if nothing was sent.
+ * Creates the Shiprocket return order as soon as the shopper requests the
+ * return (or staff approve one), once, and notes the result in the return's
+ * `metadata.shiprocket`. Staff then approve it in Shiprocket's panel by
+ * assigning a courier, which books the pickup. Runs inside the save (`req`),
+ * so it sees a return that was just created. Never throws: a Shiprocket
+ * outage must not stop a return being saved. Returns the return's new
+ * metadata, or null if nothing was sent.
  */
 export async function sendReturnToShiprocket(
   returnId: number,
@@ -132,7 +134,7 @@ export async function sendReturnToShiprocket(
       ret.metadata && typeof ret.metadata === "object"
         ? (ret.metadata as Record<string, unknown>)
         : {};
-    if (ret.status !== "approved") return null;
+    if (ret.status !== "requested" && ret.status !== "approved") return null;
     if ((metadata.shiprocket as ShiprocketMeta | undefined)?.orderId) {
       return null;
     }
