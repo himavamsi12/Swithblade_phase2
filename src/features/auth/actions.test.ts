@@ -108,7 +108,7 @@ describe("continueWithEmail", () => {
     expect(auth.signUp).toHaveBeenCalledWith(
       expect.objectContaining({
         options: {
-          emailRedirectTo: "https://shop.example/auth/callback?next=/account",
+          emailRedirectTo: "https://shop.example/auth/callback?next=%2Faccount",
         },
       }),
     );

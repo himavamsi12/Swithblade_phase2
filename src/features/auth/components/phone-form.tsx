@@ -19,12 +19,20 @@ const linkButton = cn(
  * Phone sign-in: enter a mobile number, then the 6-digit code texted to it.
  * Creates the account on first sign-in.
  */
-export function PhoneForm({ onUseEmail }: { onUseEmail: () => void }) {
+export function PhoneForm({
+  next,
+  onUseEmail,
+}: {
+  /** Where to land after signing in. */
+  next?: string;
+  onUseEmail: () => void;
+}) {
   // Remounting the step resets the action state when changing the number.
   const [attempt, setAttempt] = useState(0);
   return (
     <PhoneSteps
       key={attempt}
+      next={next}
       onChangeNumber={() => setAttempt((n) => n + 1)}
       onUseEmail={onUseEmail}
     />
@@ -32,9 +40,11 @@ export function PhoneForm({ onUseEmail }: { onUseEmail: () => void }) {
 }
 
 function PhoneSteps({
+  next,
   onChangeNumber,
   onUseEmail,
 }: {
+  next?: string;
   onChangeNumber: () => void;
   onUseEmail: () => void;
 }) {
@@ -93,6 +103,7 @@ function PhoneSteps({
   return (
     <form action={action} noValidate className="flex flex-col gap-2">
       <input type="hidden" name="phone" value={sentTo} />
+      {next && <input type="hidden" name="next" value={next} />}
       <input type="hidden" name="sentAt" value={state.sentAt ?? ""} />
       <TextField
         id={`${id}-otp`}

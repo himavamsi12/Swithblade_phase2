@@ -54,7 +54,19 @@ export const addressSchema = z.object({
   postalCode: z.string().trim().min(3, "Enter the PIN / postal code.").max(12),
   country: z.enum(countryCodes, { message: "Choose a country." }),
   title: z.enum(addressTypes).default("Home"),
+  /** The shopper's own name for an "Other" address, e.g. "Mom's place". */
+  customTitle: z
+    .string()
+    .trim()
+    .max(30, "Keep the name under 30 characters.")
+    .optional(),
 });
+
+/** The label saved on an address: the typed name when "Other" has one. */
+export const addressTitle = (a: {
+  title: (typeof addressTypes)[number];
+  customTitle?: string;
+}) => (a.title === "Other" && a.customTitle ? a.customTitle : a.title);
 
 /** Pictures a shopper attaches to a return request (front and back at least). */
 export const MIN_RETURN_PHOTOS = 2;

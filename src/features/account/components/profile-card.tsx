@@ -1,8 +1,10 @@
 "use client";
 
+import { BadgeCheck } from "lucide-react";
+
 import { useActionState, useEffect, useId, useState } from "react";
 import { cn } from "@/lib/utils";
-import { updateProfile } from "../actions";
+import { sendPhoneCode, updateProfile, verifyPhoneCode } from "../actions";
 import {
   DEFAULT_PHONE_COUNTRY,
   formatPhone,
@@ -25,6 +27,8 @@ export type Profile = {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
+  /** The phone has been confirmed with a texted code. */
+  phoneVerified: boolean;
 };
 
 const initials = (p: Profile) =>
@@ -101,19 +105,38 @@ export function ProfileCard({ profile }: { profile: Profile }) {
             ))}
             <div className={cn(boxClass, "col-span-2 md:col-span-1")}>
               <dt className="sr-only">Phone</dt>
-              <dd className={cn("truncate", !profile.phone && "text-muted")}>
+              <dd
+                className={cn(
+                  "flex items-center gap-3",
+                  !profile.phone && "text-muted",
+                )}
+              >
                 {profile.phone ? (
                   <>
-                    <span aria-hidden className="mr-3">
-                      {parsePhone(profile.phone).country?.flag}
+                    <span className="min-w-0 flex-1 truncate">
+                      <span aria-hidden className="mr-3">
+                        {parsePhone(profile.phone).country?.flag}
+                      </span>
+                      {formatPhone(profile.phone)}
                     </span>
-                    {formatPhone(profile.phone)}
+                    {profile.phoneVerified && (
+                      <span className="flex shrink-0 items-center gap-1 text-body-4 font-semibold text-[#1e7a3c] uppercase">
+                        <BadgeCheck size={14} aria-hidden />
+                        Verified
+                      </span>
+                    )}
                   </>
                 ) : (
                   "Add phone number"
                 )}
               </dd>
             </div>
+            {profile.phone && !profile.phoneVerified && (
+              <PhoneVerify
+                key={profile.phone}
+                phone={formatPhone(profile.phone)}
+              />
+            )}
           </dl>
           <button
             type="button"
@@ -248,6 +271,89 @@ export function Field({
       </label>
       {children}
       {error && <p className="mt-1.5 text-body-3 text-red-600">{error}</p>}
+    </div>
+  );
+}
+
+/**
+ * Optional phone check under the profile: "Verify" texts a code, then the
+ * shopper types it in. They can ignore it; the number is saved either way.
+ */
+function PhoneVerify({ phone }: { phone: string }) {
+  const id = useId();
+  const [sent, send, sending] = useActionState(sendPhoneCode, idle);
+  const [checked, check, checking] = useActionState(verifyPhoneCode, idle);
+  const codeSent = sent.status === "success";
+  const error =
+    checked.fieldErrors?.otp ??
+    (checked.status === "error" ? checked.message : undefined) ??
+    (sent.status === "error" ? sent.message : undefined);
+
+  return (
+    <div className="col-span-2 flex flex-col gap-2 bg-card px-4 py-3 text-body-3">
+      {!codeSent ? (
+        <form
+          action={send}
+          className="flex flex-wrap items-center gap-x-4 gap-y-2"
+        >
+          <p className="min-w-0 flex-1 text-dark-grey">
+            Verify {phone} so you can also sign in with it. This is optional.
+          </p>
+          <button
+            type="submit"
+            disabled={sending}
+            className={cn(
+              "shrink-0 text-body-4 font-semibold text-primary uppercase underline underline-offset-2 disabled:opacity-60",
+              focusRing,
+            )}
+          >
+            {sending ? <PendingLabel>Sending…</PendingLabel> : "Verify"}
+          </button>
+        </form>
+      ) : (
+        <form action={check} noValidate className="flex flex-col gap-2">
+          <p className="text-dark-grey">{sent.message}</p>
+          <div className="flex gap-2">
+            <label htmlFor={`${id}-otp`} className="sr-only">
+              6-digit code
+            </label>
+            <input
+              id={`${id}-otp`}
+              name="otp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              placeholder="6-digit code"
+              aria-invalid={checked.fieldErrors?.otp ? true : undefined}
+              className={cn(inputClass, "max-w-[180px]")}
+            />
+            <button type="submit" disabled={checking} className={primaryButton}>
+              {checking ? <PendingLabel>Checking…</PendingLabel> : "Confirm"}
+            </button>
+          </div>
+          <button
+            type="submit"
+            formAction={send}
+            formNoValidate
+            disabled={sending}
+            className={cn(
+              "w-fit text-body-4 font-semibold uppercase underline underline-offset-2 disabled:opacity-60",
+              focusRing,
+            )}
+          >
+            {sending ? (
+              <PendingLabel>Sending…</PendingLabel>
+            ) : (
+              "Send a new code"
+            )}
+          </button>
+        </form>
+      )}
+      {error && (
+        <p role="alert" className="text-red-600">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

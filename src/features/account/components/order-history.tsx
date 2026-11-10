@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Collapse } from "@/components/ui/disclosure";
 import { siteConfig } from "@/config/site";
 import { formatPrice } from "@/lib/format";
@@ -48,19 +48,30 @@ const date = (iso: string) =>
 const money = (amount: number | null, currency: string | null) =>
   amount != null && currency ? formatPrice(amount, currency) : "—";
 
-/** One collapsible card per order; the newest starts open. */
+/**
+ * One collapsible card per order. The newest starts open, or the one named
+ * by `openNumber` (e.g. "SB-1010" from an email link), scrolled into view.
+ */
 export function OrderHistory({
   orders,
   reasons,
+  openNumber = null,
 }: {
   orders: OrderView[];
   reasons: ReturnReasonOption[];
+  openNumber?: string | null;
 }) {
+  const linked = orders.some((o) => o.number === openNumber);
   return (
     <ul className="flex flex-col gap-4">
       {orders.map((order, i) => (
         <li key={order.id}>
-          <OrderCard order={order} reasons={reasons} defaultOpen={i === 0} />
+          <OrderCard
+            order={order}
+            reasons={reasons}
+            defaultOpen={linked ? order.number === openNumber : i === 0}
+            scrollIntoView={linked && order.number === openNumber}
+          />
         </li>
       ))}
     </ul>
@@ -71,11 +82,17 @@ function OrderCard({
   order,
   reasons,
   defaultOpen,
+  scrollIntoView = false,
 }: {
   order: OrderView;
   reasons: ReturnReasonOption[];
   defaultOpen: boolean;
+  scrollIntoView?: boolean;
 }) {
+  const card = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (scrollIntoView) card.current?.scrollIntoView({ block: "start" });
+  }, [scrollIntoView]);
   const [open, setOpen] = useState(defaultOpen);
   const [tracking, setTracking] = useState(false);
   const [returning, setReturning] = useState(false);
@@ -107,8 +124,10 @@ function OrderCard({
 
   return (
     <article
+      ref={card}
       aria-label={`Order ${order.number}`}
-      className="border border-stroke"
+      // Clear of the sticky header when scrolled to from an email link.
+      className="scroll-mt-24 border border-stroke"
     >
       <button
         type="button"

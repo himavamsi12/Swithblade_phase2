@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { otpSchema } from "@/features/auth/schema";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { isAuthProviderEnabled } from "@/lib/supabase";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import {
   createCustomerReturn,
   getPayloadClient,
@@ -10,6 +14,7 @@ import {
 import { composePhone, DEFAULT_PHONE_COUNTRY } from "./phone";
 import {
   addressSchema,
+  addressTitle,
   profileSchema,
   MAX_RETURN_PHOTOS,
   MIN_RETURN_PHOTOS,
@@ -81,9 +86,10 @@ export async function saveAddress(
   if (!parsed.success) {
     return { status: "error", fieldErrors: errorsOf(parsed.error) };
   }
-  const { id, fullName, country, ...rest } = parsed.data;
+  const { id, fullName, country, title, customTitle, ...rest } = parsed.data;
   const data = {
     ...rest,
+    title: addressTitle({ title, customTitle }),
     ...splitName(fullName),
     country: country as never,
     customer: session.customer.id,
@@ -258,4 +264,96 @@ export async function requestReturn(
   revalidatePath("/account/orders");
   revalidatePath("/account/returns");
   return { status: "success", message: result.returnNumber };
+}
+
+/** "+91 98765 43210" → "+919876543210", the form Supabase Auth expects. */
+const e164 = (phone: string) => `+${phone.replace(/\D/g, "")}`;
+
+/**
+ * Optional check of the profile's phone number: texts it a 6-digit code.
+ * Confirming it (verifyPhoneCode) makes it the account's verified phone, so
+ * it can also be used to sign in.
+ */
+export async function sendPhoneCode(): Promise<FormState> {
+  const session = await getSignedInCustomer();
+  if (!session) return SIGNED_OUT;
+  const stored = session.customer.phone;
+  if (!stored) return { status: "error", message: "Add a phone number first." };
+  if (!(await isAuthProviderEnabled("phone"))) {
+    return {
+      status: "error",
+      message: "Phone verification isn't available yet.",
+    };
+  }
+  const phone = e164(stored);
+  if (
+    !(await rateLimit("otpSend", `ip:${await clientIp()}`, `phone:${phone}`))
+  ) {
+    return {
+      status: "error",
+      message: "Too many codes sent. Please wait a few minutes and try again.",
+    };
+  }
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.updateUser({ phone });
+  if (error) {
+    console.error(
+      "Sending phone verification failed",
+      error.code,
+      error.message,
+    );
+    return {
+      status: "error",
+      message:
+        error.code === "phone_exists"
+          ? "This number is already used by another account."
+          : error.code === "over_sms_send_rate_limit"
+            ? "Too many codes sent. Please wait a minute and try again."
+            : "Couldn't send the code. Check the number and try again.",
+    };
+  }
+  return { status: "success", message: `We sent a 6-digit code to ${stored}.` };
+}
+
+/** Checks the code from sendPhoneCode and marks the phone as verified. */
+export async function verifyPhoneCode(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await getSignedInCustomer();
+  if (!session) return SIGNED_OUT;
+  const stored = session.customer.phone;
+  if (!stored) return { status: "error", message: "Add a phone number first." };
+  const otp = otpSchema.safeParse(String(formData.get("otp") ?? ""));
+  if (!otp.success) {
+    return {
+      status: "error",
+      fieldErrors: { otp: otp.error.issues[0]?.message },
+    };
+  }
+  const phone = e164(stored);
+  if (
+    !(await rateLimit("otpVerify", `ip:${await clientIp()}`, `phone:${phone}`))
+  ) {
+    return {
+      status: "error",
+      message: "Too many attempts. Please wait a few minutes and try again.",
+    };
+  }
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.verifyOtp({
+    phone,
+    token: otp.data,
+    type: "phone_change",
+  });
+  if (error) {
+    return {
+      status: "error",
+      fieldErrors: {
+        otp: "That code is wrong or has expired. Check it, or send a new one.",
+      },
+    };
+  }
+  revalidatePath("/account");
+  return { status: "success", message: "Phone number verified." };
 }

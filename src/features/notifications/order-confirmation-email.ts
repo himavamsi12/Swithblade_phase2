@@ -46,7 +46,10 @@ export function orderConfirmationEmail(order: Order) {
   const subtotal = order.totals?.subtotal ?? order.amount ?? 0;
   const discount = order.totals?.discountTotal ?? 0;
   const total = order.amount ?? subtotal - discount;
-  const accountUrl = absolute(siteConfig.accountHref);
+  // Opens this order; sign-in comes first if needed, then lands back here.
+  const accountUrl = absolute(
+    `/account/orders?order=${encodeURIComponent(number)}`,
+  );
 
   const addressLines = address
     ? [

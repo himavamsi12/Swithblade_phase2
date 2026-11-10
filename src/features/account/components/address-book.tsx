@@ -20,6 +20,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "./styles";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PendingLabel, Spinner } from "@/components/ui/spinner";
 
 export type SavedAddress = {
@@ -143,10 +144,16 @@ function AddressCard({
         >
           <Pencil size={17} strokeWidth={1.5} aria-hidden />
         </button>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
+        <ConfirmDialog
+          title="Delete this address?"
+          message={
+            <>
+              {[name, lines[0]].filter(Boolean).join(", ")} will be removed from
+              your saved addresses.
+            </>
+          }
+          confirmLabel="Delete"
+          onConfirm={() =>
             startTransition(async () => {
               const result = await deleteAddress(address.id);
               setError(
@@ -154,15 +161,22 @@ function AddressCard({
               );
             })
           }
-          aria-label={`Delete address for ${name}`}
-          className={cn("text-red-600 hover:opacity-60", focusRing)}
-        >
-          {pending ? (
-            <Spinner size={17} />
-          ) : (
-            <Trash2 size={17} strokeWidth={1.5} aria-hidden />
+          trigger={(open) => (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={open}
+              aria-label={`Delete address for ${name}`}
+              className={cn("text-red-600 hover:opacity-60", focusRing)}
+            >
+              {pending ? (
+                <Spinner size={17} />
+              ) : (
+                <Trash2 size={17} strokeWidth={1.5} aria-hidden />
+              )}
+            </button>
           )}
-        </button>
+        />
       </div>
     </article>
   );
@@ -179,6 +193,12 @@ function AddressForm({
   const [state, action, pending] = useActionState(saveAddress, idle);
   const [country, setCountry] = useState(
     address?.country ?? DEFAULT_PHONE_COUNTRY,
+  );
+  // A saved name that isn't Home or Work was typed in under "Other".
+  const savedTitle = address?.title ?? "Home";
+  const savedCustom = !addressTypes.some((t) => t === savedTitle);
+  const [title, setTitle] = useState<string>(
+    savedCustom ? "Other" : savedTitle,
   );
   const errors = state.fieldErrors ?? {};
   const fullName = [address?.firstName, address?.lastName]
@@ -306,8 +326,14 @@ function AddressForm({
             {t}
           </option>
         )),
-        { defaultValue: address?.title ?? "Home" },
+        { value: title, onChange: (e) => setTitle(e.target.value) },
       )}
+      {title === "Other" &&
+        text("customTitle", "Name this address, e.g. Mom's place", {
+          defaultValue: savedCustom ? savedTitle : "",
+          maxLength: 30,
+          autoFocus: !savedCustom,
+        })}
 
       <div className="mt-2 flex items-center gap-3">
         <button type="submit" disabled={pending} className={primaryButton}>

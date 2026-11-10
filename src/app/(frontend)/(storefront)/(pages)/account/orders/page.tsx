@@ -14,9 +14,22 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default async function OrderHistoryPage() {
-  const session = await getSignedInCustomer();
-  if (!session) redirect("/account");
+export default async function OrderHistoryPage({
+  searchParams,
+}: PageProps<"/account/orders">) {
+  const [session, { order }] = await Promise.all([
+    getSignedInCustomer(),
+    searchParams,
+  ]);
+  // The order to open, e.g. from the "View your order" email button.
+  const openNumber = typeof order === "string" ? order : null;
+  if (!session) {
+    redirect(
+      openNumber
+        ? `/account?next=${encodeURIComponent(`/account/orders?order=${openNumber}`)}`
+        : "/account",
+    );
+  }
 
   const [orders, reasons] = await Promise.all([
     listCustomerOrders(session.customer.id),
@@ -39,7 +52,11 @@ export default async function OrderHistoryPage() {
           </Link>
         </div>
       ) : (
-        <OrderHistory orders={orders} reasons={reasons} />
+        <OrderHistory
+          orders={orders}
+          reasons={reasons}
+          openNumber={openNumber}
+        />
       )}
     </AccountShell>
   );

@@ -3,12 +3,10 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useFormStatus } from "react-dom";
 import { siteConfig } from "@/config/site";
-import { signOut } from "@/features/auth/actions";
+import { SignOutConfirm } from "@/features/auth/components/sign-out-confirm";
 import { cn } from "@/lib/utils";
 import { focusRing } from "./styles";
-import { PendingLabel } from "@/components/ui/spinner";
 
 // Return history is reached from each order card, so it lives under the
 // Order history tab rather than having a tab of its own.
@@ -63,27 +61,23 @@ export function AccountNav() {
       >
         Wishlist
       </Link>
-      <form action={signOut} className="hidden shrink-0 md:block">
-        <SignOutButton className={item} />
-      </form>
+      <div className="hidden shrink-0 md:block">
+        <SignOutConfirm
+          trigger={(open) => (
+            <button
+              type="button"
+              onClick={open}
+              className={cn(
+                item,
+                "border-b-2 border-transparent text-red-600 hover:opacity-70",
+                focusRing,
+              )}
+            >
+              Signout
+            </button>
+          )}
+        />
+      </div>
     </nav>
-  );
-}
-
-/** Shows the sign-out is under way, since it waits on the server. */
-function SignOutButton({ className }: { className: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className={cn(
-        className,
-        "border-b-2 border-transparent text-red-600 hover:opacity-70 disabled:opacity-60",
-        focusRing,
-      )}
-    >
-      {pending ? <PendingLabel>Signing out…</PendingLabel> : "Signout"}
-    </button>
   );
 }

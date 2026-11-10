@@ -52,14 +52,33 @@ const payload = {
   ),
 };
 
-let session: { customer: { id: number } } | null;
+let session: { customer: { id: number; phone?: string | null } } | null;
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/lib/rate-limit", () => ({
+  clientIp: async () => "203.0.113.5",
+  rateLimit: async () => true,
+}));
+vi.mock("@/lib/supabase", () => ({ isAuthProviderEnabled: async () => true }));
+type AuthResult = { error: { code: string; message?: string } | null };
+const auth = {
+  updateUser: vi.fn(async (): Promise<AuthResult> => ({ error: null })),
+  verifyOtp: vi.fn(async (): Promise<AuthResult> => ({ error: null })),
+};
+vi.mock("@/lib/supabase-server", () => ({
+  createSupabaseServerClient: async () => ({ auth }),
+}));
 vi.mock("./customer", () => ({
   getPayloadClient: async () => payload,
   getSignedInCustomer: async () => session,
 }));
 
-const { updateProfile, saveAddress, deleteAddress } = await import("./actions");
+const {
+  updateProfile,
+  saveAddress,
+  deleteAddress,
+  sendPhoneCode,
+  verifyPhoneCode,
+} = await import("./actions");
 
 const idle = { status: "idle" as const };
 const form = (fields: Record<string, string>) => {
@@ -154,6 +173,19 @@ describe("saveAddress", () => {
     });
   });
 
+  it("saves the typed name of an Other address", async () => {
+    await saveAddress(
+      idle,
+      form({ ...address, title: "Other", customTitle: " Mom's place " }),
+    );
+    expect(addresses.at(-1)!.title).toBe("Mom's place");
+  });
+
+  it("keeps Other when no name is typed", async () => {
+    await saveAddress(idle, form({ ...address, title: "Other" }));
+    expect(addresses.at(-1)!.title).toBe("Other");
+  });
+
   it("can't add an address to someone else's account", async () => {
     await saveAddress(idle, form({ ...address, customer: "2" }));
     expect(addresses.at(-1)!.customer).toBe(1);
@@ -200,5 +232,43 @@ describe("deleteAddress", () => {
   it("reports a failed delete instead of throwing", async () => {
     payload.delete.mockRejectedValueOnce(new Error("db down"));
     expect((await deleteAddress(10)).status).toBe("error");
+  });
+});
+
+describe("phone verification", () => {
+  beforeEach(() => {
+    session = { customer: { id: 1, phone: "+91 9876543210" } };
+  });
+
+  it("texts a code to the profile's own number", async () => {
+    const state = await sendPhoneCode();
+    expect(state.status).toBe("success");
+    expect(auth.updateUser).toHaveBeenCalledWith({ phone: "+919876543210" });
+  });
+
+  it("says when the number belongs to another account", async () => {
+    auth.updateUser.mockResolvedValueOnce({ error: { code: "phone_exists" } });
+    const state = await sendPhoneCode();
+    expect(state.message).toBe(
+      "This number is already used by another account.",
+    );
+  });
+
+  it("checks the code against the profile's number", async () => {
+    const state = await verifyPhoneCode(idle, form({ otp: "123456" }));
+    expect(state).toEqual({
+      status: "success",
+      message: "Phone number verified.",
+    });
+    expect(auth.verifyOtp).toHaveBeenCalledWith({
+      phone: "+919876543210",
+      token: "123456",
+      type: "phone_change",
+    });
+  });
+
+  it("asks for a 6-digit code", async () => {
+    const state = await verifyPhoneCode(idle, form({ otp: "12" }));
+    expect(state.fieldErrors?.otp).toBe("Enter the 6-digit code.");
   });
 });

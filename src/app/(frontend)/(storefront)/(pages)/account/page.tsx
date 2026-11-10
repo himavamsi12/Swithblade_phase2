@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
+import { redirect } from "next/navigation";
 import { AccountShell } from "@/features/account/components/account-shell";
 import { AddressBook } from "@/features/account/components/address-book";
 import { ProfileCard } from "@/features/account/components/profile-card";
@@ -9,6 +10,7 @@ import {
 import { AuthForm } from "@/features/auth/components/auth-form";
 import { AuthShell } from "@/features/auth/components/auth-shell";
 import { SyncBagNow } from "@/features/cart/components/bag-sync";
+import { safeNextPath } from "@/features/auth/redirect";
 import { getCurrentUser } from "@/lib/supabase-server";
 
 export const metadata: Metadata = {
@@ -19,8 +21,17 @@ export const metadata: Metadata = {
 export default async function AccountPage({
   searchParams,
 }: PageProps<"/account">) {
-  const [user, { error }] = await Promise.all([getCurrentUser(), searchParams]);
+  const [user, { error, next: nextParam }] = await Promise.all([
+    getCurrentUser(),
+    searchParams,
+  ]);
+  // Set when a signed-out shopper followed a link, e.g. "View your order".
+  const next =
+    typeof nextParam === "string" && safeNextPath(nextParam, "") !== ""
+      ? safeNextPath(nextParam)
+      : undefined;
 
+  if (user && next) redirect(next as Route);
   if (user) {
     const session = await getSignedInCustomer();
     if (session) {
@@ -36,6 +47,13 @@ export default async function AccountPage({
               firstName: customer.firstName ?? null,
               lastName: customer.lastName ?? null,
               phone: customer.phone ?? null,
+              // Verified once it's the account's confirmed phone in Supabase.
+              phoneVerified: Boolean(
+                customer.phone &&
+                user.phone &&
+                customer.phone.replace(/\D/g, "") ===
+                  user.phone.replace(/\D/g, ""),
+              ),
             }}
           />
           <AddressBook
@@ -76,7 +94,7 @@ export default async function AccountPage({
           That link is invalid or has expired. Please try again.
         </p>
       )}
-      <AuthForm />
+      <AuthForm next={next} />
     </AuthShell>
   );
 }

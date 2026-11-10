@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { isAuthProviderEnabled } from "@/lib/supabase";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { safeNextPath } from "./redirect";
 import {
   credentialsSchema,
   newPasswordSchema,
@@ -30,6 +31,17 @@ const TOO_MANY_ATTEMPTS =
  * a reset link at their own domain.
  */
 const siteOrigin = () => new URL(env.NEXT_PUBLIC_SITE_URL).origin;
+
+/**
+ * Where to go after signing in: the form's `next` (e.g. the order an email
+ * linked to), same-site only, else the account page.
+ */
+const nextPath = (formData?: FormData) =>
+  safeNextPath(String(formData?.get("next") ?? "")) as Route;
+
+/** The auth callback URL that lands on `next` once the link is used. */
+const callbackUrl = (next: string) =>
+  `${siteOrigin()}/auth/callback?next=${encodeURIComponent(next)}`;
 
 function fieldErrors(error: z.ZodError): AuthFormState["fieldErrors"] {
   const { fieldErrors } = z.flattenError(error);
@@ -68,10 +80,11 @@ export async function continueWithEmail(
     };
   }
 
+  const next = nextPath(formData);
   const supabase = await createSupabaseServerClient();
   const signIn = await supabase.auth.signInWithPassword(parsed.data);
 
-  if (!signIn.error) redirect("/account");
+  if (!signIn.error) redirect(next);
 
   if (signIn.error.code === "email_not_confirmed") {
     return {
@@ -93,7 +106,7 @@ export async function continueWithEmail(
   const signUp = await supabase.auth.signUp({
     ...parsed.data,
     options: {
-      emailRedirectTo: `${siteOrigin()}/auth/callback?next=/account`,
+      emailRedirectTo: callbackUrl(next),
     },
   });
 
@@ -118,7 +131,7 @@ export async function continueWithEmail(
   }
 
   // Email confirmation off in Supabase: signed in straight away.
-  if (signUp.data.session) redirect("/account");
+  if (signUp.data.session) redirect(next);
 
   return {
     status: "success",
@@ -127,7 +140,10 @@ export async function continueWithEmail(
   };
 }
 
-export async function continueWithGoogle(): Promise<AuthFormState> {
+export async function continueWithGoogle(
+  _prev?: AuthFormState,
+  formData?: FormData,
+): Promise<AuthFormState> {
   // Supabase shows a raw error page for a disabled provider; say it here instead.
   if (!(await isAuthProviderEnabled("google"))) {
     return {
@@ -140,7 +156,7 @@ export async function continueWithGoogle(): Promise<AuthFormState> {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${siteOrigin()}/auth/callback?next=/account`,
+      redirectTo: callbackUrl(nextPath(formData)),
     },
   });
   if (error || !data.url) {
@@ -200,7 +216,7 @@ export async function continueWithPhone(
       token: otp.data,
       type: "sms",
     });
-    if (!error) redirect("/account");
+    if (!error) redirect(nextPath(formData));
     return {
       status: "error",
       phone,

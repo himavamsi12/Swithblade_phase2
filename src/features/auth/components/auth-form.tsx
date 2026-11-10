@@ -23,7 +23,11 @@ import { focusRing } from "./styles";
  * without JavaScript (plain form posts to a server action); with it, errors
  * show inline and the buttons show progress.
  */
-export function AuthForm() {
+export function AuthForm({ next }: { next?: string }) {
+  // Where to land after signing in, e.g. the order an email linked to.
+  const nextField = next ? (
+    <input type="hidden" name="next" value={next} />
+  ) : null;
   const id = useId();
   const [usePhone, setUsePhone] = useState(false);
   const [state, emailAction, emailPending] = useActionState(
@@ -38,9 +42,10 @@ export function AuthForm() {
   return (
     <div className="flex flex-col">
       {usePhone ? (
-        <PhoneForm onUseEmail={() => setUsePhone(false)} />
+        <PhoneForm next={next} onUseEmail={() => setUsePhone(false)} />
       ) : (
         <form action={emailAction} noValidate className="flex flex-col gap-2">
+          {nextField}
           <TextField
             id={`${id}-email`}
             label="Email"
@@ -100,6 +105,7 @@ export function AuthForm() {
       )}
 
       <form action={googleAction}>
+        {nextField}
         <button
           type="submit"
           disabled={googlePending}

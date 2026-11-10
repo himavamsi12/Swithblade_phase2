@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Route } from "next";
 import { siteConfig } from "@/config/site";
-import { signOut } from "@/features/auth/actions";
+import { SignOutConfirm } from "@/features/auth/components/sign-out-confirm";
 import { headerAssets } from "./site-header-assets";
 
 type MobileNavItem = (typeof siteConfig.nav)[number];
@@ -233,7 +233,7 @@ export function MobileNavMenu({
               ))}
             </ul>
 
-            <ul className="sticky bottom-0 mt-auto flex flex-col gap-5 bg-white pt-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
+            <ul className="sticky bottom-0 mt-auto flex flex-col gap-1 bg-white pt-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
               {[
                 {
                   label: "WISHLIST",
@@ -273,7 +273,7 @@ export function MobileNavMenu({
                     href={item.href}
                     onClick={closeMenu}
                     aria-current={pathname === item.href ? "page" : undefined}
-                    className="flex min-h-10 items-center gap-3 text-[11px] tracking-[0.14em]"
+                    className="flex min-h-9 items-center gap-3 text-sm tracking-[0.06em]"
                   >
                     <Image
                       src={item.icon}
@@ -295,15 +295,18 @@ export function MobileNavMenu({
                   transitionDelay: isOpen && !reduceMotion ? "360ms" : "0ms",
                 }}
               >
-                <form action={signOut}>
-                  <button
-                    type="submit"
-                    className="flex min-h-10 items-center gap-3 text-[11px] tracking-[0.14em] text-red-600"
-                  >
-                    <LogOut size={16} aria-hidden="true" />
-                    SIGN OUT
-                  </button>
-                </form>
+                <SignOutConfirm
+                  trigger={(open) => (
+                    <button
+                      type="button"
+                      onClick={open}
+                      className="flex min-h-9 items-center gap-3 text-sm tracking-[0.06em] text-red-600"
+                    >
+                      <LogOut size={16} aria-hidden="true" />
+                      SIGN OUT
+                    </button>
+                  )}
+                />
               </li>
             </ul>
           </nav>
