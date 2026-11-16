@@ -9,6 +9,7 @@ import { encodeCartNotes } from "./pricing";
 
 const m = vi.hoisted(() => ({
   ordersAll: vi.fn(),
+  ordersFetch: vi.fn(),
   checkCouponForLines: vi.fn(),
   getProductBySlug: vi.fn(),
   findByID: vi.fn(),
@@ -18,7 +19,9 @@ const m = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("./razorpay", () => ({
   razorpayConfig: () => ({ keyId: "rzp_live", keySecret: "secret" }),
-  razorpayClient: () => ({ orders: { all: m.ordersAll } }),
+  razorpayClient: () => ({
+    orders: { all: m.ordersAll, fetch: m.ordersFetch },
+  }),
 }));
 vi.mock("@/features/promotions/coupon", () => ({
   checkCouponForLines: m.checkCouponForLines,
@@ -156,13 +159,34 @@ describe("applyMagicPromotion", () => {
     });
   });
 
-  it("refuses a receipt that isn't from our checkout, without asking Razorpay", async () => {
-    const result = await applyMagicPromotion(request({ order_id: "order_1" }));
+  it("also finds the order by its Razorpay id, with or without order_", async () => {
+    m.ordersFetch.mockResolvedValue({
+      id: "order_ABC123",
+      currency: "INR",
+      notes: { ...cartNotes },
+    });
+    const byId = await applyMagicPromotion(
+      request({ order_id: "order_ABC123" }),
+    );
+    expect(byId.ok).toBe(true);
+    await applyMagicPromotion(
+      request({ order_id: RECEIPT, razorpay_order_id: "ABC123" }),
+    );
+    expect(m.ordersFetch.mock.calls).toEqual([
+      ["order_ABC123"],
+      ["order_ABC123"],
+    ]);
+    expect(m.ordersAll).not.toHaveBeenCalled();
+  });
+
+  it("refuses an order id Razorpay doesn't know", async () => {
+    m.ordersFetch.mockRejectedValue(new Error("not found"));
+    const result = await applyMagicPromotion(request({ order_id: "order_X" }));
     expect(result).toMatchObject({
       ok: false,
       body: { failure_code: "INVALID_PROMOTION" },
     });
-    expect(m.ordersAll).not.toHaveBeenCalled();
+    expect(m.checkCouponForLines).not.toHaveBeenCalled();
   });
 
   it("refuses an order Razorpay doesn't know or without a bag", async () => {

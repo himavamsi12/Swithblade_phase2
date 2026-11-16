@@ -21,12 +21,35 @@ import { razorpayClient, razorpayConfig } from "./razorpay";
 const RECEIPT = /^sb_\d+_[0-9a-f]{8}$/;
 
 export const applyPromotionSchema = z.object({
-  /** Razorpay sends the order's receipt here, not its order_… id. */
-  order_id: z.string().regex(RECEIPT),
+  /**
+   * Razorpay's docs say this is the order's receipt; some requests may
+   * carry the order id instead, so both are accepted.
+   */
+  order_id: z.string().trim().min(1).max(64),
+  /** Sent with the shipping-info call; the order id, maybe without `order_`. */
+  razorpay_order_id: z.string().trim().max(64).nullish(),
   code: z.string().trim().min(1).max(64),
   contact: z.string().nullish(),
   email: z.string().nullish(),
 });
+
+type RazorpayClient = ReturnType<typeof razorpayClient>;
+
+/** The Razorpay order a Magic request is about: by order id, else receipt. */
+async function findOrder(
+  client: RazorpayClient,
+  orderId: string,
+  razorpayOrderId: string | null | undefined,
+) {
+  const id = razorpayOrderId || (RECEIPT.test(orderId) ? null : orderId);
+  if (id) {
+    return client.orders
+      .fetch(id.startsWith("order_") ? id : `order_${id}`)
+      .catch(() => null);
+  }
+  const { items } = await client.orders.all({ receipt: orderId, count: 1 });
+  return items[0] ?? null;
+}
 
 type FailureCode =
   "INVALID_PROMOTION" | "LOGIN_REQUIRED" | "REQUIREMENT_NOT_MET";
@@ -91,10 +114,10 @@ export async function applyMagicPromotion(
 ): Promise<ApplyPromotionResult> {
   const request = applyPromotionSchema.safeParse(input);
   if (!request.success) return failure("INVALID_PROMOTION", INVALID);
-  const { order_id: receipt, code } = request.data;
+  const { order_id: orderId, razorpay_order_id, code } = request.data;
 
   // Razorpay calls from its own servers, so limit guesses per order.
-  if (!(await rateLimit("coupon", `receipt:${receipt}`))) {
+  if (!(await rateLimit("coupon", `order:${razorpay_order_id || orderId}`))) {
     return failure(
       "INVALID_PROMOTION",
       "Too many coupon attempts. Please wait a few minutes.",
@@ -103,11 +126,11 @@ export async function applyMagicPromotion(
 
   const config = razorpayConfig();
   if (!config) return failure("INVALID_PROMOTION", INVALID);
-  const { items } = await razorpayClient(config).orders.all({
-    receipt,
-    count: 1,
-  });
-  const order = items[0];
+  const order = await findOrder(
+    razorpayClient(config),
+    orderId,
+    razorpay_order_id,
+  );
   const lines = order ? decodeCartNotes(order.notes) : null;
   if (!order || !lines) return failure("INVALID_PROMOTION", INVALID);
 
