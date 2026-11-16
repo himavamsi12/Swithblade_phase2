@@ -152,3 +152,71 @@ export function trackingChange(
     at,
   };
 }
+
+/** Where a return parcel is on its way back to us. */
+export type ReturnPickupStage =
+  "scheduled" | "picked_up" | "delivered" | "canceled";
+
+const RETURN_RANK: Record<ReturnPickupStage, number> = {
+  scheduled: 1,
+  picked_up: 2,
+  delivered: 3,
+  canceled: 0,
+};
+
+/**
+ * Which stage a courier status on a return shipment means. Shiprocket sends
+ * these both plain ("PICKED UP") and prefixed ("RETURN PICKED UP"); null for
+ * ones we only note.
+ */
+export function returnPickupStage(status: string): ReturnPickupStage | null {
+  const s = status
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_-]+/g, " ")
+    .replace(/^RETURN /, "")
+    .replace(/^RTO /, "");
+  if (!s) return null;
+  if (s.startsWith("CANCEL")) return "canceled";
+  if (s.includes("UNDELIVERED")) return "picked_up";
+  if (s.includes("DELIVERED") || s.includes("ACKNOWLEDGED")) {
+    return "delivered";
+  }
+  if (
+    s.includes("PICKED UP") ||
+    s.includes("TRANSIT") ||
+    s.includes("SHIPPED") ||
+    s.includes("OUT FOR DELIVERY") ||
+    s.includes("DESTINATION HUB") ||
+    s.includes("REACHED")
+  ) {
+    return "picked_up";
+  }
+  if (
+    s.includes("PICKUP") ||
+    s.includes("AWB") ||
+    s.includes("MANIFEST") ||
+    s.includes("LABEL")
+  ) {
+    return "scheduled";
+  }
+  return null;
+}
+
+/**
+ * The next pickup stage, given the current one: only forward (a late "Out
+ * for pickup" never undoes "Picked up"), and a parcel already collected
+ * can't be cancelled by a stray event. A cancelled pickup can be booked
+ * again. Null when nothing changes.
+ */
+export function nextReturnPickupStage(
+  current: ReturnPickupStage | null,
+  incoming: ReturnPickupStage | null,
+): ReturnPickupStage | null {
+  if (!incoming || incoming === current) return null;
+  if (incoming === "canceled") {
+    return current === null || current === "scheduled" ? "canceled" : null;
+  }
+  if (current === null || current === "canceled") return incoming;
+  return RETURN_RANK[incoming] > RETURN_RANK[current] ? incoming : null;
+}

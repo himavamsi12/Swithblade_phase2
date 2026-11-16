@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  nextReturnPickupStage,
   parseShiprocketTime,
+  returnPickupStage,
   stageOf,
   trackingChange,
   trackingEventSchema,
@@ -111,5 +113,53 @@ describe("trackingChange", () => {
       now,
     );
     expect(change.at).toBe(now.toISOString());
+  });
+});
+
+describe("returnPickupStage", () => {
+  it.each([
+    ["RETURN PICKUP GENERATED", "scheduled"],
+    ["Return Out For Pickup", "scheduled"],
+    ["RETURN PICKUP RESCHEDULED", "scheduled"],
+    ["AWB Assigned", "scheduled"],
+    ["RETURN PICKED UP", "picked_up"],
+    ["Picked Up", "picked_up"],
+    ["RETURN IN TRANSIT", "picked_up"],
+    ["In Transit", "picked_up"],
+    ["RETURN UNDELIVERED", "picked_up"],
+    ["RETURN DELIVERED", "delivered"],
+    ["Delivered", "delivered"],
+    ["RETURN ACKNOWLEDGED", "delivered"],
+    ["RETURN CANCELLED", "canceled"],
+    ["Canceled", "canceled"],
+  ])("reads %s as %s", (status, stage) => {
+    expect(returnPickupStage(status)).toBe(stage);
+  });
+
+  it("ignores statuses it doesn't know", () => {
+    expect(returnPickupStage("")).toBeNull();
+    expect(returnPickupStage("RETURN PENDING")).toBeNull();
+  });
+});
+
+describe("nextReturnPickupStage", () => {
+  it("moves forward", () => {
+    expect(nextReturnPickupStage(null, "scheduled")).toBe("scheduled");
+    expect(nextReturnPickupStage("scheduled", "picked_up")).toBe("picked_up");
+    expect(nextReturnPickupStage("picked_up", "delivered")).toBe("delivered");
+    expect(nextReturnPickupStage(null, "delivered")).toBe("delivered");
+  });
+
+  it("never moves back for a late event", () => {
+    expect(nextReturnPickupStage("picked_up", "scheduled")).toBeNull();
+    expect(nextReturnPickupStage("delivered", "picked_up")).toBeNull();
+    expect(nextReturnPickupStage("delivered", "delivered")).toBeNull();
+    expect(nextReturnPickupStage("picked_up", null)).toBeNull();
+  });
+
+  it("cancels only a pickup that hasn't happened, and can be rebooked", () => {
+    expect(nextReturnPickupStage("scheduled", "canceled")).toBe("canceled");
+    expect(nextReturnPickupStage("picked_up", "canceled")).toBeNull();
+    expect(nextReturnPickupStage("canceled", "scheduled")).toBe("scheduled");
   });
 });

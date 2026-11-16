@@ -210,6 +210,19 @@ function Step({ step, last }: { step: ReturnStep; last: boolean }) {
           {step.detail}
         </p>
         {step.at && <p className="text-body-4 text-muted">{when(step.at)}</p>}
+        {step.trackingUrl && (
+          <a
+            href={step.trackingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "w-fit text-body-4 font-semibold text-primary underline underline-offset-2",
+              focusRing,
+            )}
+          >
+            Track pickup
+          </a>
+        )}
       </div>
     </li>
   );

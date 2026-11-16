@@ -16,10 +16,22 @@ import {
 import { toShiprocketOrder } from "./shiprocket-order";
 import { returnIdOf, toShiprocketReturn } from "./shiprocket-return";
 import {
+  nextReturnPickupStage,
+  returnPickupStage,
   trackingChange,
   type FulfillmentStatus,
+  type ReturnPickupStage,
   type TrackingEvent,
 } from "./tracking-update";
+
+const PICKUP_STAGES: readonly unknown[] = [
+  "scheduled",
+  "picked_up",
+  "delivered",
+  "canceled",
+] satisfies ReturnPickupStage[];
+const isPickupStage = (value: unknown): value is ReturnPickupStage =>
+  PICKUP_STAGES.includes(value);
 
 /*
  * Hands a paid order to Shiprocket and notes the result in the order's
@@ -332,6 +344,20 @@ async function applyReturnTrackingEvent(
         : {};
     const shiprocket = (metadata.shiprocket ?? {}) as Record<string, unknown>;
     const previous = (shiprocket.tracking ?? {}) as Record<string, unknown>;
+    // The pickup stage the shopper sees, moved only forward, with the time
+    // each stage was first reached.
+    const currentStage = isPickupStage(previous.stage) ? previous.stage : null;
+    const stage =
+      nextReturnPickupStage(
+        currentStage,
+        returnPickupStage(change.courierStatus),
+      ) ?? currentStage;
+    const firstAt = (key: string, reached: boolean) =>
+      typeof previous[key] === "string"
+        ? previous[key]
+        : reached
+          ? change.at
+          : null;
     await payload.update({
       collection: "returns",
       id: returnId,
@@ -345,6 +371,16 @@ async function applyReturnTrackingEvent(
               at: change.at,
               awb: change.trackingNumber ?? previous.awb ?? null,
               courier: change.carrier ?? previous.courier ?? null,
+              stage,
+              scheduledAt: firstAt(
+                "scheduledAt",
+                stage !== null && stage !== "canceled",
+              ),
+              pickedUpAt: firstAt(
+                "pickedUpAt",
+                stage === "picked_up" || stage === "delivered",
+              ),
+              deliveredAt: firstAt("deliveredAt", stage === "delivered"),
             },
           },
         },

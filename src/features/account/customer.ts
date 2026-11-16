@@ -18,6 +18,8 @@ import {
   orderReasons,
   OTHER_REASON,
   returnedByLine,
+  returnPickupOf,
+  type ReturnPickup,
   type ReturnStatus,
 } from "./return-request";
 import type { TrackingDates } from "./tracking";
@@ -160,6 +162,8 @@ export type ReturnView = {
   approvedAt: string | null;
   receivedAt: string | null;
   refundedAt: string | null;
+  /** The courier pickup, from Shiprocket's tracking updates. */
+  pickup: ReturnPickup | null;
   items: {
     key: string;
     title: string;
@@ -244,6 +248,7 @@ export async function listCustomerOrders(
       approvedAt: true,
       receivedAt: true,
       refundedAt: true,
+      metadata: true,
     },
   });
   const returnsByOrder = new Map<number, typeof returnDocs>();
@@ -326,6 +331,7 @@ export async function listCustomerOrders(
         approvedAt: r.approvedAt ?? null,
         receivedAt: r.receivedAt ?? null,
         refundedAt: r.refundedAt ?? null,
+        pickup: returnPickupOf(r.metadata),
         items: r.items.map((item, i) => {
           const line = item.lineId ? byKey.get(item.lineId) : undefined;
           return {

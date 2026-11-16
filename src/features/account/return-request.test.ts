@@ -4,8 +4,10 @@ import {
   orderReasons,
   orderReturnBadge,
   returnedByLine,
+  returnPickupOf,
   returnRequestHref,
   returnSteps,
+  type ReturnPickup,
   type ReturnStatus,
 } from "./return-request";
 
@@ -75,36 +77,121 @@ describe("returnedByLine", () => {
 });
 
 describe("returnSteps", () => {
-  const states = (status: ReturnStatus) =>
-    returnSteps({
-      status,
-      createdAt: "2026-11-01T10:00:00.000Z",
-      approvedAt: "2026-11-02T10:00:00.000Z",
-      receivedAt: "2026-11-04T10:00:00.000Z",
-      refundedAt: "2026-11-05T10:00:00.000Z",
-    }).map((s) => `${s.key}:${s.state}`);
+  const dates = {
+    createdAt: "2026-11-01T10:00:00.000Z",
+    approvedAt: "2026-11-02T10:00:00.000Z",
+    receivedAt: "2026-11-04T10:00:00.000Z",
+    refundedAt: "2026-11-05T10:00:00.000Z",
+  };
+  const pickup = (p: Partial<ReturnPickup>): ReturnPickup => ({
+    stage: "scheduled",
+    courier: "Delhivery",
+    awb: "1234567890",
+    scheduledAt: "2026-11-02T12:00:00.000Z",
+    pickedUpAt: null,
+    deliveredAt: null,
+    ...p,
+  });
+  const states = (status: ReturnStatus, p: ReturnPickup | null = null) =>
+    returnSteps({ status, ...dates, pickup: p }).map(
+      (s) => `${s.key}:${s.state}`,
+    );
 
   it("shows a new request under review", () => {
     expect(states("requested")).toEqual([
       "submitted:done",
       "review:current",
       "approved:upcoming",
+      "pickup:upcoming",
       "refunded:upcoming",
     ]);
   });
 
-  it("moves to approved, then received, then refunded", () => {
+  it("waits for the courier once approved", () => {
     expect(states("approved")).toEqual([
       "submitted:done",
       "review:done",
-      "approved:current",
+      "approved:done",
+      "pickup:current",
       "refunded:upcoming",
     ]);
-    expect(states("received")[2]).toBe("approved:current");
+  });
+
+  it("follows the courier pickup, even before staff update the status", () => {
+    const scheduled = returnSteps({
+      status: "requested",
+      ...dates,
+      approvedAt: null,
+      pickup: pickup({}),
+    });
+    expect(scheduled.map((s) => `${s.key}:${s.state}`)).toEqual([
+      "submitted:done",
+      "review:done",
+      "approved:done",
+      "pickup:current",
+      "refunded:upcoming",
+    ]);
+    expect(scheduled[2]!.at).toBe("2026-11-02T12:00:00.000Z");
+    expect(scheduled[3]).toMatchObject({
+      label: "Pickup scheduled",
+      at: "2026-11-02T12:00:00.000Z",
+      trackingUrl: "https://shiprocket.co/tracking/1234567890",
+    });
+    expect(scheduled[3]!.detail).toContain("Delhivery · AWB 1234567890");
+
+    const picked = returnSteps({
+      status: "approved",
+      ...dates,
+      pickup: pickup({
+        stage: "picked_up",
+        pickedUpAt: "2026-11-03T09:00:00.000Z",
+      }),
+    });
+    expect(picked[3]).toMatchObject({
+      label: "Picked up",
+      state: "current",
+      at: "2026-11-03T09:00:00.000Z",
+    });
+
+    const back = returnSteps({
+      status: "approved",
+      ...dates,
+      pickup: pickup({
+        stage: "delivered",
+        deliveredAt: "2026-11-04T08:00:00.000Z",
+      }),
+    });
+    expect(back[3]).toMatchObject({ label: "Back with us", state: "current" });
+  });
+
+  it("says when the courier pickup was cancelled", () => {
+    const steps = returnSteps({
+      status: "approved",
+      ...dates,
+      pickup: pickup({ stage: "canceled" }),
+    });
+    expect(steps[3]).toMatchObject({
+      label: "Pickup cancelled",
+      state: "failed",
+    });
+  });
+
+  it("is received, then refunded", () => {
+    const received = returnSteps({
+      status: "received",
+      ...dates,
+      pickup: pickup({ stage: "delivered" }),
+    });
+    expect(received[3]).toMatchObject({
+      label: "Return received",
+      state: "current",
+      at: "2026-11-04T10:00:00.000Z",
+    });
     expect(states("refunded")).toEqual([
       "submitted:done",
       "review:done",
       "approved:done",
+      "pickup:done",
       "refunded:done",
     ]);
   });
@@ -116,23 +203,50 @@ describe("returnSteps", () => {
       approvedAt: null,
       receivedAt: null,
       refundedAt: null,
+      pickup: pickup({}),
     });
     expect(steps[1]).toMatchObject({ state: "failed", label: "Not approved" });
     expect(steps.slice(2).every((s) => s.state === "upcoming")).toBe(true);
   });
+});
 
-  it("dates the approved step by when it was received, once it was", () => {
-    const [, , approved] = returnSteps({
-      status: "received",
-      createdAt: "2026-11-01T10:00:00.000Z",
-      approvedAt: "2026-11-02T10:00:00.000Z",
-      receivedAt: "2026-11-04T10:00:00.000Z",
-      refundedAt: null,
+describe("returnPickupOf", () => {
+  it("reads the pickup saved by the tracking webhook", () => {
+    expect(
+      returnPickupOf({
+        shiprocket: {
+          orderId: "1",
+          tracking: {
+            status: "RETURN PICKED UP",
+            stage: "picked_up",
+            courier: "Delhivery",
+            awb: "123",
+            scheduledAt: "2026-11-02T12:00:00.000Z",
+            pickedUpAt: "2026-11-03T09:00:00.000Z",
+            deliveredAt: null,
+          },
+        },
+      }),
+    ).toEqual({
+      stage: "picked_up",
+      courier: "Delhivery",
+      awb: "123",
+      scheduledAt: "2026-11-02T12:00:00.000Z",
+      pickedUpAt: "2026-11-03T09:00:00.000Z",
+      deliveredAt: null,
     });
-    expect(approved).toMatchObject({
-      label: "Return received",
-      at: "2026-11-04T10:00:00.000Z",
-    });
+  });
+
+  it("is null without a known stage", () => {
+    expect(returnPickupOf(null)).toBeNull();
+    expect(returnPickupOf({ shiprocket: { orderId: "1" } })).toBeNull();
+    // Saved before stages were tracked: just the courier's wording.
+    expect(
+      returnPickupOf({ shiprocket: { tracking: { status: "PICKED UP" } } }),
+    ).toBeNull();
+    expect(
+      returnPickupOf({ shiprocket: { tracking: { stage: "lost" } } }),
+    ).toBeNull();
   });
 });
 
