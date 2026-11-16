@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { formatPrice } from "@/lib/format";
 import { decodeCartNotes } from "./pricing";
 import { razorpayClient, razorpayConfig } from "./razorpay";
+import { orderIdForReceipt } from "./receipts";
 
 /*
  * Coupons inside Razorpay Magic Checkout. Razorpay calls our "apply
@@ -41,12 +42,16 @@ async function findOrder(
   orderId: string,
   razorpayOrderId: string | null | undefined,
 ) {
-  const id = razorpayOrderId || (RECEIPT.test(orderId) ? null : orderId);
+  const id =
+    razorpayOrderId ||
+    (RECEIPT.test(orderId) ? await orderIdForReceipt(orderId) : orderId);
   if (id) {
     return client.orders
       .fetch(id.startsWith("order_") ? id : `order_${id}`)
       .catch(() => null);
   }
+  // Not noted (e.g. created before receipts were noted): Razorpay's search,
+  // which can lag just after the order is created.
   const { items } = await client.orders.all({ receipt: orderId, count: 1 });
   return items[0] ?? null;
 }

@@ -14,6 +14,7 @@ const m = vi.hoisted(() => ({
   getProductBySlug: vi.fn(),
   findByID: vi.fn(),
   allowed: true,
+  orderIdForReceipt: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -32,6 +33,7 @@ vi.mock("@/features/catalog/repository", () => ({
 vi.mock("@/features/account/customer", () => ({
   getPayloadClient: async () => ({ findByID: m.findByID }),
 }));
+vi.mock("./receipts", () => ({ orderIdForReceipt: m.orderIdForReceipt }));
 vi.mock("@/lib/rate-limit", () => ({
   rateLimit: async () => m.allowed,
 }));
@@ -157,6 +159,21 @@ describe("applyMagicPromotion", () => {
       ok: false,
       body: { failure_code: code, failure_reason: message },
     });
+  });
+
+  it("finds the order by the id noted for its receipt, not Razorpay's lagging search", async () => {
+    m.orderIdForReceipt.mockResolvedValue("order_NOTED1");
+    m.ordersFetch.mockResolvedValue({
+      id: "order_NOTED1",
+      currency: "INR",
+      notes: { ...cartNotes },
+    });
+    const result = await applyMagicPromotion(request());
+
+    expect(m.orderIdForReceipt).toHaveBeenCalledWith(RECEIPT);
+    expect(m.ordersFetch).toHaveBeenCalledWith("order_NOTED1");
+    expect(m.ordersAll).not.toHaveBeenCalled();
+    expect(result.ok).toBe(true);
   });
 
   it("also finds the order by its Razorpay id, with or without order_", async () => {

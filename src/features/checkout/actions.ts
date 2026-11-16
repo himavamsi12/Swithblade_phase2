@@ -27,6 +27,7 @@ import {
   type DeliveryAddressInput,
 } from "./address";
 import { MAGIC_CURRENCY, usesMagicCheckout } from "./magic";
+import { rememberReceipt } from "./receipts";
 import { env } from "@/lib/env";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import {
@@ -319,10 +320,11 @@ export async function createCheckout(
   // (wantsMagic is only true without one).
   const magic = wantsMagic;
   try {
+    const receipt = `sb_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
     const order = await razorpayClient(config).orders.create({
       amount,
       currency: cart.currency,
-      receipt: `sb_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`,
+      receipt,
       notes: {
         ...cartNotes,
         ...addressNotes,
@@ -340,6 +342,8 @@ export async function createCheckout(
         : {}),
     });
     await attachHolds(hold.checkout, order.id);
+    // Magic Checkout's coupon calls name the order by its receipt.
+    if (magic) await rememberReceipt(receipt, order.id);
     return {
       status: "ok",
       keyId: config.keyId,

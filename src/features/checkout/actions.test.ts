@@ -74,6 +74,8 @@ vi.mock("./razorpay", () => ({
   isValidPaymentSignature: () => signatureOk,
 }));
 vi.mock("./after-payment", () => ({ afterOrderRecorded: vi.fn() }));
+const rememberReceipt = vi.fn();
+vi.mock("./receipts", () => ({ rememberReceipt }));
 // Standard checkout by default; the Magic Checkout tests switch it on.
 let magicOn = false;
 vi.mock("./magic", () => ({
@@ -299,6 +301,8 @@ describe("createCheckout", () => {
       expect(order.notes.ship0).toBeUndefined();
       expect(order.line_items_total).toBe(399800);
       expect(order.line_items).toHaveLength(1);
+      // Noted for Magic's coupon calls, which name the order by receipt.
+      expect(rememberReceipt).toHaveBeenCalledWith(order.receipt, "order_1");
     });
 
     it("asks for a valid email", async () => {
