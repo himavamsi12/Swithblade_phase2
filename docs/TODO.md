@@ -26,7 +26,7 @@ Tasks parked for later. Tick them off (`[x]`) when done.
   - Supabase → Authentication → URL Configuration → same **Site URL**, and
     add `https://swithblade-phase2.vercel.app/auth/callback` to **Redirect
     URLs**.
-- [ ] **Add `CRON_SECRET` in Vercel** (any long random string), then
+- [x] **Add `CRON_SECRET` in Vercel** (16 Nov: added) (any long random string), then
       redeploy. Without it the daily safety-net job is refused every time, so
       paid orders the checkout and webhook missed aren't recovered, failed
       Shiprocket hand-offs and confirmation emails aren't retried, staff
