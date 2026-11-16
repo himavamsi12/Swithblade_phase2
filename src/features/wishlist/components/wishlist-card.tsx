@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { cartActions, openCart } from "@/features/cart/store";
 import {
   ColorPicker,
-  firstAvailableSize,
   SizePicker,
 } from "@/features/catalog/components/option-pickers";
 import { Price } from "@/features/currency/components/price";
@@ -21,7 +20,14 @@ const focusRing =
 /** A saved product with its own colour/size choice and Add to Bag. */
 export function WishlistCard({ item }: { item: WishlistItem }) {
   const [colorIndex, setColorIndex] = useState(0);
-  const [size, setSize] = useState(() => firstAvailableSize(item.sizes));
+  // No size until the shopper picks one.
+  const [size, setSize] = useState<string | null>(null);
+  // Set when they try to add before picking a size.
+  const [askSize, setAskSize] = useState(false);
+  const chooseSize = (label: string) => {
+    setSize(label);
+    setAskSize(false);
+  };
   const [justAdded, setJustAdded] = useState(false);
   const href = `/products/${item.slug}` as const;
 
@@ -31,7 +37,8 @@ export function WishlistCard({ item }: { item: WishlistItem }) {
     return () => clearTimeout(t);
   }, [justAdded]);
 
-  const canBuy = item.inStock && (item.sizes.length === 0 || size !== null);
+  const canBuy = item.inStock;
+  const needsSize = item.sizes.length > 0 && !size;
 
   return (
     <article className="flex flex-col" aria-label={item.name}>
@@ -95,9 +102,10 @@ export function WishlistCard({ item }: { item: WishlistItem }) {
         <SizePicker
           sizes={item.sizes}
           value={size}
-          onChange={setSize}
+          onChange={chooseSize}
           density="compact"
           selectedClassName="border-black"
+          error={askSize ? "Please select a size." : undefined}
         />
       </div>
 
@@ -105,6 +113,10 @@ export function WishlistCard({ item }: { item: WishlistItem }) {
         type="button"
         disabled={!canBuy}
         onClick={() => {
+          if (needsSize) {
+            setAskSize(true);
+            return;
+          }
           cartActions.add({
             productId: item.productId,
             slug: item.slug,

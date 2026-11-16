@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 import type { ProductColor, ProductSize } from "../types";
 
@@ -83,6 +84,7 @@ export function SizePicker({
   onChange,
   density = "regular",
   selectedClassName = "border-primary",
+  error,
   children,
 }: {
   sizes: ProductSize[];
@@ -91,9 +93,12 @@ export function SizePicker({
   density?: Density;
   /** Border colour of the chosen size (blue on the product page). */
   selectedClassName?: string;
+  /** Shown under the sizes, e.g. when the shopper tries to buy without one. */
+  error?: string;
   /** Extra controls after the sizes, e.g. the size guide link. */
   children?: React.ReactNode;
 }) {
+  const errorId = useId();
   if (sizes.length === 0) return null;
   const compact = density === "compact";
   return (
@@ -103,6 +108,9 @@ export function SizePicker({
         <div
           role="radiogroup"
           aria-label="Size"
+          aria-required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           className={cn("flex items-center", compact ? "gap-1" : "gap-3")}
         >
           {sizes.map((s) => (
@@ -130,10 +138,15 @@ export function SizePicker({
         </div>
         {children}
       </div>
+      {error && (
+        <p
+          id={errorId}
+          role="alert"
+          className="animate-fade-up text-body-4 text-red-600"
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 }
-
-/** First size that isn't sold out, the sensible default selection. */
-export const firstAvailableSize = (sizes: ProductSize[]) =>
-  sizes.find((s) => s.available)?.label ?? null;

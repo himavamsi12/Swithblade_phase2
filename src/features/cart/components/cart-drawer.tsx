@@ -76,11 +76,31 @@ export function CartDrawer({ icon, className }: CartDrawerProps) {
   }, [open]);
 
   const totals = subtotals(lines);
+  const label =
+    ready && count > 0
+      ? `Cart, ${count} ${count === 1 ? "item" : "items"}`
+      : "Cart";
+  const badge =
+    ready && count > 0 ? (
+      <span
+        // Re-keyed so the badge pops again when the count changes.
+        key={count}
+        aria-hidden
+        className="absolute -top-2 -right-2.5 flex h-4 min-w-4 animate-pop-in items-center justify-center rounded-full bg-primary px-1 text-[10px] leading-none font-semibold text-white"
+      >
+        {count > 99 ? "99+" : count}
+      </span>
+    ) : null;
 
   if (onCartPage) {
     return (
-      <Link href="/cart" aria-label="Cart" className={className}>
+      <Link
+        href="/cart"
+        aria-label={label}
+        className={cn("relative", className)}
+      >
         {icon}
+        {badge}
       </Link>
     );
   }
@@ -200,7 +220,7 @@ export function CartDrawer({ icon, className }: CartDrawerProps) {
       <button
         ref={button}
         type="button"
-        aria-label="Cart"
+        aria-label={label}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => {
@@ -208,9 +228,10 @@ export function CartDrawer({ icon, className }: CartDrawerProps) {
           // Show what was added on the shopper's other devices.
           void syncBag();
         }}
-        className={className}
+        className={cn("relative", className)}
       >
         {icon}
+        {badge}
       </button>
       {ready && createPortal(drawer, document.body)}
     </>

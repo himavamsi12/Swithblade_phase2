@@ -86,7 +86,12 @@ export function ProductPurchase({
         onChange={setColorIndex}
       />
 
-      <SizePicker sizes={sizes} value={size} onChange={chooseSize}>
+      <SizePicker
+        sizes={sizes}
+        value={size}
+        onChange={chooseSize}
+        error={askSize ? "Please select a size." : undefined}
+      >
         <SizeGuideDialog
           modelImage={modelImage}
           productName={product.name}
@@ -105,7 +110,7 @@ export function ProductPurchase({
             openCart();
           })}
           className={cn(
-            "h-10 bg-primary text-body-2 text-white transition-opacity hover:opacity-90 disabled:bg-stroke disabled:text-muted disabled:hover:opacity-100",
+            "h-10 border border-primary bg-transparent text-body-2 text-primary transition-colors hover:bg-card disabled:border-stroke disabled:text-muted disabled:hover:bg-transparent",
             focusRing,
           )}
         >
@@ -125,7 +130,7 @@ export function ProductPurchase({
             router.push("/cart");
           })}
           className={cn(
-            "h-10 border border-primary bg-white text-body-2 text-primary transition-colors hover:bg-card disabled:border-stroke disabled:text-muted disabled:hover:bg-white",
+            "h-10 bg-primary text-body-2 text-white transition-opacity hover:opacity-90 disabled:bg-stroke disabled:text-muted disabled:hover:opacity-100",
             focusRing,
           )}
         >
@@ -133,11 +138,7 @@ export function ProductPurchase({
         </button>
       </div>
       <p className="sr-only" aria-live="polite">
-        {askSize
-          ? "Select a size first."
-          : justAdded
-            ? `${product.name} added to your bag.`
-            : ""}
+        {justAdded ? `${product.name} added to your bag.` : ""}
       </p>
     </div>
   );

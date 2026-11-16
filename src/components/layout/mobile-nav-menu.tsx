@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import type { Route } from "next";
 import { siteConfig } from "@/config/site";
 import { SignOutConfirm } from "@/features/auth/components/sign-out-confirm";
+import { MobileCurrencyMenu } from "@/features/currency/components/mobile-currency-menu";
 import { headerAssets } from "./site-header-assets";
 
 type MobileNavItem = (typeof siteConfig.nav)[number];
@@ -231,6 +232,22 @@ export function MobileNavMenu({
                   </Link>
                 </li>
               ))}
+
+              <li
+                className={`border-b border-black/15 transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
+                  isOpen
+                    ? "translate-y-0 opacity-100"
+                    : "translate-y-2 opacity-0"
+                }`}
+                style={{
+                  transitionDelay:
+                    isOpen && !reduceMotion
+                      ? `${(navigationItems.length + 2) * 45}ms`
+                      : "0ms",
+                }}
+              >
+                <MobileCurrencyMenu />
+              </li>
             </ul>
 
             <ul className="sticky bottom-0 mt-auto flex flex-col gap-1 bg-white pt-8 pb-[max(2rem,env(safe-area-inset-bottom))]">

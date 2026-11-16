@@ -35,12 +35,11 @@ export function ProductCard({
     ? "(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
     : "(min-width: 1024px) 20vw, (min-width: 768px) 33vw, 50vw";
 
-  // Shelf cards get quick add: default colour, first size that isn't sold out.
-  const defaultSize = product.sizes.length
-    ? (product.sizes.find((s) => s.available)?.label ?? null)
-    : null;
+  // Shelf cards get quick add in the default colour; the shopper picks a size.
   const canQuickAdd =
-    !listing && product.inStock && (product.sizes.length === 0 || defaultSize);
+    !listing &&
+    product.inStock &&
+    (product.sizes.length === 0 || product.sizes.some((s) => s.available));
 
   return (
     <article
@@ -126,8 +125,8 @@ export function ProductCard({
               price: product.price,
               currency: product.currency,
               color: product.colors[0]?.name ?? null,
-              size: defaultSize,
             }}
+            sizes={product.sizes}
             // Above the card-wide link; shown on hover or keyboard focus, and
             // always on touch screens, which have no hover.
             className={cn(

@@ -20,6 +20,8 @@
 }
 
 @theme inline {
+  --animate-fade-up: fade-up 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pop-in: pop-in 350ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   --animate-nav-progress: nav-progress 8s cubic-bezier(0.1, 0.7, 0.2, 1) both;
   --animate-lightbox-in: lightbox-slide-in 650ms cubic-bezier(0.65, 0, 0.35, 1)
     both;
@@ -245,6 +247,28 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .star-badge__shape::after {
+    animation: none;
+  }
+}
+
+/* Small entrances: error messages slide up, badges pop in. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-pop-in {
     animation: none;
   }
 }

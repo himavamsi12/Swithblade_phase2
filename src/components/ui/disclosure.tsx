@@ -1,6 +1,12 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useId,
+  useState,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -33,6 +39,22 @@ export function Collapse({
   );
 }
 
+type Group = { openId: string | null; setOpenId: (id: string | null) => void };
+const GroupContext = createContext<Group | null>(null);
+
+/**
+ * Wraps `Disclosure`s so only one is open at a time: opening one closes
+ * whichever was open before.
+ */
+export function DisclosureGroup({ children }: { children: ReactNode }) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  return (
+    <GroupContext.Provider value={{ openId, setOpenId }}>
+      {children}
+    </GroupContext.Provider>
+  );
+}
+
 /**
  * Accordion item: a toggle button over a `Collapse`. The root carries
  * `data-open`, so icons in `summary` can use `group-data-open:rotate-45`.
@@ -52,8 +74,12 @@ export function Disclosure({
   summaryClassName?: string;
   panelClassName?: string;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [ownOpen, setOwnOpen] = useState(defaultOpen);
   const panelId = useId();
+  const group = useContext(GroupContext);
+  const open = group ? group.openId === panelId : ownOpen;
+  const toggle = () =>
+    group ? group.setOpenId(open ? null : panelId) : setOwnOpen((o) => !o);
 
   return (
     <div className={cn("group", className)} data-open={open || undefined}>
@@ -61,7 +87,7 @@ export function Disclosure({
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className={cn(
           "flex w-full cursor-pointer items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
           summaryClassName,

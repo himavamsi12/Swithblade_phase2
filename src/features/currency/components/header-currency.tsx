@@ -3,37 +3,17 @@
 import { Check, ChevronDown, Globe } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import type { Rates } from "../currencies";
-import {
-  currencies,
-  currencyActions,
-  useCurrencyPreference,
-  useExchangeRates,
-} from "../store";
-
-type Currency = (typeof currencies)[number];
-
-/** What one unit of `base` buys in `c`, e.g. "€0.92" against 1 USD. */
-function rateLabel(c: Currency, base: Currency, rates: Rates | null) {
-  if (!rates) return null;
-  const value = rates[c.code] / rates[base.code];
-  if (!Number.isFinite(value) || value <= 0) return null;
-  // Small rates (₹ against $) keep two significant digits: "$0.012".
-  const digits = value >= 1 ? value.toFixed(2) : value.toPrecision(2);
-  return `${c.symbol}${digits}`;
-}
+import { currencies, currencyActions, useCurrencyPreference } from "../store";
 
 /**
  * Header currency switcher: a globe, the saved currency's code ("INR" until
- * one is chosen) and a chevron, opening a "Select currency" panel with each
- * currency's rate against the current one. Drawn in `currentColor`, so the
- * trigger follows the header's tone like the icons.
+ * one is chosen) and a chevron, opening a "Select currency" panel. Drawn in
+ * `currentColor`, so the trigger follows the header's tone like the icons.
  */
 export function HeaderCurrency({ className }: { className?: string }) {
   const code = useCurrencyPreference().currency ?? "INR";
   const current = currencies.find((c) => c.code === code) ?? currencies[0];
   const [open, setOpen] = useState(false);
-  const rates = useExchangeRates(open);
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const menuId = useId();
@@ -58,9 +38,9 @@ export function HeaderCurrency({ className }: { className?: string }) {
   }, [open]);
 
   return (
-    // Phones: not positioned, so the panel spans the header's width instead
-    // of hanging off this button past the screen's left edge.
-    <div ref={root} className="flex md:relative">
+    // Desktop only; phones pick the currency inside the menu
+    // (MobileCurrencyMenu).
+    <div ref={root} className="relative hidden md:flex">
       <button
         ref={button}
         type="button"
@@ -71,10 +51,9 @@ export function HeaderCurrency({ className }: { className?: string }) {
         className={cn("h-[17px] min-w-[17px] gap-1.5 leading-none", className)}
       >
         <Globe size={17} strokeWidth={1} absoluteStrokeWidth aria-hidden />
-        {/* Phones show the globe alone; the panel names the currency. */}
         <span
           aria-hidden
-          className="hidden text-[12px] font-semibold tracking-[0.1em] md:inline"
+          className="text-[12px] font-semibold tracking-[0.1em]"
         >
           {current.code}
         </span>
@@ -83,7 +62,7 @@ export function HeaderCurrency({ className }: { className?: string }) {
           strokeWidth={1.5}
           aria-hidden
           className={cn(
-            "hidden transition-transform duration-200 motion-reduce:transition-none md:block",
+            "transition-transform duration-200 motion-reduce:transition-none",
             open && "rotate-180",
           )}
         />
@@ -97,7 +76,7 @@ export function HeaderCurrency({ className }: { className?: string }) {
         inert={!open}
         className={cn(
           "absolute top-full z-40 bg-white text-black shadow-[0_16px_40px_rgb(0_0_0/0.14)] transition-[opacity,translate,visibility] duration-200 ease-out motion-reduce:transition-none",
-          "inset-x-4 md:inset-x-auto md:right-0 md:mt-5 md:w-[440px] md:origin-top-right",
+          "right-0 mt-5 w-[440px] origin-top-right",
           open ? "visible" : "invisible -translate-y-1 opacity-0",
         )}
       >
@@ -108,15 +87,11 @@ export function HeaderCurrency({ className }: { className?: string }) {
           >
             Select currency
           </p>
-          <p className="mt-2 text-body-3 text-muted">
-            Rates shown against 1 {current.code}
-          </p>
         </div>
 
         <ul aria-label="Display currency" className="p-2.5">
           {currencies.map((c) => {
             const selected = c.code === code;
-            const rate = selected ? null : rateLabel(c, current, rates);
             return (
               <li key={c.code}>
                 <button
@@ -148,19 +123,13 @@ export function HeaderCurrency({ className }: { className?: string }) {
                       {c.name}
                     </span>
                   </span>
-                  {selected ? (
+                  {selected && (
                     <Check
                       size={20}
                       strokeWidth={2}
                       aria-hidden
                       className="mr-1 shrink-0 text-primary"
                     />
-                  ) : (
-                    rate && (
-                      <span className="shrink-0 text-body-2 text-black/75 tabular-nums">
-                        {rate}
-                      </span>
-                    )
                   )}
                 </button>
               </li>
