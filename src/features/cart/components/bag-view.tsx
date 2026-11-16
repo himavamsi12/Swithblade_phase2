@@ -4,10 +4,6 @@ import { ArrowRight, Check, Minus, Plus, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import applePay from "@/assets/icons/payments/applepay.svg";
-import googlePay from "@/assets/icons/payments/googlepay.svg";
-import mastercard from "@/assets/icons/payments/mastercard.svg";
-import visa from "@/assets/icons/payments/visa.svg";
 import { EmptyState } from "@/components/ui/empty-state";
 import { siteConfig } from "@/config/site";
 import { CheckoutButton } from "@/features/checkout/components/checkout-button";
@@ -31,13 +27,6 @@ import type { CartLine } from "../types";
 const focusRing =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 const cardTitle = "text-body-3 font-semibold tracking-[0.04em] uppercase";
-
-const paymentMarks = [
-  { src: applePay, label: "Apple Pay", className: "h-[22px] w-[47px]" },
-  { src: googlePay, label: "Google Pay", className: "h-[21px] w-[52px]" },
-  { src: mastercard, label: "Mastercard", className: "h-6 w-9" },
-  { src: visa, label: "Visa", className: "h-9 w-12" },
-];
 
 /** Bag heading, line items and the order summary. */
 export function BagView({
@@ -383,22 +372,6 @@ function OrderSummary({
           focusRing,
         )}
       />
-      <div className="mt-4 border-t border-stroke pt-4">
-        <p className="text-body-4 tracking-[0.04em] text-muted uppercase">
-          We accept following payment…
-        </p>
-        <ul className="mt-3 flex items-center gap-4">
-          {paymentMarks.map((m) => (
-            <li key={m.label}>
-              <Image
-                src={m.src}
-                alt={m.label}
-                className={cn("object-contain", m.className)}
-              />
-            </li>
-          ))}
-        </ul>
-      </div>
     </section>
   );
 }
