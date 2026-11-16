@@ -294,6 +294,46 @@ export function recordRazorpayPayment(
   return promise;
 }
 
+/**
+ * A paid (or authorized) payment we refused: noted in payload_kv as
+ * `refused-payment:<payment id>` with the figures behind it (no personal
+ * details), so staff (and whoever debugs it) can see why and refund it if
+ * Razorpay doesn't. An authorized payment refused here is never captured,
+ * so Razorpay refunds it after a few days.
+ */
+async function noteRefusedPayment(
+  payment: {
+    id: string;
+    amount: number | string;
+    currency: string;
+    status: string;
+    order_id?: string;
+  },
+  rzpOrder: object,
+  reason: string,
+  figures: Record<string, number> = {},
+) {
+  const order = rzpOrder as Record<string, unknown>;
+  try {
+    const payload = await getPayloadClient();
+    await payload.kv.set(`refused-payment:${payment.id}`, {
+      at: new Date().toISOString(),
+      reason,
+      razorpayOrderId: String(order.id ?? payment.order_id ?? ""),
+      paymentStatus: payment.status,
+      paid: Number(payment.amount),
+      currency: payment.currency,
+      orderAmount: Number(order.amount),
+      lineItemsTotal: (order.line_items_total ?? null) as number | null,
+      orderShippingFee: (order.shipping_fee ?? null) as number | null,
+      promotions: JSON.parse(JSON.stringify(order.promotions ?? null)),
+      ...figures,
+    });
+  } catch (error) {
+    console.error("Couldn't note the refused payment", error);
+  }
+}
+
 const magicPromotionsSchema = z.array(
   z.object({
     code: z.string().trim().min(1),
@@ -364,6 +404,7 @@ async function recordPayment(
       `Payment ${payment.id} for ${razorpayOrderId} has a coupon that isn't ours:`,
       JSON.stringify((rzpOrder as { promotions?: unknown }).promotions),
     );
+    await noteRefusedPayment(payment, rzpOrder, "Unknown coupon on order");
     return { status: "rejected", reason: "Unknown coupon on order" };
   }
   // What the shopper should have paid. Standard checkout: the Razorpay
@@ -405,6 +446,17 @@ async function recordPayment(
       `Payment ${payment.id} for ${razorpayOrderId} doesn't match the order:`,
       `paid ${payment.amount} ${currency},`,
       `expected ${expected} ${rzpOrder.currency} (status ${payment.status})`,
+    );
+    await noteRefusedPayment(
+      payment,
+      rzpOrder,
+      "Paid amount doesn't match order",
+      {
+        subtotal,
+        couponDiscount: coupons.discount,
+        shippingQuoted: quoted.fee,
+        expected,
+      },
     );
     return { status: "rejected", reason: "Paid amount doesn't match order" };
   }
