@@ -43,13 +43,15 @@ import { recordRazorpayPayment } from "./repository";
 /** Magic Checkout (one-click, address + COD + coupons) only supports INR. */
 const MAGIC_CURRENCY = "INR";
 /*
- * Off: in test mode Magic Checkout rejected every pincode without calling our
- * shipping-info URL. The bag page collects the address instead. The Magic
- * endpoints under /api/razorpay stay in place for switching it back on.
- * Before that, check `recordPayment`'s amount check (payment must equal the
- * Razorpay order amount) against Magic's shipping and COD fees.
+ * On for INR bags without a site coupon. Razorpay's dashboard is set to a
+ * custom platform with our shipping-info and promotion URLs (free delivery,
+ * no COD), so the paid amount always equals the Razorpay order amount, as
+ * `recordPayment` requires. Adding shipping or COD fees there would make it
+ * reject every Magic payment. The bag page still collects an address first
+ * (it checks the pincode and is the fallback); the order is saved with the
+ * address entered in Razorpay's window when there is one.
  */
-const USE_MAGIC_CHECKOUT = false;
+const USE_MAGIC_CHECKOUT = true;
 
 const itemsSchema = z
   .array(
