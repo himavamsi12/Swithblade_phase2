@@ -165,6 +165,11 @@ the hourly safety net above are prerequisites for several of these.
 
 ### Operations
 
+- [ ] **Purge old Magic receipt notes.** Each Magic Checkout order notes
+      `razorpay-receipt:<receipt>` → order id in `payload.payload_kv` (Razorpay's
+      search by receipt lags, so coupon calls look it up there). Have the
+      daily safety-net job delete entries older than a day.
+
 - [ ] **Stock ledger:** admins overwrite the stock number, which can wipe
       out sales made at the same time. Use "+5 received" style adjustments.
 - [ ] Shipments: reconcile tracking status, "AWB but no pickup after 24 h",
