@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowRight, Check, Minus, Plus, Trash2, X } from "lucide-react";
+import { ArrowRight, Minus, Plus, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { siteConfig } from "@/config/site";
 import { CheckoutButton } from "@/features/checkout/components/checkout-button";
@@ -91,19 +91,35 @@ export function BagView({
 
 /** Shown in place of the bag once the payment is verified. */
 function OrderPlaced({ orderNumber }: { orderNumber: string }) {
+  // The bag was scrolled down to the checkout button; start the thank-you
+  // at the top instead of swapping it in out of view.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+  const rise = (delay: number) => ({ animationDelay: `${delay}ms` });
+
   return (
     <div
       role="status"
       className="mx-auto flex max-w-[424px] flex-col items-center py-12 text-center md:py-16"
     >
-      <span className="flex size-[52px] items-center justify-center rounded-full bg-green-600 text-white">
-        <Check aria-hidden className="size-8" strokeWidth={2.5} />
-      </span>
-      <h1 className="mt-6 text-h4 md:text-h3">Thank you for shopping!</h1>
-      <p className="mt-2 text-body-1 text-muted">
+      <AnimatedTick />
+      <h1
+        className="mt-6 animate-success-in text-h4 md:text-h3"
+        style={rise(250)}
+      >
+        Thank you for shopping!
+      </h1>
+      <p
+        className="mt-2 animate-success-in text-body-1 text-muted"
+        style={rise(350)}
+      >
         Your order has been received and is being processed.
       </p>
-      <div className="mt-12 w-full border border-stroke px-6 py-8">
+      <div
+        className="mt-12 w-full animate-success-in border border-stroke px-6 py-8"
+        style={rise(450)}
+      >
         <p className="text-body-2 text-muted">Order Reference</p>
         <p className="mt-1 text-h5 select-all">#{orderNumber}</p>
         <p className="mt-6 text-body-3 text-muted">
@@ -113,13 +129,37 @@ function OrderPlaced({ orderNumber }: { orderNumber: string }) {
       <Link
         href="/"
         className={cn(
-          "mt-4 flex h-10 w-full items-center justify-center bg-primary text-body-3 text-white transition-opacity hover:opacity-90",
+          "mt-4 flex h-10 w-full animate-success-in items-center justify-center bg-primary text-body-3 text-white transition-opacity hover:opacity-90",
           focusRing,
         )}
+        style={rise(550)}
       >
         Return to Home
       </Link>
     </div>
+  );
+}
+
+/** Green circle that pops in, a check that draws itself, one soft pulse. */
+function AnimatedTick() {
+  return (
+    <span aria-hidden className="relative flex size-[52px]">
+      <span className="absolute inset-0 animate-tick-ring rounded-full bg-green-600" />
+      <span className="relative flex size-full animate-tick-circle items-center justify-center rounded-full bg-green-600">
+        <svg viewBox="0 0 24 24" className="size-8" fill="none">
+          <path
+            d="M5 12.5l4.5 4.5L19 7.5"
+            pathLength={1}
+            stroke="white"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray={1}
+            className="animate-tick-draw"
+          />
+        </svg>
+      </span>
+    </span>
   );
 }
 
