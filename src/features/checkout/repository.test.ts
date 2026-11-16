@@ -182,6 +182,25 @@ vi.mock("@/features/promotions/repository", () => ({
   findPromotionByCode,
 }));
 vi.mock("@/payload/transaction", () => ({ lockKey: m.lockKey }));
+// ₹99 delivery below ₹1,999, free from ₹1,999.
+const SHIPPING_RATES = [
+  {
+    id: 1,
+    name: "Standard delivery",
+    amount: 9900,
+    minSubtotal: null,
+    maxSubtotal: 199899,
+  },
+  {
+    id: 2,
+    name: "Free delivery",
+    amount: 0,
+    minSubtotal: 199900,
+    maxSubtotal: null,
+  },
+];
+const listShippingRates = vi.hoisted(() => vi.fn());
+vi.mock("@/features/shipping/rates-repository", () => ({ listShippingRates }));
 vi.mock("./razorpay", () => ({ razorpayClient: () => m.razorpay }));
 
 const { recordRazorpayPayment } = await import("./repository");
@@ -211,6 +230,7 @@ beforeEach(() => {
   // Reset, not just clear: drops queued mock*Once values and restores each
   // fake's own implementation.
   vi.resetAllMocks();
+  listShippingRates.mockResolvedValue(SHIPPING_RATES);
   state.db = { orders: [], transactions: [], customers: [], addresses: [] };
   state.nextId = 1;
   state.payment = {
@@ -504,6 +524,64 @@ describe("recordRazorpayPayment", () => {
     expect(result.status).toBe("duplicate");
     expect(razorpay.payments.capture).not.toHaveBeenCalled();
     expect(state.db.orders).toHaveLength(1);
+  });
+
+  describe("delivery charges", () => {
+    // A ₹999 bag: under ₹1,999, so delivery is ₹99.
+    beforeEach(() => {
+      state.rzpOrder = {
+        ...state.rzpOrder,
+        amount: 99900,
+        notes: {
+          ...state.rzpOrder.notes,
+          ...cartNotes([["2jz-tee", "Blue", "M", 1, 99900]]),
+        },
+      };
+      (state.rzpOrder as Record<string, unknown>).line_items_total = 99900;
+      state.payment.amount = 99900 + 9900;
+    });
+
+    it("records the delivery Razorpay added in Magic Checkout", async () => {
+      const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+
+      expect(result.status).toBe("recorded");
+      expect(state.db.orders![0]).toMatchObject({
+        amount: 109800,
+        totals: { subtotal: 99900, shippingTotal: 9900, discountTotal: 0 },
+        shippingMethod: { option: 1, name: "Standard delivery", amount: 9900 },
+      });
+    });
+
+    it("refuses, without capturing, a delivery charge we never quoted", async () => {
+      state.payment.status = "authorized";
+      state.payment.amount = 99900 + 5000;
+      const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+
+      expect(result).toEqual({
+        status: "rejected",
+        reason: "Paid amount doesn't match order",
+      });
+      expect(razorpay.payments.capture).not.toHaveBeenCalled();
+    });
+
+    it("refuses a small bag that skipped the delivery charge", async () => {
+      state.payment.amount = 99900;
+      listShippingRates.mockResolvedValue([SHIPPING_RATES[0]!]);
+      const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+      expect(result.status).toBe("rejected");
+    });
+
+    it("reads the standard checkout's delivery from the order", async () => {
+      delete (state.rzpOrder as Record<string, unknown>).line_items_total;
+      state.rzpOrder.amount = 109800;
+      state.rzpOrder.notes.shipping = "9900";
+      const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+
+      expect(result.status).toBe("recorded");
+      expect(state.db.orders![0]).toMatchObject({
+        totals: { shippingTotal: 9900, discountTotal: 0 },
+      });
+    });
   });
 
   describe("with a coupon applied in Magic Checkout", () => {

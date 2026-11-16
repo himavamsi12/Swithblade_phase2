@@ -75,6 +75,25 @@ vi.mock("./razorpay", () => ({
 }));
 vi.mock("./after-payment", () => ({ afterOrderRecorded: vi.fn() }));
 const rememberReceipt = vi.fn();
+// ₹99 delivery below ₹1,999, free from ₹1,999.
+const SHIPPING_RATES = [
+  {
+    id: 1,
+    name: "Standard delivery",
+    amount: 9900,
+    minSubtotal: null,
+    maxSubtotal: 199899,
+  },
+  {
+    id: 2,
+    name: "Free delivery",
+    amount: 0,
+    minSubtotal: 199900,
+    maxSubtotal: null,
+  },
+];
+const listShippingRates = vi.fn();
+vi.mock("@/features/shipping/rates-repository", () => ({ listShippingRates }));
 vi.mock("./receipts", () => ({ rememberReceipt }));
 // Standard checkout by default; the Magic Checkout tests switch it on.
 let magicOn = false;
@@ -120,6 +139,7 @@ beforeEach(() => {
   configured = true;
   signatureOk = true;
   getProductBySlug.mockResolvedValue(product);
+  listShippingRates.mockResolvedValue(SHIPPING_RATES);
   holdStock.mockResolvedValue({ ok: true, checkout: "hold_1" });
   ordersCreate.mockResolvedValue({
     id: "order_1",
@@ -338,6 +358,27 @@ describe("createCheckout", () => {
       expect(order.amount).toBe(359820);
       expect(order.line_items_total).toBeUndefined();
     });
+  });
+
+  it("adds delivery to a bag under the free-delivery amount", async () => {
+    getProductBySlug.mockResolvedValue({ ...product, price: 99900 });
+    const small = [{ ...bag[0]!, quantity: 1, price: 99900 }];
+    await createCheckout(small, address);
+
+    const order = ordersCreate.mock.calls[0]![0];
+    expect(order.amount).toBe(99900 + 9900);
+    expect(order.notes.shipping).toBe("9900");
+  });
+
+  it("leaves delivery to Razorpay with Magic Checkout", async () => {
+    magicOn = true;
+    getProductBySlug.mockResolvedValue({ ...product, price: 99900 });
+    const small = [{ ...bag[0]!, quantity: 1, price: 99900 }];
+    await createCheckout(small, { email: "asha@example.com" });
+
+    const order = ordersCreate.mock.calls[0]![0];
+    expect(order.amount).toBe(99900);
+    expect(order.notes.shipping).toBeUndefined();
   });
 
   it("returns per-field errors for a bad address", async () => {

@@ -5,6 +5,7 @@ import { getSignedInCustomer } from "@/features/account/customer";
 import { BagView } from "@/features/cart/components/bag-view";
 import { YouMayAlsoLike } from "@/features/catalog/components/you-may-also-like";
 import { listRecommendedProducts } from "@/features/catalog/repository";
+import { listShippingRates } from "@/features/shipping/rates-repository";
 
 export const metadata: Metadata = {
   title: "Bag",
@@ -13,10 +14,12 @@ export const metadata: Metadata = {
 };
 
 export default async function CartPage() {
-  const [recommended, session] = await Promise.all([
+  const [recommended, session, shippingRates] = await Promise.all([
     listRecommendedProducts(8),
     // Only pre-fills the checkout email, so a lookup failure mustn't break the bag.
     getSignedInCustomer().catch(() => null),
+    // Checkout charges delivery either way; the bag just can't show it.
+    listShippingRates().catch(() => []),
   ]);
 
   return (
@@ -33,6 +36,7 @@ export default async function CartPage() {
         <BagView
           accountEmail={session?.customer.email ?? null}
           signedIn={session !== null}
+          shippingRates={shippingRates}
         />
       </div>
 

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { shippingInfo, shippingInfoRequest } from "./shipping-info";
 
+const FREE = { optionId: 2, name: "Free delivery", fee: 0 };
+
 const request = (addresses: unknown[]) =>
   shippingInfoRequest.parse({ addresses });
 
@@ -13,6 +15,7 @@ describe("shippingInfo", () => {
         { id: "a2", zipcode: 999999, country: "IN" },
       ]),
       check,
+      FREE,
     );
     expect(res.addresses).toMatchObject([
       {
@@ -33,6 +36,7 @@ describe("shippingInfo", () => {
         { id: "a2", zipcode: "56000", country: "IN" },
       ]),
       check,
+      FREE,
     );
     expect(check).not.toHaveBeenCalled();
     expect(
@@ -47,7 +51,36 @@ describe("shippingInfo", () => {
       async () => {
         throw new Error("timeout");
       },
+      FREE,
     );
     expect(res.addresses[0]?.shipping_methods[0]?.serviceable).toBe(false);
+  });
+});
+
+describe("shippingInfo delivery charge", () => {
+  it("quotes the bag's delivery charge to every serviceable address", async () => {
+    const res = await shippingInfo(
+      request([{ id: "a1", zipcode: "560001", country: "IN" }]),
+      async () => true,
+      { optionId: 1, name: "Standard delivery", fee: 9900 },
+    );
+    expect(res.addresses[0]!.shipping_methods[0]).toMatchObject({
+      name: "Standard delivery",
+      serviceable: true,
+      shipping_fee: 9900,
+      cod: false,
+    });
+  });
+
+  it("names free delivery as such", async () => {
+    const res = await shippingInfo(
+      request([{ id: "a1", zipcode: "560001", country: "IN" }]),
+      async () => true,
+      FREE,
+    );
+    expect(res.addresses[0]!.shipping_methods[0]).toMatchObject({
+      name: "Free Delivery",
+      shipping_fee: 0,
+    });
   });
 });

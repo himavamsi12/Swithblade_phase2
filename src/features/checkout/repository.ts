@@ -20,6 +20,8 @@ import { supportedCountries } from "@/payload/countries";
 import { isDemo } from "@/payload/demo";
 import { currenciesConfig } from "@/payload/currencies";
 import { decodeAddressNotes } from "./address";
+import { shippingFor } from "@/features/shipping/rates";
+import { listShippingRates } from "@/features/shipping/rates-repository";
 import { decodeCartNotes } from "./pricing";
 import { razorpayClient, type RazorpayConfig } from "./razorpay";
 
@@ -364,13 +366,36 @@ async function recordPayment(
     );
     return { status: "rejected", reason: "Unknown coupon on order" };
   }
-  // The Razorpay order was created here with the bag's total (less a bag
-  // coupon); with Magic coupons the shopper pays the bag less those. A
-  // payment for any other amount or currency is never captured or recorded.
-  const expected =
-    coupons.ids.length > 0
-      ? subtotal - coupons.discount
-      : Number(rzpOrder.amount);
+  // What the shopper should have paid. Standard checkout: the Razorpay
+  // order's amount, created here as the bag (less a bag coupon) plus
+  // delivery. Magic Checkout: the bag less its Magic coupons plus the
+  // delivery charge Razorpay added, which must be the one we quote for this
+  // bag (or another of our options' prices, if staff changed them while the
+  // shopper paid). Any other amount or currency is never captured or recorded.
+  const orderNotes = (rzpOrder.notes ?? {}) as Record<string, unknown>;
+  const magic =
+    coupons.ids.length > 0 ||
+    (rzpOrder as { line_items_total?: unknown }).line_items_total != null;
+  const rates = await listShippingRates(currency).catch((error: unknown) => {
+    console.error("Couldn't load shipping rates", error);
+    return [];
+  });
+  const quoted = shippingFor(rates, subtotal);
+  let shippingFee: number;
+  let expected: number;
+  if (magic) {
+    const base = subtotal - coupons.discount;
+    const paidFee = Number(payment.amount) - base;
+    const knownFee =
+      paidFee === quoted.fee ||
+      (paidFee >= 0 && rates.some((r) => r.amount === paidFee));
+    shippingFee = knownFee ? paidFee : quoted.fee;
+    expected = base + shippingFee;
+  } else {
+    const noted = Number(orderNotes.shipping);
+    shippingFee = Number.isInteger(noted) && noted > 0 ? noted : 0;
+    expected = Number(rzpOrder.amount);
+  }
   if (
     expected <= 0 ||
     Number(payment.amount) !== expected ||
@@ -383,6 +408,12 @@ async function recordPayment(
     );
     return { status: "rejected", reason: "Paid amount doesn't match order" };
   }
+
+  // The option the fee came from, for the order's shipping method.
+  const shippingRate =
+    shippingFee === quoted.fee
+      ? null
+      : (rates.find((r) => r.amount === shippingFee) ?? null);
 
   const payload = await getPayloadClient();
   const customerId = Number(
@@ -493,7 +524,16 @@ async function recordPayment(
         paymentStatus: "captured",
         amount,
         currency: currency as Currency,
-        totals: { subtotal, discountTotal: Math.max(0, subtotal - amount) },
+        totals: {
+          subtotal,
+          shippingTotal: shippingFee,
+          discountTotal: Math.max(0, subtotal + shippingFee - amount),
+        },
+        shippingMethod: {
+          option: shippingRate?.id ?? quoted.optionId,
+          name: shippingRate?.name ?? quoted.name,
+          amount: shippingFee,
+        },
         // Counted against the coupon's and campaign's limits (orders hook).
         promotions,
         // Magic Checkout collects it; otherwise the bag page put it in notes.

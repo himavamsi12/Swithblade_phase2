@@ -18,6 +18,11 @@ import {
 import { USE_MAGIC_CHECKOUT } from "@/features/checkout/magic";
 import { ChargeNote } from "@/features/currency/components/charge-note";
 import { Price } from "@/features/currency/components/price";
+import {
+  freeShippingFrom,
+  shippingFor,
+  type ShippingRate,
+} from "@/features/shipping/rates";
 import { cn } from "@/lib/utils";
 import { MAX_QUANTITY, subtotals } from "../cart";
 import { cartActions, lineKey, useCart } from "../store";
@@ -38,10 +43,13 @@ const paymentMarks = [
 export function BagView({
   accountEmail,
   signedIn,
+  shippingRates,
 }: {
   accountEmail: string | null;
   /** Hides the "log in or sign up" card for shoppers already signed in. */
   signedIn: boolean;
+  /** Delivery options from /admin, priced in INR. */
+  shippingRates: ShippingRate[];
 }) {
   const { lines, count, ready } = useCart();
   const [paidOrder, setPaidOrder] = useState<string | null>(null);
@@ -79,6 +87,7 @@ export function BagView({
           <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
             <OrderSummary
               lines={lines}
+              shippingRates={shippingRates}
               accountEmail={accountEmail}
               onPaid={setPaidOrder}
               onFailed={() => setFailed(true)}
@@ -259,11 +268,13 @@ function BagLine({ line }: { line: CartLine }) {
 
 function OrderSummary({
   lines,
+  shippingRates,
   accountEmail,
   onPaid,
   onFailed,
 }: {
   lines: CartLine[];
+  shippingRates: ShippingRate[];
   accountEmail: string | null;
   onPaid: (orderNumber: string) => void;
   onFailed: () => void;
@@ -273,6 +284,13 @@ function OrderSummary({
   const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
   // A coupon needs one currency to apply to.
   const discount = totals.length === 1 ? (coupon?.discount ?? 0) : 0;
+  // Delivery is priced in INR on the bag's subtotal (before coupons), as at
+  // checkout.
+  const inr = totals.length === 1 && totals[0]!.currency === "INR";
+  const shippingFee = inr
+    ? shippingFor(shippingRates, totals[0]!.amount).fee
+    : 0;
+  const freeFrom = inr ? freeShippingFrom(shippingRates) : null;
 
   return (
     <section
@@ -303,8 +321,20 @@ function OrderSummary({
         )}
         <div className={row}>
           <dt className="text-muted">Shipping</dt>
-          <dd>Free</dd>
+          <dd>
+            {shippingFee > 0 ? (
+              <Price amount={shippingFee} currency="INR" />
+            ) : (
+              "Free"
+            )}
+          </dd>
         </div>
+        {shippingFee > 0 && freeFrom !== null && (
+          <p className="-mt-2 text-body-4 text-muted">
+            Free delivery on orders of{" "}
+            <Price amount={freeFrom} currency="INR" /> or more.
+          </p>
+        )}
       </dl>
       <dl className="mt-4 flex flex-col gap-2 border-t border-stroke pt-4">
         {totals.map(({ currency, amount }) => (
@@ -313,7 +343,10 @@ function OrderSummary({
               Total{totals.length > 1 ? ` (${currency})` : ""}
             </dt>
             <dd>
-              <Price amount={amount - discount} currency={currency} />
+              <Price
+                amount={amount - discount + shippingFee}
+                currency={currency}
+              />
             </dd>
           </div>
         ))}

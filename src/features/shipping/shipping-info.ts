@@ -1,14 +1,20 @@
 import { z } from "zod";
+import type { ShippingCharge } from "./rates";
 
 /*
  * Razorpay Magic Checkout's "shipping info" call: for each address the shopper
- * enters, say whether we deliver there and at what fee. Delivery is free and
- * prepaid only (no cash on delivery). Fees are in paise.
+ * enters, say whether we deliver there and at what fee. The fee is the bag's
+ * delivery charge (see ./rates); prepaid only (no cash on delivery). Fees are
+ * in paise.
  */
 
 const MAX_ADDRESSES = 20;
 
 export const shippingInfoRequest = z.object({
+  /** The order's receipt. */
+  order_id: z.string().trim().max(64).nullish(),
+  /** The Razorpay order id, maybe without its `order_` prefix. */
+  razorpay_order_id: z.string().trim().max(64).nullish(),
   addresses: z
     .array(
       z.object({
@@ -44,6 +50,7 @@ const PINCODE = /^[1-9]\d{5}$/;
 export async function shippingInfo(
   request: ShippingInfoRequest,
   isServiceable: (pincode: string) => Promise<boolean>,
+  charge: ShippingCharge,
 ): Promise<ShippingInfoResponse> {
   const addresses = await Promise.all(
     request.addresses.map(async ({ id, zipcode, country }) => {
@@ -64,10 +71,10 @@ export async function shippingInfo(
         shipping_methods: [
           {
             id: "standard",
-            name: "Standard Delivery",
-            description: "Free delivery in 3–6 business days",
+            name: charge.fee === 0 ? "Free Delivery" : charge.name,
+            description: "Delivery in 3–6 business days",
             serviceable,
-            shipping_fee: 0,
+            shipping_fee: charge.fee,
             cod: false,
             cod_fee: 0,
           },

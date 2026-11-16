@@ -26,6 +26,8 @@ import {
   type DeliveryAddress,
   type DeliveryAddressInput,
 } from "./address";
+import { shippingFor } from "@/features/shipping/rates";
+import { listShippingRates } from "@/features/shipping/rates-repository";
 import { MAGIC_CURRENCY, usesMagicCheckout } from "./magic";
 import { rememberReceipt } from "./receipts";
 import { env } from "@/lib/env";
@@ -285,7 +287,12 @@ export async function createCheckout(
     discount = coupon.discount;
     promotionId = coupon.promotionId;
   }
-  const amount = cart.total - discount;
+  // Magic Checkout adds delivery itself (from /api/razorpay/shipping-info);
+  // the standard checkout charges it on the order created here.
+  const shippingFee = wantsMagic
+    ? 0
+    : shippingFor(await listShippingRates(cart.currency), cart.total).fee;
+  const amount = cart.total - discount + shippingFee;
 
   const cartNotes = encodeCartNotes(cart.lines);
   if (!cartNotes) {
@@ -333,6 +340,8 @@ export async function createCheckout(
         ...(session && { customer: String(session.customer.id) }),
         // Read back when the payment is recorded, to link the coupon.
         ...(promotionId !== null && { promotion: String(promotionId) }),
+        // Read back as the order's shipping total.
+        ...(shippingFee > 0 && { shipping: String(shippingFee) }),
       },
       ...(magic
         ? {

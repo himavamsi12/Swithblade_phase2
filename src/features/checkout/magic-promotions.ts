@@ -36,8 +36,11 @@ export const applyPromotionSchema = z.object({
 
 type RazorpayClient = ReturnType<typeof razorpayClient>;
 
-/** The Razorpay order a Magic request is about: by order id, else receipt. */
-async function findOrder(
+/**
+ * The Razorpay order a Magic Checkout call (coupons, shipping info) is
+ * about: by order id, else by receipt.
+ */
+export async function findMagicOrder(
   client: RazorpayClient,
   orderId: string,
   razorpayOrderId: string | null | undefined,
@@ -131,7 +134,7 @@ export async function applyMagicPromotion(
 
   const config = razorpayConfig();
   if (!config) return failure("INVALID_PROMOTION", INVALID);
-  const order = await findOrder(
+  const order = await findMagicOrder(
     razorpayClient(config),
     orderId,
     razorpay_order_id,

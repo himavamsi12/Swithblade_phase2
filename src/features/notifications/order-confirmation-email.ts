@@ -45,7 +45,8 @@ export function orderConfirmationEmail(order: Order) {
   const name = address?.firstName?.trim() || null;
   const subtotal = order.totals?.subtotal ?? order.amount ?? 0;
   const discount = order.totals?.discountTotal ?? 0;
-  const total = order.amount ?? subtotal - discount;
+  const shipping = order.totals?.shippingTotal ?? 0;
+  const total = order.amount ?? subtotal - discount + shipping;
   // Opens this order; sign-in comes first if needed, then lands back here.
   const accountUrl = absolute(
     `/account/orders?order=${encodeURIComponent(number)}`,
@@ -104,7 +105,7 @@ export function orderConfirmationEmail(order: Order) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
       ${summaryRow("Subtotal", money(subtotal))}
       ${discount > 0 ? summaryRow("Discount", `−${money(discount)}`) : ""}
-      ${summaryRow("Shipping", "Free")}
+      ${summaryRow("Shipping", shipping > 0 ? money(shipping) : "Free")}
       ${summaryRow("Total paid", money(total), true)}
     </table>
   </td></tr>
