@@ -13,8 +13,13 @@ Tasks parked for later. Tick them off (`[x]`) when done.
     Resend API key (create one in Resend → API Keys; don't commit it).
   - Sender email on a domain verified in Resend → Domains (e.g.
     `no-reply@yourdomain.com`), sender name `Switchblade`.
+  - Domain first: Resend → Domains → Add Domain, add the DNS records it
+    shows at the registrar, wait for "Verified".
+  - Then Supabase → Authentication → **Rate Limits**: raise the hourly email
+    limit (it starts low).
   - Test: request a password reset for your own email, open the link, set a
     new password, sign in with it.
+  - Deferred by the owner on 16 Nov; do before taking real customers.
 - [ ] **Fix `NEXT_PUBLIC_SITE_URL`.** (16 Nov: the live sitemap now uses
       `swithblade-phase2.vercel.app`, so the Vercel side looks done; still
       check the Supabase URL settings.) Vercel (Production) still has the
@@ -35,6 +40,15 @@ Tasks parked for later. Tick them off (`[x]`) when done.
       Redis, which adds the vars itself; no code change). Without it every
       rate limit is off: sign-in attempts, OTP texts (each costs money, and a
       phone number can be flooded), password-reset emails and checkout.
+  - Project → **Storage → Create Database → Upstash for Redis**, region
+    **Mumbai (ap-south-1)**, Free plan.
+  - Connect to `swithblade-phase2`, **Production** ticked, prefix left at
+    its default so it adds `KV_REST_API_URL` / `KV_REST_API_TOKEN`.
+  - If the project is moving to another Vercel team, move it first: the
+    database belongs to the team it was created in.
+  - Redeploy, then test: ~10 wrong passwords on `/account` should give "too
+    many attempts".
+  - Deferred by the owner on 16 Nov.
 - [ ] **Check the Razorpay setup.** `.env.local` uses test keys; make sure
       Vercel (Production) has `rzp_live_…` keys before launch. In the
       Razorpay dashboard → Webhooks, the webhook should point to
