@@ -205,10 +205,9 @@ export function CheckoutButton({
       name: siteConfig.name,
       prefill: session.prefill,
       one_click_checkout: session.magic,
-      // Site coupons are applied in the bag (and use the standard checkout);
-      // Razorpay's own coupon box has nothing to offer. See
-      // /api/razorpay/promotions.
-      show_coupons: false,
+      // Magic Checkout takes coupon codes in its own window, checked by
+      // /api/razorpay/apply-promotion against the store's coupons.
+      show_coupons: session.magic,
       // Closes before the stock hold ends, so a payment can't outlive it.
       timeout: PAYMENT_WINDOW_SECONDS,
       modal: {

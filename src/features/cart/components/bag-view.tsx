@@ -15,6 +15,7 @@ import {
   CouponField,
   type AppliedCoupon,
 } from "@/features/checkout/components/coupon-field";
+import { USE_MAGIC_CHECKOUT } from "@/features/checkout/magic";
 import { ChargeNote } from "@/features/currency/components/charge-note";
 import { Price } from "@/features/currency/components/price";
 import { cn } from "@/lib/utils";
@@ -324,14 +325,19 @@ function OrderSummary({
           className="mt-2 text-body-4 text-muted"
         />
       ))}
-      {totals.length === 1 && (
+      {/* With Magic Checkout, coupons are entered in Razorpay's window. */}
+      {USE_MAGIC_CHECKOUT ? (
+        <p className="mt-4 text-body-4 text-muted">
+          Have a coupon? Apply it in the next step.
+        </p>
+      ) : totals.length === 1 ? (
         <CouponField
           lines={lines}
           applied={coupon}
           onChange={setCoupon}
           focusRing={focusRing}
         />
-      )}
+      ) : null}
       <CheckoutButton
         lines={lines}
         couponCode={discount > 0 ? coupon!.code : null}

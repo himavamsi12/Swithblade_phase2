@@ -176,7 +176,11 @@ vi.mock("@/features/catalog/repository", () => ({
 }));
 vi.mock("@/features/stock/repository", () => ({ takeStock: m.takeStock }));
 const promotionExists = vi.hoisted(() => vi.fn());
-vi.mock("@/features/promotions/repository", () => ({ promotionExists }));
+const findPromotionByCode = vi.hoisted(() => vi.fn());
+vi.mock("@/features/promotions/repository", () => ({
+  promotionExists,
+  findPromotionByCode,
+}));
 vi.mock("@/payload/transaction", () => ({ lockKey: m.lockKey }));
 vi.mock("./razorpay", () => ({ razorpayClient: () => m.razorpay }));
 
@@ -500,6 +504,59 @@ describe("recordRazorpayPayment", () => {
     expect(result.status).toBe("duplicate");
     expect(razorpay.payments.capture).not.toHaveBeenCalled();
     expect(state.db.orders).toHaveLength(1);
+  });
+
+  describe("with a coupon applied in Magic Checkout", () => {
+    beforeEach(() => {
+      // Razorpay lists it on the order; the shopper paid the bag less it.
+      (state.rzpOrder as Record<string, unknown>).promotions = [
+        { code: "SAVE10", type: "coupon", value: 19990, reference_id: "7" },
+      ];
+      state.payment.amount = 179910;
+      findPromotionByCode.mockImplementation(async (code: string) =>
+        code === "SAVE10" ? { id: 7 } : null,
+      );
+      promotionExists.mockResolvedValue(true);
+    });
+
+    it("records the discounted order and links the coupon", async () => {
+      const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+
+      expect(result.status).toBe("recorded");
+      expect(state.db.orders![0]).toMatchObject({
+        amount: 179910,
+        promotions: [7],
+        totals: { subtotal: 199900, discountTotal: 19990 },
+      });
+    });
+
+    it("refuses, without capturing, a coupon that isn't one of ours", async () => {
+      state.payment.status = "authorized";
+      (state.rzpOrder as Record<string, unknown>).promotions = [
+        { code: "FREEBIE", value: 199800 },
+      ];
+      state.payment.amount = 100;
+      const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+
+      expect(result).toEqual({
+        status: "rejected",
+        reason: "Unknown coupon on order",
+      });
+      expect(razorpay.payments.capture).not.toHaveBeenCalled();
+      expect(state.db.orders).toHaveLength(0);
+    });
+
+    it("refuses a payment that doesn't match the bag less the coupon", async () => {
+      state.payment.status = "authorized";
+      state.payment.amount = 150000;
+      const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+
+      expect(result).toEqual({
+        status: "rejected",
+        reason: "Paid amount doesn't match order",
+      });
+      expect(razorpay.payments.capture).not.toHaveBeenCalled();
+    });
   });
 
   it("refuses a currency the store doesn't support", async () => {

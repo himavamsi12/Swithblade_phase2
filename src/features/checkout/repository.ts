@@ -8,7 +8,10 @@ import {
 import { z } from "zod";
 import { getPayloadClient } from "@/features/account/customer";
 import { getProductBySlug } from "@/features/catalog/repository";
-import { promotionExists } from "@/features/promotions/repository";
+import {
+  findPromotionByCode,
+  promotionExists,
+} from "@/features/promotions/repository";
 import { orderNumber } from "@/features/notifications/order-confirmation-email";
 import { takeStock } from "@/features/stock/repository";
 import { lockKey } from "@/payload/transaction";
@@ -289,6 +292,39 @@ export function recordRazorpayPayment(
   return promise;
 }
 
+const magicPromotionsSchema = z.array(
+  z.object({
+    code: z.string().trim().min(1),
+    value: z.coerce.number().int().positive(),
+  }),
+);
+
+/**
+ * The coupons Razorpay applied in Magic Checkout (the order's `promotions`),
+ * matched to the store's promotions by code, with their total discount.
+ * Null if any isn't one of ours, so a payment discounted by something we
+ * never offered is refused.
+ */
+async function magicCoupons(
+  rzpOrder: object,
+): Promise<{ ids: number[]; discount: number } | null> {
+  const raw = (rzpOrder as { promotions?: unknown }).promotions;
+  if (raw == null || (Array.isArray(raw) && raw.length === 0)) {
+    return { ids: [], discount: 0 };
+  }
+  const parsed = magicPromotionsSchema.safeParse(raw);
+  if (!parsed.success) return null;
+  const ids: number[] = [];
+  let discount = 0;
+  for (const { code, value } of parsed.data) {
+    const promotion = await findPromotionByCode(code).catch(() => null);
+    if (!promotion) return null;
+    ids.push(promotion.id);
+    discount += value;
+  }
+  return { ids, discount };
+}
+
 async function recordPayment(
   config: RazorpayConfig,
   razorpayOrderId: string,
@@ -313,22 +349,39 @@ async function recordPayment(
   if (!currencyCodes.has(currency)) {
     return { status: "rejected", reason: `Unsupported currency ${currency}` };
   }
-  // The Razorpay order was created here with the bag's total; a payment for
-  // any other amount or currency is never captured or recorded as paid.
+  const lines = decodeCartNotes(rzpOrder.notes);
+  if (!lines) {
+    return { status: "rejected", reason: "Order has no cart snapshot" };
+  }
+  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  // Coupons the shopper applied in Magic Checkout's window, each checked by
+  // /api/razorpay/apply-promotion against the store's coupons.
+  const coupons = await magicCoupons(rzpOrder);
+  if (!coupons) {
+    console.error(
+      `Payment ${payment.id} for ${razorpayOrderId} has a coupon that isn't ours:`,
+      JSON.stringify((rzpOrder as { promotions?: unknown }).promotions),
+    );
+    return { status: "rejected", reason: "Unknown coupon on order" };
+  }
+  // The Razorpay order was created here with the bag's total (less a bag
+  // coupon); with Magic coupons the shopper pays the bag less those. A
+  // payment for any other amount or currency is never captured or recorded.
+  const expected =
+    coupons.ids.length > 0
+      ? subtotal - coupons.discount
+      : Number(rzpOrder.amount);
   if (
-    Number(payment.amount) !== Number(rzpOrder.amount) ||
+    expected <= 0 ||
+    Number(payment.amount) !== expected ||
     currency !== String(rzpOrder.currency).toUpperCase()
   ) {
     console.error(
       `Payment ${payment.id} for ${razorpayOrderId} doesn't match the order:`,
       `paid ${payment.amount} ${currency},`,
-      `expected ${rzpOrder.amount} ${rzpOrder.currency} (status ${payment.status})`,
+      `expected ${expected} ${rzpOrder.currency} (status ${payment.status})`,
     );
     return { status: "rejected", reason: "Paid amount doesn't match order" };
-  }
-  const lines = decodeCartNotes(rzpOrder.notes);
-  if (!lines) {
-    return { status: "rejected", reason: "Order has no cart snapshot" };
   }
 
   const payload = await getPayloadClient();
@@ -369,19 +422,22 @@ async function recordPayment(
       ),
     ),
   );
-  const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
   const amount = Number(payment.amount);
   // The coupon applied at checkout, unless staff deleted it since: linking a
   // missing promotion would fail the save of an order that's already paid.
   const promotionId = Number(
     (rzpOrder.notes as Record<string, unknown> | undefined)?.promotion,
   );
-  const promotions =
-    Number.isInteger(promotionId) &&
-    promotionId > 0 &&
-    (await promotionExists(promotionId).catch(() => false))
-      ? [promotionId]
-      : [];
+  const promotions = [
+    ...new Set([
+      ...(Number.isInteger(promotionId) &&
+      promotionId > 0 &&
+      (await promotionExists(promotionId).catch(() => false))
+        ? [promotionId]
+        : []),
+      ...coupons.ids,
+    ]),
+  ];
 
   const req = await createLocalReq({}, payload);
   await initTransaction(req);
