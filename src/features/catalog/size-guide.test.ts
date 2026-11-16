@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   averageProportions,
   cmToIn,
+  fitPreview,
   matchSize,
   proportionLabel,
   recommendSize,
@@ -74,5 +75,31 @@ describe("matchSize", () => {
 
   it("is null when the product doesn't come in that size", () => {
     expect(matchSize(sizes, "XS")).toBeNull();
+  });
+});
+
+describe("fitPreview", () => {
+  const pick = (size: string, cm: number) => {
+    const p = fitPreview(size, cm);
+    return `${p.size} ${p.height.key}`;
+  };
+
+  it("picks the render nearest the shopper's height", () => {
+    expect(pick("M", 150)).toBe("M 5-8");
+    expect(pick("M", 173)).toBe("M 5-8"); // 5'8.1"
+    expect(pick("M", 178)).toBe("M 5-10"); // 5'10.1"
+    expect(pick("L", 183)).toBe("L 6-0");
+    expect(pick("XL", 200)).toBe("XL 6-2");
+  });
+
+  it("goes to the taller render on a tie", () => {
+    expect(pick("S", 69 * 2.54)).toBe("S 5-10");
+  });
+
+  it("uses the nearest rendered size", () => {
+    expect(pick("XS", 175)).toBe("S 5-8");
+    expect(pick("2XL", 190)).toBe("XL 6-2");
+    expect(pick("Large", 180)).toBe("L 5-10");
+    expect(pick("Free", 180)).toBe("M 5-10");
   });
 });

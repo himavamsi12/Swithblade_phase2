@@ -211,3 +211,40 @@ export function matchSize<T extends { label: string }>(
   const key = sizeKey(chartSize);
   return sizes.find((s) => sizeKey(s.label) === key) ?? null;
 }
+
+/** Sizes and heights the fit preview renders exist for. */
+export const PREVIEW_SIZES = ["S", "M", "L", "XL"] as const;
+export const PREVIEW_HEIGHTS = [
+  { key: "5-8", label: "5′8″", inches: 68 },
+  { key: "5-10", label: "5′10″", inches: 70 },
+  { key: "6-0", label: "6′0″", inches: 72 },
+  { key: "6-2", label: "6′2″", inches: 74 },
+] as const;
+
+export type PreviewSize = (typeof PREVIEW_SIZES)[number];
+export type PreviewHeight = (typeof PREVIEW_HEIGHTS)[number];
+
+/**
+ * The fit render closest to the shopper: their size (sizes smaller or larger
+ * than the renders use the nearest one, e.g. XS → S, 2XL → XL) on the
+ * mannequin nearest their height. Ties go to the taller render.
+ */
+export function fitPreview(
+  size: string,
+  heightCm: number,
+): { size: PreviewSize; height: PreviewHeight } {
+  const chartIndex = sizeChart.findIndex((r) => r.size === sizeKey(size));
+  const first = sizeChart.findIndex((r) => r.size === PREVIEW_SIZES[0]);
+  const previewIndex = Math.min(
+    PREVIEW_SIZES.length - 1,
+    Math.max(0, chartIndex - first),
+  );
+  const inches = heightCm / 2.54;
+  const height = PREVIEW_HEIGHTS.reduce((best, h) =>
+    Math.abs(h.inches - inches) <= Math.abs(best.inches - inches) ? h : best,
+  );
+  return {
+    size: chartIndex < 0 ? "M" : PREVIEW_SIZES[previewIndex]!,
+    height,
+  };
+}

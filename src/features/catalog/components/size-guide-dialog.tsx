@@ -8,6 +8,7 @@ import {
   averageProportions,
   type BodyPart,
   cmToIn,
+  fitPreview,
   HEIGHT_RANGE,
   matchSize,
   modelMeasurements,
@@ -19,6 +20,7 @@ import {
   sizeChart,
   WEIGHT_RANGE,
 } from "../size-guide";
+import { fitPreviewImages } from "../fit-preview-images";
 import type { ProductSize } from "../types";
 
 type SizeGuideDialogProps = {
@@ -91,14 +93,22 @@ export function SizeGuideDialog({
 
   const bodyValid =
     inRange(height, HEIGHT_RANGE) && inRange(weight, WEIGHT_RANGE);
-  const recommendation =
-    step === 3
-      ? recommendSize({
-          height: Number(height),
-          weight: Number(weight),
-          proportions,
-        })
-      : null;
+  // Updated live as the shopper answers, so the fit preview follows along.
+  const liveSize = bodyValid
+    ? recommendSize({
+        height: Number(height),
+        weight: Number(weight),
+        proportions,
+      })
+    : null;
+  const recommendation = step === 3 ? liveSize : null;
+  const preview = liveSize ? fitPreview(liveSize.size, Number(height)) : null;
+  const previewImage = preview
+    ? fitPreviewImages[preview.size][preview.height.key]
+    : null;
+  const previewAlt = preview
+    ? `Size ${preview.size} on a ${preview.height.label} mannequin`
+    : "";
   // The product's own spelling of the recommended size, if it comes in it.
   const recommended = recommendation
     ? matchSize(sizes, recommendation.size)
@@ -152,37 +162,61 @@ export function SizeGuideDialog({
 
         {/* Model photo and measurements */}
         <aside className="hidden w-[32%] shrink-0 flex-col bg-card md:flex">
-          <div className="relative flex-1">
-            {modelImage && (
+          <div className={cn("relative flex-1", previewImage && "bg-black")}>
+            {previewImage ? (
               <Image
-                src={modelImage}
-                alt={`Model wearing size ${modelMeasurements.size}`}
+                key={`${preview!.size}-${preview!.height.key}`}
+                src={previewImage}
+                alt={previewAlt}
                 fill
-                sizes="440px"
+                sizes="320px"
                 className="object-contain"
               />
+            ) : (
+              modelImage && (
+                <Image
+                  src={modelImage}
+                  alt={`Model wearing size ${modelMeasurements.size}`}
+                  fill
+                  sizes="440px"
+                  className="object-contain"
+                />
+              )
             )}
           </div>
           <div className="flex flex-col gap-3 border-t border-stroke px-5 py-5 md:px-7 md:py-7">
-            <p className={eyebrow}>Model · Size {modelMeasurements.size}</p>
-            <ul className="flex flex-wrap gap-1 md:gap-1.5">
-              {[
-                ["H", modelMeasurements.height],
-                ["C", modelMeasurements.chest],
-                ["W", modelMeasurements.waist],
-                ["Hip", modelMeasurements.hip],
-              ].map(([label, value]) => (
-                <li
-                  key={label}
-                  className="flex h-[25px] items-center gap-1 border border-stroke px-1.5 text-body-4 md:h-8 md:px-2.5 md:text-body-3"
-                >
-                  <span className="tracking-[0.1em] text-muted uppercase">
-                    {label}
-                  </span>
-                  <span>{value}cm</span>
-                </li>
-              ))}
-            </ul>
+            {preview ? (
+              <>
+                <p className={eyebrow} aria-live="polite">
+                  Your fit · Size {preview.size} · {preview.height.label}
+                </p>
+                <p className="text-body-3 text-muted">
+                  Closest to your height and build.
+                </p>
+              </>
+            ) : (
+              <p className={eyebrow}>Model · Size {modelMeasurements.size}</p>
+            )}
+            {!preview && (
+              <ul className="flex flex-wrap gap-1 md:gap-1.5">
+                {[
+                  ["H", modelMeasurements.height],
+                  ["C", modelMeasurements.chest],
+                  ["W", modelMeasurements.waist],
+                  ["Hip", modelMeasurements.hip],
+                ].map(([label, value]) => (
+                  <li
+                    key={label}
+                    className="flex h-[25px] items-center gap-1 border border-stroke px-1.5 text-body-4 md:h-8 md:px-2.5 md:text-body-3"
+                  >
+                    <span className="tracking-[0.1em] text-muted uppercase">
+                      {label}
+                    </span>
+                    <span>{value}cm</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </aside>
 
@@ -346,12 +380,22 @@ export function SizeGuideDialog({
                     <h3 className="mt-2 text-h4 font-normal">
                       Your recommended size.
                     </h3>
-                    <p
-                      className="mt-6 flex size-20 items-center justify-center border-2 border-black text-[32px] font-semibold md:mt-6 md:size-24 md:text-[36px]"
-                      aria-label={`Size ${recommendation.size}`}
-                    >
-                      {recommendation.size}
-                    </p>
+                    <div className="mt-6 flex items-end gap-4">
+                      <p
+                        className="flex size-20 items-center justify-center border-2 border-black text-[32px] font-semibold md:size-24 md:text-[36px]"
+                        aria-label={`Size ${recommendation.size}`}
+                      >
+                        {recommendation.size}
+                      </p>
+                      {previewImage && (
+                        <Image
+                          src={previewImage}
+                          alt={previewAlt}
+                          sizes="80px"
+                          className="h-40 w-20 bg-black object-contain md:hidden"
+                        />
+                      )}
+                    </div>
                     <p className="mt-5 text-body-2 text-muted md:mt-6 md:text-body-1">
                       {recommendedAvailable
                         ? "There is a good chance that this size will fit you perfectly"
