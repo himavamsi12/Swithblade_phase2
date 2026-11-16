@@ -25,7 +25,12 @@ const m = vi.hoisted(() => {
     db: {} as Record<string, Doc[]>,
     nextId: 1,
     payment: {} as Payment,
-    rzpOrder: { id: "", notes: {} as Record<string, string> },
+    rzpOrder: {
+      id: "",
+      amount: 0,
+      currency: "INR",
+      notes: {} as Record<string, string>,
+    },
   };
 
   const matches = (doc: Doc, where: unknown): boolean => {
@@ -216,6 +221,8 @@ beforeEach(() => {
   };
   state.rzpOrder = {
     id: "order_1",
+    amount: 199900,
+    currency: "INR",
     notes: {
       ...cartNotes([["2jz-tee", "Blue", "M", 1, 199900]]),
       ...addressNotes,
@@ -291,6 +298,7 @@ describe("recordRazorpayPayment", () => {
     promotionExists.mockResolvedValue(true);
     state.rzpOrder.notes.promotion = "7";
     state.payment.amount = 179910;
+    state.rzpOrder.amount = 179910;
     await recordRazorpayPayment(config, "order_1", "pay_1");
 
     expect(promotionExists).toHaveBeenCalledWith(7);
@@ -462,6 +470,38 @@ describe("recordRazorpayPayment", () => {
     },
   );
 
+  it("refuses, without capturing, a payment for a different amount", async () => {
+    state.payment.status = "authorized";
+    state.payment.amount = 100;
+    const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+    expect(result).toEqual({
+      status: "rejected",
+      reason: "Paid amount doesn't match order",
+    });
+    expect(razorpay.payments.capture).not.toHaveBeenCalled();
+    expect(state.db.orders).toHaveLength(0);
+  });
+
+  it("refuses a payment in a different currency from the order", async () => {
+    state.rzpOrder.currency = "USD";
+    const result = await recordRazorpayPayment(config, "order_1", "pay_1");
+    expect(result).toMatchObject({ status: "rejected" });
+    expect(state.db.orders).toHaveLength(0);
+  });
+
+  it("doesn't capture a second payment for an order that's already paid", async () => {
+    await recordRazorpayPayment(config, "order_1", "pay_1");
+    // A second payment slips past the first check (another server).
+    state.payment = { ...state.payment, id: "pay_2", status: "authorized" };
+    const empty = { docs: [], totalDocs: 0 };
+    payload.find.mockResolvedValueOnce(empty);
+    const result = await recordRazorpayPayment(config, "order_1", "pay_2");
+
+    expect(result.status).toBe("duplicate");
+    expect(razorpay.payments.capture).not.toHaveBeenCalled();
+    expect(state.db.orders).toHaveLength(1);
+  });
+
   it("refuses a currency the store doesn't support", async () => {
     state.payment.currency = "JPY";
     const result = await recordRazorpayPayment(config, "order_1", "pay_1");
@@ -477,7 +517,7 @@ describe("recordRazorpayPayment", () => {
     });
   });
 
-  it("captures an authorized payment before saving anything", async () => {
+  it("captures an authorized payment before saving the order", async () => {
     state.payment.status = "authorized";
     await recordRazorpayPayment(config, "order_1", "pay_1");
 
@@ -487,7 +527,12 @@ describe("recordRazorpayPayment", () => {
       "INR",
     );
     const captured = razorpay.payments.capture.mock.invocationCallOrder[0]!;
-    const firstWrite = payload.create.mock.invocationCallOrder[0]!;
+    // The guest's customer record may be found or added first; the order
+    // and its payment are only written once the money is taken.
+    const orderWrite = payload.create.mock.calls.findIndex(
+      ([args]) => args.collection === "orders",
+    );
+    const firstWrite = payload.create.mock.invocationCallOrder[orderWrite]!;
     expect(captured).toBeLessThan(firstWrite);
     expect(state.db.orders).toHaveLength(1);
   });
@@ -514,7 +559,8 @@ describe("recordRazorpayPayment", () => {
       recordRazorpayPayment(config, "order_1", "pay_1"),
     ).rejects.toThrow("gateway down");
     expect(state.db.orders).toHaveLength(0);
-    expect(payload.create).not.toHaveBeenCalled();
+    expect(state.db.transactions).toHaveLength(0);
+    expect(m.commitTransaction).not.toHaveBeenCalled();
   });
 
   it("records an order that sold out while paying and flags it for a refund", async () => {

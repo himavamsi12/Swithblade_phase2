@@ -10,6 +10,9 @@ import { PAYMENT_WINDOW_SECONDS } from "@/features/stock/hold";
 import { createCheckout, verifyPayment } from "../actions";
 import type { DeliveryAddressInput } from "../address";
 import { PendingLabel } from "@/components/ui/spinner";
+// Remembered in this browser only, so returning shoppers needn't retype it;
+// cleared on sign-out.
+import { ADDRESS_KEY } from "../saved-address";
 
 type AddressField = keyof DeliveryAddressInput;
 
@@ -23,9 +26,6 @@ const EMPTY_ADDRESS: Record<AddressField, string> = {
   state: "",
   pincode: "",
 };
-
-/* Remembered in this browser only, so returning shoppers needn't retype it. */
-const ADDRESS_KEY = "sb:delivery-address";
 
 function loadAddress(): Record<AddressField, string> {
   try {

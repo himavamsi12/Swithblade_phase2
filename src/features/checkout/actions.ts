@@ -46,6 +46,8 @@ const MAGIC_CURRENCY = "INR";
  * Off: in test mode Magic Checkout rejected every pincode without calling our
  * shipping-info URL. The bag page collects the address instead. The Magic
  * endpoints under /api/razorpay stay in place for switching it back on.
+ * Before that, check `recordPayment`'s amount check (payment must equal the
+ * Razorpay order amount) against Magic's shipping and COD fees.
  */
 const USE_MAGIC_CHECKOUT = false;
 

@@ -313,14 +313,22 @@ async function recordPayment(
   if (!currencyCodes.has(currency)) {
     return { status: "rejected", reason: `Unsupported currency ${currency}` };
   }
+  // The Razorpay order was created here with the bag's total; a payment for
+  // any other amount or currency is never captured or recorded as paid.
+  if (
+    Number(payment.amount) !== Number(rzpOrder.amount) ||
+    currency !== String(rzpOrder.currency).toUpperCase()
+  ) {
+    console.error(
+      `Payment ${payment.id} for ${razorpayOrderId} doesn't match the order:`,
+      `paid ${payment.amount} ${currency},`,
+      `expected ${rzpOrder.amount} ${rzpOrder.currency} (status ${payment.status})`,
+    );
+    return { status: "rejected", reason: "Paid amount doesn't match order" };
+  }
   const lines = decodeCartNotes(rzpOrder.notes);
   if (!lines) {
     return { status: "rejected", reason: "Order has no cart snapshot" };
-  }
-  // An authorized payment is only a hold: Razorpay refunds it after a few
-  // days unless captured. Capture before recording, so every order is paid.
-  if (payment.status === "authorized") {
-    await capturePayment(razorpay, payment);
   }
 
   const payload = await getPayloadClient();
@@ -387,16 +395,31 @@ async function recordPayment(
       where: { razorpayOrderId: { equals: razorpayOrderId } },
       limit: 1,
       depth: 0,
-      select: { displayId: true },
+      select: { displayId: true, razorpayPaymentId: true },
       req,
     });
     if (recorded.docs[0]) {
       await killTransaction(req);
+      if (recorded.docs[0].razorpayPaymentId !== payment.id) {
+        // A second payment for an order that's already paid. Left
+        // uncaptured, Razorpay refunds it; if it was auto-captured, staff
+        // must refund it by hand.
+        console.error(
+          `Extra payment ${payment.id} (${payment.status}) on paid order ${razorpayOrderId}`,
+        );
+      }
       return {
         status: "duplicate",
         orderId: recorded.docs[0].id,
         orderNumber: orderNumber(recorded.docs[0]),
       };
+    }
+    // An authorized payment is only a hold: Razorpay refunds it after a few
+    // days unless captured. Captured here, under the order lock and after
+    // the duplicate check, so only the payment that gets recorded is taken.
+    // If capture fails, the transaction is rolled back and callers retry.
+    if (payment.status === "authorized") {
+      await capturePayment(razorpay, payment);
     }
     // Paid already, so an oversold line is recorded and flagged, not refused.
     const oversold = await takeStock(lines, razorpayOrderId, req);

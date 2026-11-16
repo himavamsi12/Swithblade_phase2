@@ -18,6 +18,21 @@ const securityHeaders = [
 
 const isDev = process.env.NODE_ENV === "development";
 
+/* This project's Supabase host, so next/image won't optimise images from
+ * anyone else's Supabase bucket. Falls back to any Supabase host when unset
+ * (e.g. CI placeholders). */
+function supabaseImageHost() {
+  const url =
+    process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  try {
+    const { hostname } = new URL(url);
+    if (hostname.endsWith(".supabase.co")) return hostname;
+  } catch {
+    // Unset or malformed: use the wildcard below.
+  }
+  return "*.supabase.co";
+}
+
 /*
  * Content-Security-Policy, set as a header (no nonces) so pages stay
  * statically cached. Inline scripts are still allowed (Next's own bootstrap
@@ -66,7 +81,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "*.supabase.co",
+        hostname: supabaseImageHost(),
         pathname: "/storage/v1/object/public/**",
       },
     ],

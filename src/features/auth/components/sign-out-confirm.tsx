@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { clearSavedAddress } from "@/features/checkout/saved-address";
 import { signOut } from "../actions";
 
 /** Asks before signing the shopper out; `trigger` is the Sign out control. */
@@ -16,7 +17,11 @@ export function SignOutConfirm({
       message="You'll need to sign in again to see your orders, addresses and saved bag."
       confirmLabel="Sign out"
       pendingLabel="Signing out…"
-      action={signOut}
+      action={async () => {
+        // Don't pre-fill the next person's checkout on a shared device.
+        clearSavedAddress();
+        await signOut();
+      }}
       trigger={trigger}
     />
   );

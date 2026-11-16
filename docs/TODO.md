@@ -15,7 +15,9 @@ Tasks parked for later. Tick them off (`[x]`) when done.
     `no-reply@yourdomain.com`), sender name `Switchblade`.
   - Test: request a password reset for your own email, open the link, set a
     new password, sign in with it.
-- [ ] **Fix `NEXT_PUBLIC_SITE_URL`.** Vercel (Production) still has the
+- [ ] **Fix `NEXT_PUBLIC_SITE_URL`.** (16 Nov: the live sitemap now uses
+      `swithblade-phase2.vercel.app`, so the Vercel side looks done; still
+      check the Supabase URL settings.) Vercel (Production) still has the
       login-protected `…git-main…` URL, so auth email links, Razorpay links and
       the sitemap point there.
   - Vercel → Settings → Environment Variables → set it to
@@ -53,7 +55,10 @@ Tasks parked for later. Tick them off (`[x]`) when done.
       is now `support@switchblade.in` (`src/config/site.ts`); check its inbox
       receives mail.
 - [ ] **Delete the "Test Tee" test product** (and its variants and photos)
-      in `/admin`.
+      in `/admin`. Also published and in the sitemap: "[demo] Dark Denium"
+      and "DEMO SHIRT"; unpublish or delete them too.
+- [ ] **Clear the test orders** (12 in the database on 16 Nov) so the
+      admin, coupon limits and order numbers start clean.
 
 ## Failure cases and security audit follow-ups
 
@@ -64,11 +69,15 @@ the hourly safety net above are prerequisites for several of these.
 
 ### Payments (most important)
 
-- [ ] **Capture inside the order lock.** `recordPayment` captures before the
+- [x] **Capture inside the order lock.** (16 Nov: capture now runs under
+      the lock after the duplicate re-check; an extra payment is left
+      uncaptured so Razorpay refunds it, and is logged. An extra payment that
+      was auto-captured still needs a manual refund.) `recordPayment` captures before the
       advisory lock, so a second payment on the same order can be captured
       and never recorded (no refund, no alert). Capture after the duplicate
       re-check; a losing different payment should be refunded or flagged.
-- [ ] **Check the paid amount.** `recordPayment` never compares
+- [x] **Check the paid amount.** (16 Nov: amount and currency must equal
+      the Razorpay order, else rejected uncaptured and logged.) `recordPayment` never compares
       `payment.amount` / currency with the Razorpay order; any shortfall is
       saved as `discountTotal` and the order ships. Reject and alert staff
       instead.
@@ -89,7 +98,7 @@ the hourly safety net above are prerequisites for several of these.
       quantity per product and the active holds per IP / shopper.
 - [ ] **Per-customer limit for drops** (max per SKU per order and per
       customer).
-- [ ] **Turn off Payload guest carts.** `allowGuestCarts` defaults to true,
+- [x] **Turn off Payload guest carts.** `allowGuestCarts` defaults to true,
       so anyone can create carts through `/api/carts`. Set
       `carts: { allowGuestCarts: false, … }` in `src/payload.config.ts`.
 - [ ] **Rate-limit `/api/razorpay/shipping-info`** (public, up to 20
@@ -113,13 +122,13 @@ the hourly safety net above are prerequisites for several of these.
       confirmed. Confirm Supabase "Confirm email" is on, and gate linking on
       `email_confirmed_at`. Also check email/phone change and account
       deletion (the trigger re-links by email).
-- [ ] **Redirect after login:** `safeNextPath` lets `/%09/evil.example`
+- [x] **Redirect after login:** `safeNextPath` lets `/%09/evil.example`
       through (tab/newline), which redirects off-site. Parse with `new URL`
       and require the same origin; add tests.
 - [ ] **`/auth/confirm` login CSRF:** it signs any browser into the account
       whose `token_hash` is in the link. Remove it (the app's emails use
       `/auth/callback`) or restrict the `type` and bind it to the browser.
-- [ ] **Saved checkout address survives sign-out** (`sb:delivery-address` in
+- [x] **Saved checkout address survives sign-out** (`sb:delivery-address` in
       localStorage) and pre-fills for the next person. Clear it on sign-out
       and prefer the signed-in account's email.
 - [ ] OTP: offer email login after two failed SMS codes; add Cloudflare

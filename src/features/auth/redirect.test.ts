@@ -14,4 +14,17 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/\\evil.example")).toBe("/account");
     expect(safeNextPath(null)).toBe("/account");
   });
+
+  it("rejects tabs and newlines browsers would strip", () => {
+    expect(safeNextPath("/\t/evil.example")).toBe("/account");
+    expect(safeNextPath("/%09/evil.example")).toBe("/%09/evil.example");
+    expect(safeNextPath("/\n/evil.example")).toBe("/account");
+    expect(safeNextPath("/\r/evil.example")).toBe("/account");
+  });
+
+  it("keeps query strings and hashes", () => {
+    expect(safeNextPath("/account/orders?page=2#top")).toBe(
+      "/account/orders?page=2#top",
+    );
+  });
 });

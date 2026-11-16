@@ -179,7 +179,9 @@ export default buildConfig({
         },
       },
       orders: { ordersCollectionOverride: ordersOverride },
-      carts: { cartsCollectionOverride: cartsOverride },
+      // The storefront keeps its own bag; don't let anonymous visitors
+      // create Payload carts through /api/carts.
+      carts: { allowGuestCarts: false, cartsCollectionOverride: cartsOverride },
       transactions: { transactionsCollectionOverride: transactionsOverride },
       payments: stripeEnabled
         ? {
