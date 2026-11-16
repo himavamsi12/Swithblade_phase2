@@ -154,7 +154,7 @@ export function SizeGuideDialog({
         ref={dialogRef}
         aria-labelledby={`${id}-title`}
         onClick={(e) => e.target === e.currentTarget && close()}
-        className="m-auto h-dvh max-h-none w-full max-w-none bg-white p-0 text-black backdrop:bg-black/40 open:flex md:h-[min(680px,calc(100dvh-48px))] md:w-[min(1000px,calc(100vw-48px))]"
+        className="m-auto h-dvh max-h-none w-full max-w-none translate-y-0 bg-white p-0 text-black opacity-100 transition-[opacity,translate] duration-300 ease-out backdrop:bg-black/40 open:flex motion-reduce:transition-none md:h-[min(680px,calc(100dvh-48px))] md:w-[min(1000px,calc(100vw-48px))] starting:translate-y-4 starting:opacity-0"
       >
         <h2 id={`${id}-title`} className="sr-only">
           Size guide for {productName}

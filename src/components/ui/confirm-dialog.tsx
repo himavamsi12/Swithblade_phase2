@@ -57,7 +57,7 @@ export function ConfirmDialog({
         onClick={(e) => {
           if (e.target === e.currentTarget) close();
         }}
-        className="m-auto w-[calc(100%-2rem)] max-w-[400px] bg-white p-0 text-left text-black shadow-xl outline-none backdrop:bg-black/45"
+        className="m-auto w-[calc(100%-2rem)] max-w-[400px] scale-100 bg-white p-0 text-left text-black opacity-100 shadow-xl transition-[opacity,scale] duration-200 outline-none backdrop:bg-black/45 motion-reduce:transition-none starting:scale-95 starting:opacity-0"
       >
         {open && (
           <div className="px-6 pt-7 pb-6">

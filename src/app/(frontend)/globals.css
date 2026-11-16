@@ -280,6 +280,47 @@ body {
   }
 }
 
+/*
+ * Route changes (components/layout/page-transition.tsx): the old page fades
+ * out fast, the new one rises in a moment later; the rest of the screen
+ * (header, footer) cross-fades only where it differs.
+ */
+::view-transition {
+  /* Clicks during the short animation reach the live page. */
+  pointer-events: none;
+}
+::view-transition-group(root) {
+  animation-duration: 250ms;
+}
+::view-transition-old(.page-exit) {
+  animation: 150ms cubic-bezier(0.4, 0, 1, 1) both page-out;
+}
+::view-transition-new(.page-enter) {
+  animation: 350ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both page-in;
+}
+
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}
+
 @keyframes success-in {
   from {
     opacity: 0;
