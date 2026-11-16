@@ -19,6 +19,13 @@ export default function HomePage() {
         mobileHome
         mobileLayout="grid"
       />
+      {/* Sample products for test orders; empty (and hidden) without any. */}
+      <ProductShelf
+        title="Demo products"
+        collection="demo-products"
+        mobileHome
+        mobileLayout="carousel"
+      />
       <CategoryTiles mobileHome />
       <ProductShelf
         title="Recommended"

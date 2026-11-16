@@ -23,7 +23,11 @@ import type {
 /** The storefront prices in one currency: the store default. */
 const STORE_CURRENCY = "INR";
 
-const SHELVES: readonly ProductCollection[] = ["new-arrivals", "recommended"];
+const SHELVES: readonly ProductCollection[] = [
+  "new-arrivals",
+  "recommended",
+  "demo-products",
+];
 
 const isColor = (name: string) => /^colou?rs?$/i.test(name.trim());
 const isSize = (name: string) => /^sizes?$/i.test(name.trim());

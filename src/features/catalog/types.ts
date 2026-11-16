@@ -63,7 +63,8 @@ export type ProductSize = {
   available: boolean;
 };
 
-export type ProductCollection = "new-arrivals" | "recommended";
+export type ProductCollection =
+  "new-arrivals" | "recommended" | "demo-products";
 
 export type ImageFrame = {
   left: number;
