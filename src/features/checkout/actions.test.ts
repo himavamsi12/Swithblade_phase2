@@ -74,6 +74,12 @@ vi.mock("./razorpay", () => ({
   isValidPaymentSignature: () => signatureOk,
 }));
 vi.mock("./after-payment", () => ({ afterOrderRecorded: vi.fn() }));
+// Standard checkout by default; the Magic Checkout tests switch it on.
+let magicOn = false;
+vi.mock("./magic", () => ({
+  MAGIC_CURRENCY: "INR",
+  usesMagicCheckout: (hasCoupon: boolean) => magicOn && !hasCoupon,
+}));
 const recordRazorpayPayment = vi.fn();
 vi.mock("./repository", () => ({ recordRazorpayPayment }));
 
@@ -107,6 +113,7 @@ beforeEach(() => {
   session = null;
   storeStatus = { open: true, message: "" };
   shippingOn = false;
+  magicOn = false;
   allowed = true;
   configured = true;
   signatureOk = true;
@@ -269,6 +276,64 @@ describe("createCheckout", () => {
     await createCheckout(bag, address);
     const [first, second] = holdStock.mock.calls.map((c) => c[1]);
     expect(second).toBe(first);
+  });
+
+  describe("with Magic Checkout", () => {
+    beforeEach(() => {
+      magicOn = true;
+    });
+
+    it("needs only an email: Razorpay collects the phone and address", async () => {
+      shippingOn = true;
+      const result = await createCheckout(bag, { email: "Asha@Example.com" });
+
+      expect(result).toMatchObject({
+        status: "ok",
+        magic: true,
+        prefill: { name: "", email: "asha@example.com", contact: "" },
+      });
+      // Razorpay checks the pincode through our shipping-info URL.
+      expect(isServiceable).not.toHaveBeenCalled();
+      const order = ordersCreate.mock.calls[0]![0];
+      expect(order.notes.email).toBe("asha@example.com");
+      expect(order.notes.ship0).toBeUndefined();
+      expect(order.line_items_total).toBe(399800);
+      expect(order.line_items).toHaveLength(1);
+    });
+
+    it("asks for a valid email", async () => {
+      const result = await createCheckout(bag, { email: "not-an-email" });
+      expect(result).toMatchObject({
+        status: "error",
+        message: "Please check your email address.",
+        fieldErrors: { email: "Enter a valid email address." },
+      });
+      expect(holdStock).not.toHaveBeenCalled();
+    });
+
+    it("uses the standard checkout, with the full address, for a coupon", async () => {
+      checkCoupon.mockResolvedValue({
+        ok: true,
+        promotionId: 7,
+        code: "SAVE10",
+        discount: 39980,
+      });
+      const missing = await createCheckout(
+        bag,
+        { email: "asha@example.com" },
+        "SAVE10",
+      );
+      expect(missing).toMatchObject({
+        status: "error",
+        message: "Please check your delivery address.",
+      });
+
+      const result = await createCheckout(bag, address, "SAVE10");
+      expect(result).toMatchObject({ status: "ok", magic: false });
+      const order = ordersCreate.mock.calls[0]![0];
+      expect(order.amount).toBe(359820);
+      expect(order.line_items_total).toBeUndefined();
+    });
   });
 
   it("returns per-field errors for a bad address", async () => {

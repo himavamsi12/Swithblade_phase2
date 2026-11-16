@@ -20,10 +20,13 @@ import {
 } from "@/features/shipping/shiprocket";
 import { DEFAULT_PACKAGE } from "@/features/shipping/shiprocket-order";
 import {
+  contactEmailSchema,
   deliveryAddressSchema,
   encodeAddressNotes,
+  type DeliveryAddress,
   type DeliveryAddressInput,
 } from "./address";
+import { MAGIC_CURRENCY, usesMagicCheckout } from "./magic";
 import { env } from "@/lib/env";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import {
@@ -39,19 +42,6 @@ import {
 } from "./razorpay";
 import { afterOrderRecorded } from "./after-payment";
 import { recordRazorpayPayment } from "./repository";
-
-/** Magic Checkout (one-click, address + COD + coupons) only supports INR. */
-const MAGIC_CURRENCY = "INR";
-/*
- * On for INR bags without a site coupon. Razorpay's dashboard is set to a
- * custom platform with our shipping-info and promotion URLs (free delivery,
- * no COD), so the paid amount always equals the Razorpay order amount, as
- * `recordPayment` requires. Adding shipping or COD fees there would make it
- * reject every Magic payment. The bag page still collects an address first
- * (it checks the pincode and is the fallback); the order is saved with the
- * address entered in Razorpay's window when there is one.
- */
-const USE_MAGIC_CHECKOUT = true;
 
 const itemsSchema = z
   .array(
@@ -175,6 +165,16 @@ function lineItem(line: PricedLine): Orders.LineItems {
   } as Orders.LineItems;
 }
 
+/** The address form's per-field messages for a failed parse. */
+function addressError(error: z.ZodError, message: string): CheckoutSession {
+  const fieldErrors: Partial<Record<keyof DeliveryAddressInput, string>> = {};
+  for (const issue of error.issues) {
+    const field = issue.path[0] as keyof DeliveryAddressInput;
+    fieldErrors[field] ??= issue.message;
+  }
+  return { status: "error", message, fieldErrors };
+}
+
 /** Re-prices the bag on the server and opens a Razorpay order for it. */
 export async function createCheckout(
   input: unknown,
@@ -199,29 +199,37 @@ export async function createCheckout(
     return { status: "error", message: "Your bag couldn't be read." };
   }
 
-  const address = deliveryAddressSchema.safeParse(addressInput);
-  if (!address.success) {
-    const fieldErrors: Partial<Record<keyof DeliveryAddressInput, string>> = {};
-    for (const issue of address.error.issues) {
-      const field = issue.path[0] as keyof DeliveryAddressInput;
-      fieldErrors[field] ??= issue.message;
+  // Magic Checkout collects the phone and address in Razorpay's window (and
+  // checks the pincode through our shipping-info URL); the bag page only
+  // sends an email then.
+  const hasCoupon = couponInput !== null && couponInput !== "";
+  const wantsMagic = usesMagicCheckout(hasCoupon);
+  let email: string;
+  let delivery: DeliveryAddress | null = null;
+  if (wantsMagic) {
+    const parsed = contactEmailSchema.safeParse(addressInput);
+    if (!parsed.success) {
+      return addressError(parsed.error, "Please check your email address.");
     }
-    return {
-      status: "error",
-      message: "Please check your delivery address.",
-      fieldErrors,
-    };
+    email = parsed.data.email;
+  } else {
+    const parsed = deliveryAddressSchema.safeParse(addressInput);
+    if (!parsed.success) {
+      return addressError(parsed.error, "Please check your delivery address.");
+    }
+    delivery = parsed.data;
+    email = delivery.email;
   }
-  const addressNotes = encodeAddressNotes(address.data);
+  const addressNotes = delivery ? encodeAddressNotes(delivery) : {};
   if (!addressNotes) {
     return {
       status: "error",
       message: "Your delivery address is too long. Please shorten it.",
     };
   }
-  if (shiprocketEnabled()) {
+  if (delivery && shiprocketEnabled()) {
     const serviceable = await isServiceable(
-      address.data.pincode,
+      delivery.pincode,
       DEFAULT_PACKAGE.weightKg,
     ).catch((error: unknown) => {
       console.error("Shiprocket serviceability check failed", error);
@@ -246,6 +254,13 @@ export async function createCheckout(
   if (!cart.ok) {
     return { status: "error", message: cart.message, repriced: cart.repriced };
   }
+  // Without an address from the bag page, only Magic Checkout can collect one.
+  if (wantsMagic && cart.currency !== MAGIC_CURRENCY) {
+    return {
+      status: "error",
+      message: "Checkout isn't available for this bag. Please contact us.",
+    };
+  }
   // Signed-in shoppers get the order on their account; guests check out by email.
   const session = await getSignedInCustomer();
 
@@ -253,7 +268,7 @@ export async function createCheckout(
   // isn't honoured.
   let discount = 0;
   let promotionId: number | null = null;
-  if (couponInput !== null && couponInput !== "") {
+  if (hasCoupon) {
     const code = couponSchema.safeParse(couponInput);
     const coupon = code.success
       ? await checkCoupon(
@@ -300,9 +315,9 @@ export async function createCheckout(
   }
   if (!hold.ok) return { status: "error", message: hold.message };
 
-  // Magic Checkout prices its own line items, so it can't take a bag coupon.
-  const magic =
-    USE_MAGIC_CHECKOUT && cart.currency === MAGIC_CURRENCY && discount === 0;
+  // Magic Checkout prices its own line items, so it can't take a bag coupon
+  // (wantsMagic is only true without one).
+  const magic = wantsMagic;
   try {
     const order = await razorpayClient(config).orders.create({
       amount,
@@ -312,7 +327,7 @@ export async function createCheckout(
         ...cartNotes,
         ...addressNotes,
         // So guests get a confirmation even if Razorpay doesn't ask for one.
-        email: address.data.email,
+        email,
         ...(session && { customer: String(session.customer.id) }),
         // Read back when the payment is recorded, to link the coupon.
         ...(promotionId !== null && { promotion: String(promotionId) }),
@@ -333,9 +348,9 @@ export async function createCheckout(
       currency: order.currency,
       magic,
       prefill: {
-        name: address.data.fullName,
-        email: address.data.email,
-        contact: address.data.phone,
+        name: delivery?.fullName ?? "",
+        email,
+        contact: delivery?.phone ?? "",
       },
     };
   } catch (error) {

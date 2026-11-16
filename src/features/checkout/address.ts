@@ -48,6 +48,12 @@ export const deliveryAddressSchema = z.object({
 });
 
 export type DeliveryAddressInput = z.input<typeof deliveryAddressSchema>;
+
+/**
+ * Magic Checkout: Razorpay's window collects the phone and address, so the
+ * bag page only asks for an email (for the confirmation and the account).
+ */
+export const contactEmailSchema = deliveryAddressSchema.pick({ email: true });
 export type DeliveryAddress = z.output<typeof deliveryAddressSchema>;
 
 /** Notes values are capped at 256 characters, so split over two keys. */

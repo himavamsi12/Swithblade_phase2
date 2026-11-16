@@ -13,6 +13,7 @@ import { PendingLabel } from "@/components/ui/spinner";
 // Remembered in this browser only, so returning shoppers needn't retype it;
 // cleared on sign-out.
 import { ADDRESS_KEY } from "../saved-address";
+import { usesMagicCheckout } from "../magic";
 
 type AddressField = keyof DeliveryAddressInput;
 
@@ -95,8 +96,10 @@ function loadScript(src: string): Promise<void> {
 }
 
 /**
- * Delivery address plus "Proceed to Checkout": checks the address and PIN
- * code on the server, then opens Razorpay Checkout for the bag.
+ * "Proceed to Checkout" with what the checkout needs first. Magic Checkout
+ * (no site coupon) collects the phone and address in Razorpay's window, so
+ * only the email is asked for here; with a coupon, the standard checkout
+ * needs the full delivery address, checked (with its PIN code) on the server.
  */
 export function CheckoutButton({
   lines,
@@ -139,6 +142,7 @@ export function CheckoutButton({
   >({});
 
   const fail = (message: string) => setError(message);
+  const magic = usesMagicCheckout(Boolean(couponCode));
 
   function checkout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -201,7 +205,9 @@ export function CheckoutButton({
       name: siteConfig.name,
       prefill: session.prefill,
       one_click_checkout: session.magic,
-      // No coupons yet; see /api/razorpay/promotions.
+      // Site coupons are applied in the bag (and use the standard checkout);
+      // Razorpay's own coupon box has nothing to offer. See
+      // /api/razorpay/promotions.
       show_coupons: false,
       // Closes before the stock hold ends, so a payment can't outlive it.
       timeout: PAYMENT_WINDOW_SECONDS,
@@ -263,7 +269,7 @@ export function CheckoutButton({
     <form onSubmit={checkout} noValidate className="mt-4">
       <fieldset disabled={pending} className="flex flex-col gap-2">
         <legend className="mb-3 text-body-3 font-semibold tracking-[0.04em] uppercase">
-          Delivery address
+          {magic ? "Contact" : "Delivery address"}
         </legend>
         {field("email", "Email", {
           type: "email",
@@ -271,38 +277,47 @@ export function CheckoutButton({
           inputMode: "email",
           required: true,
         })}
-        {field("fullName", "Full name", {
-          autoComplete: "name",
-          required: true,
-        })}
-        {field("phone", "Mobile number", {
-          autoComplete: "tel-national",
-          inputMode: "tel",
-          required: true,
-        })}
-        {field("addressLine1", "House / flat, street", {
-          autoComplete: "address-line1",
-          required: true,
-        })}
-        {field("addressLine2", "Area, landmark (optional)", {
-          autoComplete: "address-line2",
-        })}
-        <div className="grid grid-cols-2 gap-2">
-          {field("pincode", "PIN code", {
-            autoComplete: "postal-code",
-            inputMode: "numeric",
-            maxLength: 6,
-            required: true,
-          })}
-          {field("city", "City", {
-            autoComplete: "address-level2",
-            required: true,
-          })}
-        </div>
-        {field("state", "State", {
-          autoComplete: "address-level1",
-          required: true,
-        })}
+        {magic ? (
+          <p className="text-body-4 text-muted">
+            For your order confirmation. You&apos;ll add your phone number and
+            delivery address in the next step.
+          </p>
+        ) : (
+          <>
+            {field("fullName", "Full name", {
+              autoComplete: "name",
+              required: true,
+            })}
+            {field("phone", "Mobile number", {
+              autoComplete: "tel-national",
+              inputMode: "tel",
+              required: true,
+            })}
+            {field("addressLine1", "House / flat, street", {
+              autoComplete: "address-line1",
+              required: true,
+            })}
+            {field("addressLine2", "Area, landmark (optional)", {
+              autoComplete: "address-line2",
+            })}
+            <div className="grid grid-cols-2 gap-2">
+              {field("pincode", "PIN code", {
+                autoComplete: "postal-code",
+                inputMode: "numeric",
+                maxLength: 6,
+                required: true,
+              })}
+              {field("city", "City", {
+                autoComplete: "address-level2",
+                required: true,
+              })}
+            </div>
+            {field("state", "State", {
+              autoComplete: "address-level1",
+              required: true,
+            })}
+          </>
+        )}
       </fieldset>
       <button
         type="submit"
