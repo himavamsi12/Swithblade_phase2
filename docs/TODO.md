@@ -74,6 +74,11 @@ Tasks parked for later. Tick them off (`[x]`) when done.
       and "DEMO SHIRT"; unpublish or delete them too.
 - [ ] **Clear the test orders** (12 in the database on 16 Nov) so the
       admin, coupon limits and order numbers start clean.
+- [ ] **Turn off the ₹1 test coupons** in `/admin` → Promotions: HOODIE1,
+      2JZ1, DENIM1, SHIRT1, STAR1, LOGO1, LEMONDE1, VISION1, STRIPED1,
+      GRAPHIC1, JACKET1 (each makes one product ₹1; 5 uses each; they expire
+      23 Nov 2026 anyway). Refund the ₹1 test payments in Razorpay and cancel
+      their Shiprocket shipments.
 
 ## Failure cases and security audit follow-ups
 
